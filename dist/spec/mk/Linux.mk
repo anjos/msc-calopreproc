@@ -1,5 +1,5 @@
 #
-# $Id: Linux.mk,v 1.2 2000/07/07 18:24:03 rabello Exp $
+# $Id: Linux.mk,v 1.3 2000/10/23 02:26:33 andre Exp $
 #
 # variables for OS dependent source files
 # Linux 2.0.x
@@ -13,8 +13,10 @@ CXX      = c++
 CC       = gcc
 
 # depending on user preference
+###CXXFLAGS	= -O2 -I$(INCDIR)
 CXXFLAGS    = -O -g -I$(INCDIR) # -Wall 
 CFLAGS      = -O -g -I$(INCDIR)
+### CFLAGS      = -O2 -I$(INCDIR)
 
 # generic linker flags
 LDFLAGS  = 
