@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: normal.h,v 1.3 2000/09/11 14:29:47 andre Exp $ */
+/* $Id: normal.h,v 1.4 2000/09/19 00:33:22 andre Exp $ */
 
 #ifndef __NORMAL_H
 #define __NORMAL_H
@@ -18,8 +18,10 @@ void uniform_roi_normalize (uniform_roi_t*, const unsigned short*);
 /* This function is the frontend to ringroi_t normalization. It will select the
    correct function call to apply in each occasion or dunno if asked so. The
    first argument is the ring RoI you have created. The second, a set of
-   normalization flags, produced by string2normalization() bellow. */
-void ring_normalize(ringroi_t*, const unsigned short*);
+   normalization flags, produced by string2normalization() bellow. The third
+   argument is option and may be applied only if "unity+" normalization is
+   required. It represents the sphere radius of normalization. */
+void ring_normalize(ringroi_t*, const unsigned short*, const Energy*);
 
 /* Converts the string token to one of the possible normalization parameters,
    defined on the body of uniform.c:normal_t. This function checks
@@ -35,6 +37,10 @@ char* normalization2string(const unsigned short*, char*);
 
 /* This function returns true if the unity normalization flag is active,
    meaning that ring-unity-normalization will be applied. */
-bool_t normal_is_unit(const unsigned short*);
+bool_t normal_is_unity(const unsigned short*);
+
+/* This function returns true if the unity+ normalization flag is active,
+   meaning that ring-unity-normalization will be applied. */
+bool_t normal_is_unityx(const unsigned short*);
 
 #endif /* __NORMAL_H */
