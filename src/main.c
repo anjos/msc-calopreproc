@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.3 2000/06/28 15:47:31 rabello Exp $ */
+/* $Id: main.c,v 1.4 2000/07/07 18:51:38 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,6 +19,11 @@
 #include "data.h" /* the data file description */
 #include "trigtowr.h" /* for processing the data into trigger towers */
 #include "ring.h"
+#include "uniform.h"
+
+#ifdef TRACE_DEBUG
+#include <mcheck.h>
+#endif
 
 int getopt(int argc, char* const argv[], const char* optstring);
 extern char* optarg;
@@ -26,6 +31,9 @@ extern int optind, opterr, optopt;
 
 int main (int argc, char* argv[])
 {
+  /* I want to capture the errors produced by uniformization. */
+  extern int uniform_contour_err;
+
   FILE* infile = NULL;
   FILE* outfile = NULL; 
 
@@ -41,9 +49,13 @@ int main (int argc, char* argv[])
 
   char c;
 
-  CaloTTEMRoI ttroi; /* The calorimeter RoI */
+  tt_roi_t ttroi; /* The calorimeter RoI */
 
   EVENT event;
+
+#ifdef TRACE_DEBUG
+  mtrace();
+#endif
 
   while (EOF != (c=getopt(argc, argv, "e:f:r:o:ha") ) ) {
     switch (c) {
@@ -130,6 +142,7 @@ int main (int argc, char* argv[])
 
   if (!process_all) {
     ring_t ring;
+    uniform_roi_t ur;
 
     /* converts the numbers I have to work with */
     /* Now we can read the data files */
@@ -147,9 +160,13 @@ int main (int argc, char* argv[])
       free_ring(&ring);
     }
 
-    /* Now one has to dump the arranged cells in order to process them */
-    if (dumptt) print_roi(outfile, &ttroi);
-    
+    else {
+      /* Let's do it with uniform::*() */
+      uniformize (&ttroi,&ur);
+      print_uniform_layer (outfile,&ur,2);
+      free_uniform_roi (&ur);
+    }
+
     /* free all resources */
     free_roi(&ttroi);
 
@@ -162,20 +179,18 @@ int main (int argc, char* argv[])
     long int counter = 0;
     bool_t has_info = FALSE;
     ring_t ring;
+    uniform_roi_t ur;
+    int i; /* iterator */
 
     waste_initial_info(infile);
     
-    fprintf(stderr,"(main) Progress -> %4ld", counter);
+    fprintf(stderr," Progress | Rejected | Dumped \n", counter);
+    fprintf(stderr,"----------+----------+-------\n", counter);
+    fprintf(stderr,"  %5ld   | %6d   | %5d", counter, uniform_contour_err,
+	    counter - uniform_contour_err);
     
     while (read_EVENT(infile,&event) == ERR_SUCCESS) {
       ++counter; 
-      
-      /* progress report */
-      fprintf(stderr,"\b\b\b\b");
-      fprintf(stderr, "%4ld",counter);
-      fflush(stderr); /* just makes sure the number is written to the screen,
-			 otherwise it would stay jumping from 1 to 126 with no
-			 logic at all */ 
       
       /* for(i=0; i<event.nroi; ++i) { This line was substituted because, RoI's
 				       that are *NOT* the first ones, usually
@@ -200,24 +215,38 @@ int main (int argc, char* argv[])
 	  print_ring (outfile,&ring);
 	  free_ring(&ring);
 	}
-	
 
-	/* Now one has to dump the arranged cells in order to process them */
-	if (dumptt) print_roi(outfile, &ttroi);
-    
+	else
+	  /* Let's do it with uniform::*() */
+	  if ( uniformize (&ttroi,&ur) != NULL ) {
+	    print_uniform_roi (outfile,&ur); 
+	    free_uniform_roi (&ur); 
+	  }
+	
 	/* free all resources */
 	free_roi(&ttroi);
       
-	/* free the event as always */
-	free_EVENT(&event);
       } /* roi loop */
       
+      /* free the event as always */
+      free_EVENT(&event);
+     
+      /* progress report */
+      for(i=0; i<28; ++i) fprintf(stderr,"\b");
+      fprintf(stderr,"  %5ld   | %6d   | %5d", counter, uniform_contour_err,
+	      counter - uniform_contour_err);
+      fflush(stderr); /* just makes sure the number is written to the screen, 
+			 otherwise it would stay jumping from 1 to 126 with no
+			 logic at all */
       
     } /* event loop */
     
-    fprintf(stderr,".\n");
+    fprintf(stderr,"\n----------+----------+-------\n", counter);
+    fprintf(stderr,"(main) I've dumped %ld RoIs.\n", counter -
+	    uniform_contour_err);
     
-  } /* else */
+    
+  } /* else process all events */
 
   /* exit gracefully */
   return (EXIT_SUCCESS);
