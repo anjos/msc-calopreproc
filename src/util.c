@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.10 2000/09/06 15:00:52 andre Exp $ */
+/* $Id: util.c,v 1.11 2000/12/08 15:21:14 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -196,34 +196,41 @@ void waste_SCTGEOM(FILE* fp)
 char* get_DIGIS(const ROI* roi)
 {
   int i; /* iterator */
-  char* info; /* the output data will be stored here */
   char* temp = ""; /* a temporary holder */
 
+  /* Firstly, we print the RoI window, the order is etamin, etamax, phimin,
+     phimax. */
+  ascat_float(&temp, &roi->header.EtaMin);
+  ascat_float(&temp, &roi->header.EtaMax);
+  ascat_float(&temp, &roi->header.PhiMin);
+  ascat_float(&temp, &roi->header.PhiMax);
+  ascat(&temp, "\n");
+
+  ascat_int(&temp, &roi->calDigi.nEmDigi);
+  ascat(&temp, "\n");
   for(i=0; i<roi->calDigi.nEmDigi; ++i) {
-    int   cr = roi->calDigi.emDigi[i].CaloRegion;
-    float en = roi->calDigi.emDigi[i].Et;
-    float e  = roi->calDigi.emDigi[i].eta;
-    float p  = roi->calDigi.emDigi[i].phi;
-    int   id = roi->calDigi.emDigi[i].id;
-
-    asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
-    free(temp);
-    temp = info;
+    ascat_int(&temp, &roi->calDigi.emDigi[i].CaloRegion);
+    ascat_float(&temp, &roi->calDigi.emDigi[i].Et);
+    ascat_float(&temp, &roi->calDigi.emDigi[i].eta);
+    ascat_float(&temp, &roi->calDigi.emDigi[i].phi);
+    ascat_int(&temp, &roi->calDigi.emDigi[i].id);
+    ascat(&temp, "\n");
   }
 
+  ascat_int(&temp, &roi->calDigi.nhadDigi);
+  ascat(&temp, "\n");
   for(i=0; i<roi->calDigi.nhadDigi; ++i) {
-    int   cr = roi->calDigi.hadDigi[i].CaloRegion;
-    float en = roi->calDigi.hadDigi[i].Et;
-    float e  = roi->calDigi.hadDigi[i].eta;
-    float p  = roi->calDigi.hadDigi[i].phi;
-    int   id = roi->calDigi.hadDigi[i].id;
-
-    asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
-    free(temp);
-    temp = info;
+    ascat_int(&temp, &roi->calDigi.hadDigi[i].CaloRegion);
+    ascat_float(&temp, &roi->calDigi.hadDigi[i].Et);
+    ascat_float(&temp, &roi->calDigi.hadDigi[i].eta);
+    ascat_float(&temp, &roi->calDigi.hadDigi[i].phi);
+    ascat_int(&temp, &roi->calDigi.hadDigi[i].id);
+    ascat(&temp, "\n");
   }
 
-  return info;
+  ascat(&temp, "\n");
+
+  return temp;
 }
 
 char* get_SNNS_header(const int pats, const int i, const int o)
