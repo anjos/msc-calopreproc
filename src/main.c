@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.2 2000/05/31 11:51:51 rabello Exp $ */
+/* $Id: main.c,v 1.3 2000/06/28 15:47:31 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,7 +18,7 @@
 #include "util.h"
 #include "data.h" /* the data file description */
 #include "trigtowr.h" /* for processing the data into trigger towers */
-#include "flat.h" /* for flattening the trigger towers */
+#include "ring.h"
 
 int getopt(int argc, char* const argv[], const char* optstring);
 extern char* optarg;
@@ -35,16 +35,17 @@ int main (int argc, char* argv[])
   long int roi = -1;
   long int i;
 
+  bool_t process_all = FALSE;
+
+  bool_t dumptt = TRUE;
+
   char c;
 
   CaloTTEMRoI ttroi; /* The calorimeter RoI */
 
-  FlatEM em; /* The calorimeter EM part of the RoI flattened */
-  FlatHad had; /* the hadronic part flattened */
-
   EVENT event;
 
-  while (EOF != (c=getopt(argc, argv, "e:f:r:o:h") ) ) {
+  while (EOF != (c=getopt(argc, argv, "e:f:r:o:ha") ) ) {
     switch (c) {
     case 'f':
 
@@ -58,6 +59,10 @@ int main (int argc, char* argv[])
       /* and copy the string to name */
       name = malloc((strlen(optarg)+1)*sizeof(char));
       strcpy(name, optarg);
+      break;
+
+    case 'a':
+      dumptt = FALSE;
       break;
 
     case 'e':
@@ -78,8 +83,9 @@ int main (int argc, char* argv[])
     case 'h': /* give help */
     default:
       fprintf(stderr, "(main) Syntax for %s is\n", argv[0]);
-      fprintf(stderr, "(main) %s -f <input file> -e <event>", argv[0]);
-      fprintf(stderr, "-r <roi> -o <output file>\n", argv[0]);
+      fprintf(stderr, "(main) %s -f <input file> [-e <event>]", argv[0]);
+      fprintf(stderr, " [-r <roi>] [-a] [-o <output file>]\n", argv[0]);
+      fprintf(stderr, "(main) -a dumps rings instead of cells.\n");
       exit(EXIT_SUCCESS);
       break;
 
@@ -92,13 +98,11 @@ int main (int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-   /* I do not have an event selected. Count no. of valid events and exit */
-  if (number < 0) {
-    fprint_filespec(infile,stderr);
-    fprintf(stderr, "(main) The number of events ");
-    fprintf(stderr, "(with 1 RoI with DIGIs, at least) is ");
-    fprintf(stderr, "%ld.\n", count_events(infile));
-    exit(EXIT_SUCCESS);
+   /* I do not have an event selected. I will process all of them */
+  if (number < 0) { 
+    fprintf(stderr, "(main) I'll be processing all events in file.\n");
+    process_all = TRUE;
+    roi = 0;
   }
 
    /* I do not have an RoI selected. Get number of RoIs in event, print and
@@ -124,37 +128,96 @@ int main (int argc, char* argv[])
   /* wastes the initial VERSION information */
   waste_VERSION(infile);
 
-  /* converts the numbers I have to work with */
-  /* Now we can read the data files */
-  event = search_event(infile,number);
-  
+  if (!process_all) {
+    ring_t ring;
 
-  /*************************************
-   * Let's get to the calorimeter part *
-   *************************************/
-  /* Using libcalo.a. I will build a trigger tower, with zero suppression
-     (actually, the library doesn't work right with zero suppression flag
-     OFF) and will put the results in the variable tt */
-  if (CALO_ERROR == BuildCaloTTS(&(event.roi[roi-1]), TRUE, &ttroi)) {
-    fprintf(stderr,"(main) Can't put RoI into trigger tower format\n");
-    exit(EXIT_FAILURE);
+    /* converts the numbers I have to work with */
+    /* Now we can read the data files */
+    event = search_event(infile,number);
+
+    if (CALO_ERROR == build_roi(&(event.roi[roi-1]), FALSE, &ttroi)) {
+      fprintf(stderr,"(main) Can't put RoI into trigger tower format\n");
+      exit(EXIT_FAILURE);
+    }
+
+    /* let's check the functionality */
+    if (!dumptt) {
+      ring_sum (&ttroi, &ring);
+      print_ring (outfile, &ring);
+      free_ring(&ring);
+    }
+
+    /* Now one has to dump the arranged cells in order to process them */
+    if (dumptt) print_roi(outfile, &ttroi);
+    
+    /* free all resources */
+    free_roi(&ttroi);
+
+    /* free the event as always */
+    free_EVENT(&event);
+
   }
-
-  /* Flattening this roi. It's the easyiest way to produce something */
-  if (CALO_ERROR == Flatten(&ttroi, em, had)) {
-    fprintf(stderr,"(main) Can't flatten trigger tower\n");
-    exit(EXIT_FAILURE);
-  }
-
-  /* Now, printing results in to file */
-  fprintf_FLATEM(outfile, em);
-  fprintf_FLATHAD(outfile, had);
   
-  /* free all resources */
-  FreeCaloEMRoI(&ttroi);
+  else {
+    long int counter = 0;
+    bool_t has_info = FALSE;
+    ring_t ring;
 
-  /* free the event as always */
-  free_EVENT(&event);
+    waste_initial_info(infile);
+    
+    fprintf(stderr,"(main) Progress -> %4ld", counter);
+    
+    while (read_EVENT(infile,&event) == ERR_SUCCESS) {
+      ++counter; 
+      
+      /* progress report */
+      fprintf(stderr,"\b\b\b\b");
+      fprintf(stderr, "%4ld",counter);
+      fflush(stderr); /* just makes sure the number is written to the screen,
+			 otherwise it would stay jumping from 1 to 126 with no
+			 logic at all */ 
+      
+      /* for(i=0; i<event.nroi; ++i) { This line was substituted because, RoI's
+				       that are *NOT* the first ones, usually
+				       are not well set by libspec */
+
+      for (i=0; i<1; ++i) {
+	
+	if(event.roi[i].calDigi.nEmDigi == 0 &&
+	   event.roi[i].calDigi.nhadDigi == 0) {
+	  fprintf(stderr,"\n(main) event[%d].", counter);
+	  fprintf(stderr,"roi[%d] has no digi info!\n", i);
+	}
+   
+	if (CALO_ERROR == build_roi(&(event.roi[i]), FALSE, &ttroi)) {
+	  fprintf(stderr,"\n(main) Can't put RoI into tt format.\n");
+	  exit(EXIT_FAILURE);
+	}
+
+	/* let's check the functionality */
+	if (!dumptt) {
+	  ring_sum (&ttroi,&ring);
+	  print_ring (outfile,&ring);
+	  free_ring(&ring);
+	}
+	
+
+	/* Now one has to dump the arranged cells in order to process them */
+	if (dumptt) print_roi(outfile, &ttroi);
+    
+	/* free all resources */
+	free_roi(&ttroi);
+      
+	/* free the event as always */
+	free_EVENT(&event);
+      } /* roi loop */
+      
+      
+    } /* event loop */
+    
+    fprintf(stderr,".\n");
+    
+  } /* else */
 
   /* exit gracefully */
   return (EXIT_SUCCESS);
