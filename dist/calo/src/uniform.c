@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.6 2000/08/16 11:21:46 andre Exp $ */
+/* $Id: uniform.c,v 1.7 2000/08/18 03:12:02 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -500,11 +500,11 @@ bool_t validate_print_selection(const unsigned short* layer,
   
 }
 
-/* Although simple, its hacked for future upgrades. */
+/* Although simple, its hacked for future upgrades, that's why the complexity
+   of it. */
 unsigned short* string2normalization(unsigned short* to, const char* from)
 {
   char* token;
-  char* token2;
   const char delimiters [] = " ,";
 
   /* copies the initial string, not to alter it with a strtok() call */
@@ -542,12 +542,6 @@ unsigned short* string2normalization(unsigned short* to, const char* from)
   
   /* Can't forget to free the space I've allocated... */
   free(temp);
-
-  if ( (token2 = strtok(NULL,delimiters)) != NULL) {
-    fprintf(stderr, "(uniform)WARN: Can't have 2 normalization strategies");
-    fprintf(stderr, "for a single run\n");
-    fprintf(stderr, "(uniform)WARN: I'll use the first (%s)\n", token);
-  }
 
   return (to);
 }
