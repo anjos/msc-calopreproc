@@ -1,17 +1,21 @@
 This file is part of CaloASCII-tester package
 by André Rabello dos Anjos
 
-$Id: README,v 1.1 2000/03/14 21:49:59 rabello Exp $
+$Id: README,v 1.2 2000/04/05 21:51:05 rabello Exp $
 
 Introduction
 ------------
 
 The aim of this package is to provide the user with tools (ANSI-C functions)
 for analysing dumps of calorimeter digis in ASCII format. Such format is
-defined in C by another library, called spec. This library demands a
-description file, not too complex, that is located in the 'src' subdir.
+defined in C by another library, called spec. This last library demands a
+description file, not too complex, that is located in the 'src' subdir. Such a
+description is the standard description available at CERN by J.Baines. You can
+browse his page on datafiles and formats from:
 
-All programs using the spec library must be compiled agains the file
+http://hepunx.rl.ac.uk/atlasuk/simulation/level2/doc/ctrig/dumpfiles.html
+
+All programs using the spec library must be compiled against the file
 'libspec.a'.
 
 Besides that, I've create the calorimeter library, which is composed of simple
@@ -22,6 +26,14 @@ some special types as well. They are mostly for internal library use, with
 exceptions, and you shouldn't have to bore a lot with those.  If you intend to
 use such functions you will have to compile your programs against 'libcalo.a'
 as well.
+
+You can find the latest version of this library at my web site. For now, I only
+have CVS access through the web for viewing, but a solution may be thought of
+and package availability should be ok some weeks from today. Till there you can
+request me the latest version of the package at Andre.dos.Anjos@cern.ch. In
+order to access the web repository, you can point your browser to:
+
+http://www.lps.ufrj.br/~rabello/cgi-bin/cvsweb
 
 Building and installing
 -----------------------
@@ -34,7 +46,8 @@ gzip -c CaloASCII-tester.tar.gz | tar xvf -
 
 or
 
-tar xvfz CaloASCII-tester.tar.gz
+tar xvfz CaloASCII-tester.tar.gz (if your tar executable suports this
+				  simplified operation)
 
 2) Edit the central Makefile. Change the WORKDIR variable to point to your
 current distribution directory.
