@@ -1,5 +1,7 @@
 #!/bin/csh -f 
 
+# $Id: change,v 1.2 2000/07/07 18:22:36 rabello Exp $
+
 # This script replaces (case sensitively) the occurences of argv[1] by argv[2]
 # in files pointed by the last argument (argv[3]). A backup copy is saved in
 # case of error.
@@ -12,18 +14,35 @@
 # A mini-help
 if ( $#argv == 0 ) then
     
-    echo Usage: $0 \<what to change\> \<to what\> \<file list\>
+    echo \*\* Usage: $0 \<what to change\> \<to what\> \<file list\>
+    echo \*\* Author: André Rabello dos Anjos \<Andre.dos.Anjos\@cern.ch\>
     exit(0);
 
 endif
 
-# Now, for each file specified in $3 I'll apply the changes
-foreach file ( $argv[3-$#argv] )
+set filez = `fgrep -l $1 $argv[3-$#argv]`
+
+if ( $#filez == 0 ) then
+
+    echo \*\* Can\'t find matches on $argv[3-$#argv]
+    echo " "
+    echo \*\* Exiting peacefully...bye.
+    exit(0);
+
+endif
+
+# Now, for each file specified in $3 that *has* to be changed (verifyable by
+# using fgrep -l) I'll apply the changes. If the file is not listed by fgrep,
+# I'm sorry, but it won't be updated.
+ 
+foreach file ( $filez )
     
-    echo -n "changing $file... "
+    echo -n "** Changing -> $file... "
     sed -e "s/$1/$2/g" $file > new.c
     mv $file $file~
     mv new.c $file
     echo "done."
 
 end
+
+echo "** Note: I've back'ed up a copy of changed files."
