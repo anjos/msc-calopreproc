@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: test_portable.c,v 1.1 2000/05/26 17:22:27 rabello Exp $ */
+/* $Id: test_portable.c,v 1.2 2000/05/31 13:45:08 rabello Exp $ */
 
 #include "test_portable.h"
 
@@ -20,7 +20,7 @@ extern char* optarg;
 extern int optind, opterr, optopt;
 
 /* This one is the maximum difference between doubles */
-static double MAXERR = 0.0001; /* 1e-4 */
+static double MAXERR = 0.003; /* aprox. DETA */
 
 int main (int argc, char* argv[])
 {
@@ -157,12 +157,11 @@ int main (int argc, char* argv[])
 
   for(j=0;j<number_of_rois;j++) {
 
-    fprintf(outfile, "++++++++++++++++++++++++++++++++\n");
     fprintf(outfile, "(main) Examining RoI %ld.\n",j);
-    fprintf(outfile, "++++++++++++++++++++++++++++++++\n");
+    fprintf(outfile, "--------------------------------------------------\n");
 
     /* I should check roi-1 and decrement roi. Instead of doing both I
-       concentrated these 2 actions in --roi bellow */
+       moncentrated these 2 actions in --roi bellow */
     event_stats->roi_stats = check_roi( &(event.roi[--roi]), outfile);
 
   } /* end of event analysis */
@@ -179,10 +178,7 @@ int main (int argc, char* argv[])
 bool_t check_int (FILE* of, const int my, const int current, const char* what)
 {
   if(my != current) {
-    fprintf(of,"*********************************************************\n");
-    fprintf(of,"(check_int) DecodeId gives me a ");
-    fprintf(of,"%s number of %d and file %d.\n", what, my, current);
-    fprintf(of,"*********************************************************\n");
+    fprintf(of,"([%s] = %d) %d\n", what, current, my);
     return FALSE;
   }
   
@@ -192,12 +188,19 @@ bool_t check_int (FILE* of, const int my, const int current, const char* what)
 bool_t check_float (FILE* of, const float my, const float current, 
 		    const char* what)
 {
-  if(fcomp(my,current,MAXERR)==ERROR) {
-    fprintf(of,"*********************************************************\n");
-    fprintf(of,"(check_float [%s]) DecodeId gives me a %s of ", what, what);
-    fprintf(of,"%e and the file %e.\n", my, current);
-    fprintf(of," +++ The total difference is %e.\n", my - current);
-    fprintf(of,"*********************************************************\n");
+  if(fcomp(my,current,MAXERR)== CALO_ERROR) {
+    fprintf(of,"([%s] = %e) %e\n", what, current, my);
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+bool_t check_double (FILE* of, const double my, const double current, 
+		    const char* what)
+{
+  if(fcomp(my,current,MAXERR)== CALO_ERROR) {
+    fprintf(of,"([%s] = %e) %e\n", what, current, my);
     return FALSE;
   }
 
@@ -207,7 +210,7 @@ bool_t check_float (FILE* of, const float my, const float current,
 bool_t check_em_digi (roi_statistics_t* stat, const CellInfo* cell, 
 		      const emCalDigiType* digi, FILE* of)
 {
-  /* This is a cell error flag. In case of error it becomes TRUE */
+  /* This is a cell error bool_t. In case of error it becomes TRUE */
   bool_t has_error = FALSE;
 
   int caloregion = cell->calo * 100 + cell ->region;
@@ -221,13 +224,13 @@ bool_t check_em_digi (roi_statistics_t* stat, const CellInfo* cell,
   }
   
   /* use check_float for checking on the values for phi */
-  if ( ! check_float(of, cell->center.Phi, digi->CaloRegion, "PHI") ) {
+  if ( ! check_double(of, cell->center.Phi, digi->phi, "PHI") ) {
     has_error = TRUE;
     ++(stat->phi_errors);
   }
   
   /* use check_float for checking on the values for eta */
-  if ( ! check_float(of, cell->center.Eta, digi->CaloRegion, "ETA") ) {
+  if ( ! check_double(of, cell->center.Eta, digi->eta, "ETA") ) {
     has_error = TRUE;
     ++(stat->eta_errors);
   }
@@ -269,13 +272,44 @@ roi_statistics_t* check_roi (const ROI* theROI, FILE* of)
 
   stats = init_roi_statistics(stats);
 
+  /* Just say we're about to start EM part */
+  fprintf(of, "%s", "\n << EM PART >>\n");
+
   stats = check_em_part(theROI->calDigi.emDigi, 
 			theROI->calDigi.nEmDigi, stats, of);
 
+  /* Just say we're about to start HAD part */
+  fprintf(of, "%s", "\n << HAD PART >>\n");
+
   /* Now we take advantage of the fact that hadCalDigiType = emCalDigiType, and
-     thus we can convert one into the other */
+     thus we can monvert one into the other */
   stats = check_em_part( (emCalDigiType*)theROI->calDigi.hadDigi,
 			 theROI->calDigi.nhadDigi, stats, of);
+
+  if ( stats->ncells_with_errors != 0 ) {
+    float percentage;
+
+    /* monverts the integer code into a human readable form */
+    
+    fprintf(of, "------------------------------------------------------\n");
+    fprintf(of, "I've found errors on this RoI, the statistics: \n");
+    fprintf(of, "%d  (100.0%%) EM Cells were decodified\n", stats->ncells);
+    percentage = ( (stats->ncells_with_errors) / (stats->ncells) ) * 100;
+    fprintf(of, "%d  (%3.2f%%) are NOT well coded\n", 
+	    stats->ncells_with_errors, percentage);
+    fprintf(of, " +++ Those errors can be quantified as: \n");
+    percentage = ( stats->caloregion_errors / stats->ncells_with_errors ) *
+      100; 
+    fprintf(of, "%d  (%3.2f%%) are CaloRegion (de)codifications errors\n",
+	    stats->caloregion_errors, percentage);
+    percentage = ( stats->eta_errors / stats->ncells_with_errors ) * 100;
+    fprintf(of, "%d  (%3.2f%%) are eta (de)codification errors\n",
+	    stats->eta_errors, percentage);
+    percentage = ( stats->phi_errors / stats->ncells_with_errors ) * 100;
+    fprintf(of, "%d  (%3.2f%%) are phi (de)codification errors\n",
+	    stats->phi_errors, percentage);
+    fprintf(of, "------------------------------------------------------\n");
+  }
 
   return stats;
 }
@@ -298,32 +332,21 @@ roi_statistics_t* check_em_part (const emCalDigiType* digi, const long n_digi,
     /* 1) Decode normally the digi */
     DecodeId(digi[i].id, &cell);
 
-    /* 2) Checks whether the digi is corrupted or not. If so, print some
-       statistics information */
-    if ( check_em_digi(stats, &cell, &(digi[i]), of) ) {
-      float percentage;
+    /* 2) Checks whether the digi is corrupted or not (do not print UCN) */
+    /* check_em_digi (stats, &cell, &(digi[i]), of); */
 
-      /* converts the integer code into a human readable form */
-      i2ucn(digi->id, ucn);
-    
-      fprintf(of, "------------------------------------------------------\n");
-      fprintf(of, "I've found errors on this cell, the statistics: \n");
-      fprintf(of, "%d  (100.00) EM Cells were decodified\n", stats->ncells);
-      percentage = (stats->ncells_with_errors/stats->ncells) * 100;
-      fprintf(of, "%d  (%3.2f%%) are NOT well coded\n", 
-	      stats->ncells_with_errors, percentage);
-      fprintf(of, " +++ Those errors can be quantified as: \n");
-      percentage = (stats->caloregion_errors/stats->ncells_with_errors) * 100;
-      fprintf(of, "%d  (%3.2f%%) are CaloRegion codifications errors\n",
-	      stats->caloregion_errors, percentage);
-      percentage = (stats->eta_errors/stats->ncells_with_errors) * 100;
-      fprintf(of, "%d  (%3.2f%%) are eta codification errors\n",
-	      stats->eta_errors, percentage);
-      percentage = (stats->phi_errors/stats->ncells_with_errors) * 100;
-      fprintf(of, "%d  (%3.2f%%) are phi codification errors\n",
-	      stats->eta_errors, percentage);
-      fprintf(of, "------------------------------------------------------\n");
+    /* If you want to output the UCN, comment out the previous line and
+       uncomment the next lines. Else, mon't forget to uncomment the variable
+       declaration above. */
+
+    if ( check_em_digi (stats, &cell, &(digi[i]), of) ) {
+      i2ucn(digi[i].id, ucn);
+      fprintf(of, "UCN for digi %ld is %s (%d)\n", i, ucn, digi[i].id);
+      fprintf(of, "[ETA = %e] [PHI = %e] [CR = %d]\n",cell.center.Eta,
+	      cell.center.Phi, 100*cell.calo + cell.region);
+      fprintf(of, "-------------------------------------------------------\n");
     }
+
 
   } /* end loop over all digis of RoI */
 
@@ -334,8 +357,9 @@ roi_statistics_t* check_em_part (const emCalDigiType* digi, const long n_digi,
   global_stats->eta_errors += stats->eta_errors;
   global_stats->phi_errors += stats->phi_errors;
 
-  free(stats); /* free the contents of this local statitics structure */
+  free(stats); /* free the montents of this local statitics structure */
 
   return global_stats; /* return the updated structure */
 
 } /* end of check_EM_part() */
+
