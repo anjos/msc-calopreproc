@@ -1,17 +1,18 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ttdef.h,v 1.2 2000/05/31 12:01:13 rabello Exp $ */
+/* $Id: ttdef.h,v 1.3 2000/07/07 18:27:40 rabello Exp $ */
 
 #ifndef _TTDEF_H
 #define _TTDEF_H
 
 #include "common.h"
 
-#define EMROIGRAN 4
+#define EMROIGRAN 4 /* The granularity of trigger towers in EM */
+#define HADROIGRAN 2 /* The granularity of trigger towers in HAD */
 
 typedef struct CaloCell {
   Energy energy;
-  Index index;
+  index_t index;
 }CaloCell;
 
 /* always a 0.1 x 0.1 TT */
@@ -29,12 +30,13 @@ typedef struct CaloTriggerTower {
   CaloLayer* layer;
 }CaloTriggerTower;
 
-typedef struct CaloTTEMRoI {
-  CaloTriggerTower tt[EMROIGRAN][EMROIGRAN];
+typedef struct tt_roi_t {
+  CaloTriggerTower em_tt[EMROIGRAN][EMROIGRAN];
+  CaloTriggerTower had_tt[HADROIGRAN][HADROIGRAN];
   Area Region;
   bool_t PhiWrap;
   bool_t fixed;
-}CaloTTEMRoI;
+}tt_roi_t;
 
 #endif /* _TTDEF_H */
 
