@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.6 2000/09/11 14:28:29 andre Exp $ */
+/* $Id: parameter.c,v 1.7 2000/09/19 00:32:15 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -143,6 +143,9 @@ parameter_t* init_parameters (parameter_t* p) {
   /* Don't normalize by default */
   string2normalization(&p->normalization, "none");
 
+  /* By default, choose a negative normalization radius (for unity+). */
+  p->max_radius = -1.0;
+
   /* Let's start with 10 events per processing loop. This is about (2Mb: see
      parameter.h on the description of memory consumption for this variable. */
   p->load_events = 10;
@@ -199,6 +202,7 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {"input-file", 1, 0, 'i'},
     {"eventno-comment", 1, 0, 'k'},
     {"layer", 1, 0, 'l'},
+    {"max-radius", 1, 0, 'm'},
     {"normalization", 1, 0, 'n'},
     {"file-prefix", 1, 0, 'o'},
     {"particle", 1, 0, 'p'},
@@ -209,7 +213,7 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {0, 0, 0, 0}
   };
   
-  while (EOF != (c=getopt_long(argc, argv, "i:o:k:g:he:r:d:f:p:l:s:n:t:x:",
+  while (EOF != (c=getopt_long(argc, argv, "i:o:k:g:he:r:d:f:p:l:s:n:m:t:x:",
 			       long_options, &option_index) ) ) {
     switch (c) {
 
@@ -294,6 +298,10 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 
     case 'l': /* Which layers to require? */
       string2layer(&p->layer_flags,optarg);
+      break;
+
+    case 'm': /* The radius for 'unity+' normalization */
+      p->max_radius = to_valid_double(optarg);
       break;
 
     case 'n': /* Which normalization to use? */
@@ -520,9 +528,25 @@ void test_flags (parameter_t* p)
   }
 
   /* No sense in unity-normalization without ring output */
-  if ( normal_is_unit(&p->normalization) && !p->dump_rings ) {
+  if ( normal_is_unity(&p->normalization) && !p->dump_rings ) {
     fprintf(stderr, "(param)ERROR: Can't use UNITY normalization and *not* ");
     fprintf(stderr, "dump rings.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* No sense in unity+-normalization without ring output */
+  if ( normal_is_unityx(&p->normalization) && !p->dump_rings ) {
+    fprintf(stderr, "(param)ERROR: Can't use UNITY+ normalization and *not* ");
+    fprintf(stderr, "dump rings.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* No sense in unity+-normalization and have a value that is zero as radius
+   */ 
+  if ( normal_is_unityx(&p->normalization) && (p->max_radius<=0) ) {
+    fprintf(stderr, "(param)ERROR: Can't use UNITY+ normalization and *not* ");
+    fprintf(stderr, "use a valid radius value\n");
+    fprintf(stderr, "(param) (less than 0!). Use the -m option to set it!\n");
     exit(EXIT_FAILURE);
   }
 
@@ -543,163 +567,19 @@ void test_flags (parameter_t* p)
 
 void print_help_msg(FILE* fp, const char* prog)
 {
-  fprintf(fp, "Calorimeter ASCII Data Preprocessor version 0.3\n");
-  fprintf(fp, "author: André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>\n\n");
+  fprintf(fp, "Calorimeter ASCII Data Preprocessor version 0.31\n");
+  fprintf(fp, "author: André Rabello dos Anjos <Andre.Rabello@ufrj.br>\n\n");
 
   fprintf(fp, "usage: %s [short options] [long options]\n", prog);
   fprintf(fp, "       %s -h or --help prints this help message.\n\n", prog);
 
-  fprintf(fp, "[SHORT OPTIONS SUMMARY]\n");
+  fprintf(fp, "[OPTIONS SUMMARY]\n");
 
-  fprintf(fp, "-i file | --input-file=file\n");
-  fprintf(fp, "\t sets the input file name\n");
+  fprintf(fp, " ** Please, refer to the INFO documentation: ");
+  fprintf(fp, "\"Exemplified Application/Usage\"\n");
+  fprintf(fp, " <your prompt>$ info -f <root>/doc/calo-preproc.info\n");
 
-  fprintf(fp, "-o hint | --output-file=hint\n");
-  fprintf(fp, "\t sets the output file name (default is stdout) to\n");
-  fprintf(fp, "\t 'hint.data'. This file will be created if doesn't exist\n");
-  fprintf(fp, "\t or truncated if it does. This option also indicates that\n");
-  fprintf(fp, "the output \n");
-
-  fprintf(fp, "--config-file\n");
-  fprintf(fp, "\t Will place the configuration on a file given by the hint\n");
-  fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
-  fprintf(fp, "\t '.config'. This file (with such filename) will be \n");
-  fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
-
-  fprintf(fp, "--energy-file\n");
-  fprintf(fp, "\t Will place the energy events on a file given by the hint\n");
-  fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
-  fprintf(fp, "\t '.energy'. This file (with such filename) will be \n");
-  fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
-
-  fprintf(fp, "--eventno-file\n");
-  fprintf(fp, "\t Will place the event numbers on a file given by the hint\n");
-  fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
-  fprintf(fp, "\t '.eventno'. This file (with such filename) will be \n");
-  fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
-
-  fprintf(fp, "--dump-eventno\n");
-  fprintf(fp, "\t Will dump event numbers in the output file if this flag\n");
-  fprintf(fp, "\t is given.\n");
-
-  fprintf(fp, "-e # | --event-number=#\n");
-  fprintf(fp, "\t only preprocess event #\n");
-
-  fprintf(fp, "-r # | --roi-number=#\n");
-  fprintf(fp, "\t only preprocess roi #\n\n");
-
-  fprintf(fp, "-d string | --dump=string\n");
-  fprintf(fp, "\t dumps the pattern specified by 'string'. It can be:\n");
-  fprintf(fp, "\t   digis  - dump the digis of all RoIs in file\n");
-  fprintf(fp, "\t   udigis - dump the digis of RoIs that can be");
-  fprintf(fp, " uniformized\n");
-  fprintf(fp, "\t   rois   - dump the cells of uniformizable RoIs");
-  fprintf(fp, " (default)\n");
-  fprintf(fp, "\t   rings  - dump rings around energy peaks for each\n");
-  fprintf(fp, "\t            layer on all uniformizable RoIs\n");
-
-  fprintf(fp, "-g string | --dump-energy=string\n");
-  fprintf(fp, "\t dumps energy information according to the values in\n");
-  fprintf(fp, "\t 'string'. The 'string' should be a comma separated list\n");
-  fprintf(fp, "\t of values. A list may contain one or more of the\n");
-  fprintf(fp, "\t following values:\n");
-  fprintf(fp, "\t   db_et    - dump the value of transverse energy as it\n");
-  fprintf(fp, "\t              be detected by L2\n");
-  fprintf(fp, "\t   db_et    - dump the value of transverse energy as it\n");
-  fprintf(fp, "\t              be detected by L2 over the hadronic section\n");
-  fprintf(fp, "\t   db_t1et  - L1 energy threshold\n");
-  fprintf(fp, "\t   roi_et   - The total energy calculated by the point of\n");
-  fprintf(fp, "\t              view the selected layers of the uniform RoI\n");
-  fprintf(fp, "\t   roi_etem - The total energy on the EM (EM and PS)\n");
-  fprintf(fp, "\t              sections calculated using the selected\n");
-  fprintf(fp, "\t              layers of the uniform RoI\n");
-  fprintf(fp, "\t   roi_ethad- The total energy on the HAD sections\n");
-  fprintf(fp, "\t              calculated using the selected layers of the\n");
-  fprintf(fp, "\t               uniform RoI\n");
-  fprintf(fp, "\t   roi_digis- The total energy found summing all digis\n");
-  fprintf(fp, "\t              on a RoI without any preprocessing\n");
-  fprintf(fp, "\t   all      - Print all information described above.\n");
-  fprintf(fp, "\t              this is the default behaviour\n");
-
-  fprintf(fp, "-t string | --energy-comment=string\n");
-  fprintf(fp, "\t preceeds the energy values by this string when dumping \n");
-  fprintf(fp, "\t Only 5 characters are allowed, the rest will be ignored \n");
-  fprintf(fp, "\t The default behaviour is to print nothing before values\n");
-
-  fprintf(fp, "-k string | --eventno-comment=string\n");
-  fprintf(fp, "\t preceeds the event numbers by this string when dumping \n");
-  fprintf(fp, "\t Only 5 characters are allowed, the rest will be ignored \n");
-  fprintf(fp, "\t The default behaviour is to print nothing before values\n");
-
-  fprintf(fp, "-f string | --format=string\n");
-  fprintf(fp, "\t dumps using the format specified by 'string'. It can be:\n");
-  fprintf(fp, "\t   raw  - only dump the numbers\n");
-  fprintf(fp, "\t   snns - dump the rings for use with SNNS\n");
-
-  fprintf(fp, "-p string | --particle=string\n");
-  fprintf(fp, "\t The 'string' will identify the type of particle in file \n");
-  fprintf(fp, "\t it might be usefull when dumping SNNS target and others:\n");
-  fprintf(fp, "\t   electron - electrons file (target = +1)\n");
-  fprintf(fp, "\t   jets     - jets file (target = -1)\n");
-
-  fprintf(fp, "-l string | --layer=string\n");
-  fprintf(fp, "\t Requires information of the layers specified by string.\n"); 
-  fprintf(fp, "\t to be present on event. Event is eliminated if do not \n");
-  fprintf(fp, "\t contain this information. This has no importance when \n");
-  fprintf(fp, "\t dumping digis. The layers shall be separated by comman\n");
-  fprintf(fp, "\t and/or spaces and may be one or more of the following:\n");
-  fprintf(fp, "\t   ps   - dump PreSample information\n");
-  fprintf(fp, "\t   em1  - dump EM front layer\n");
-  fprintf(fp, "\t   em2  - dump EM middle layer\n");
-  fprintf(fp, "\t   em3  - dump EM back layer\n");
-  fprintf(fp, "\t   had1 - dump HAD front layer\n");
-  fprintf(fp, "\t   had2 - dump HAD middle layer\n");
-  fprintf(fp, "\t   had3 - dump HAD back layer\n");
-  fprintf(fp, "\t   all  - dump all layers. If such flag is activated, the\n");
-  fprintf(fp, "\t          others will be ignored since are redundant\n");
-  fprintf(fp, "\t          this is the default behaviour \n");
-
-  fprintf(fp, "-s string | --select=string\n");
-  fprintf(fp, "\t Prints layer information of the layers specified by\n");
-  fprintf(fp, "\t string. This flag has only sense when dumping urois or\n");
-  fprintf(fp, "\t rings. If The layers shall be separated by comma and/or\n");
-  fprintf(fp, "\t spaces and may be one or more of the following:\n");
-  fprintf(fp, "\t   ps   - require PreSample information\n");
-  fprintf(fp, "\t   em1  - require EM front layer\n");
-  fprintf(fp, "\t   em2  - require EM middle layer\n");
-  fprintf(fp, "\t   em3  - require EM back layer\n");
-  fprintf(fp, "\t   had1 - require HAD front layer\n");
-  fprintf(fp, "\t   had2 - require HAD middle layer\n");
-  fprintf(fp, "\t   had3 - require HAD back layer\n");
-  fprintf(fp, "\t   all  - require all layers. If this is activated, the\n");
-  fprintf(fp, "\t          others will be ignored since are redundant\n");
-  fprintf(fp, "\t          this is the default behaviour \n");
-
-  fprintf(fp, "-n string | --normalization=string\n");
-  fprintf(fp, "\t the dumped data will be normalized according to the\n");
-  fprintf(fp, "\t algorithm selected. Do select only one algorithm:\n");
-  fprintf(fp, "\t   all     - normalize using sum of energy of all cells\n");
-  fprintf(fp, "\t   section - normalize using section energy (EM|HAD)\n");
-  fprintf(fp, "\t   layer   - normalize using layer energy\n");
-  fprintf(fp, "\t   unity   - Will apply modulus=1 to rings. You should\n");
-  fprintf(fp, "\t             use this option in conjunction with -d rings\n");
-  fprintf(fp, "\t   none    - no normalization at all (default)\n");
-
-  fprintf(fp, "--fast-output\n");
-  fprintf(fp, "\t when this option is activated, the output for each\n");
-  fprintf(fp, "\t event will happen to a memory bank instead of \n");
-  fprintf(fp, "\t direct access to a file. This will save access time\n");
-  fprintf(fp, "\t what can be crucial at network operations but may \n");
-  fprintf(fp, "\t consume huges amounts of memory, so be warned.\n");
-  fprintf(fp, "\t At the end, the memory banks are dumped into files.\n");
-
-  fprintf(fp, "-x int | --load-nevents=int\n");
-  fprintf(fp, "\t When this flag is given, the number of events to load\n");
-  fprintf(fp, "\t file read is changed to the value given. Default is 10.\n");
-
-  fprintf(fp, "--verbose\n");
-  fprintf(fp, "\t prints more output than be default\n");
-
+  return;
 }
 
 void terminate_parameters (parameter_t* p)
@@ -757,7 +637,7 @@ void dump_config(FILE* fp, const parameter_t* par)
   else if (par->dump_uniform_digis) fprintf(fp, "Uniform Digis\n");
   else fprintf(fp, "Uniform Rois\n");
 
-  /* The type of dumped information */
+  /* The type of dumped information and normalization */
   if (! par->dump_digis ) {
     fprintf(fp, " +- Uniformizing Selection: %s\n",
 	    layer2string(&par->layer_flags,temp));
@@ -766,6 +646,8 @@ void dump_config(FILE* fp, const parameter_t* par)
 	      layer2string(&par->print_flags,temp));
       fprintf(fp, " +- Normalization: %s\n",
 	      normalization2string(&par->normalization,temp));
+      if ( par->max_radius > 0 )
+	fprintf(fp, " +- Maximum normalization radius: %e\n", par->max_radius);
     }
   }
 
