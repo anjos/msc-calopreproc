@@ -5,13 +5,13 @@
    CaloDigi's that may be present in the file. The building of this file is
    accomplished by make (1).  */
 
-/* $Id: main.c,v 1.17 2000/09/01 01:34:16 andre Exp $ */
+/* $Id: main.c,v 1.18 2000/09/06 14:48:52 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
 
 #include <obstack.h>
-
+#include <time.h>
 #include <string.h>
 
 #include "util.h"
@@ -22,6 +22,7 @@
 #include "ring.h"
 #include "uniform.h"
 #include "energy.h"
+#include "normal.h"
 
 #ifdef TRACE_DEBUG
 #include <mcheck.h>
@@ -31,6 +32,8 @@ void fprintf_progress (FILE*, const bool_t);
 bool_t process_ROI (const ROI*, parameter_t*);
 void process_EVENT (const EVENT*, parameter_t*);
 int dump_rings (const uniform_roi_t*, parameter_t*);
+long readin_events(FILE*, EVENT*, const long);
+void batch_process(parameter_t*);
 
 /* This shall, during execution, be set to the number of dumped features */
 static int _iunits = 0; 
@@ -46,8 +49,6 @@ int main (int argc, char* argv[])
   /* parameters to the main routine */
   parameter_t params;
 
-  EVENT event;
-
 #ifdef TRACE_DEBUG
   mtrace();
 #endif
@@ -59,30 +60,17 @@ int main (int argc, char* argv[])
   process_flags(&params,argc,argv);
 
   if (!params.process_all_events) {
+    /* Here we can have a normal static EVENT */
+    EVENT event;
+    
     event = search_event(params.ifp, params.event_no);
     event_counter = params.event_no; /* Update the event counter */
     process_EVENT(&event, &params);
     free_EVENT(&event);
   }
 
-  else {
-    waste_initial_info(params.ifp);
-    fprintf_progress(stderr, params.verbose);
-
-    while (read_EVENT(params.ifp,&event) == ERR_SUCCESS) {
-      ++event_counter;
-      process_EVENT(&event, &params);
-      free_EVENT(&event);
-      fprintf_progress(stderr, params.verbose); 
-    } /* event loop */
-
-    /* just to make sure we don't start over in the middle of the screen */
-    if (params.verbose) fprintf(stderr,"\n");
-
-    /* The final printout, independent of verbosity */
-    fprintf(stderr, "(main) I've dumped %d events\n", dumped_events);
-
-  } /* else process all events */
+  else  /* else process all events */
+    batch_process(&params);
 
   /* This will close unclosed files and free all memory needed so far for
      saving the run parameters. It will also dump, if needed, the memory banks
@@ -95,6 +83,67 @@ int main (int argc, char* argv[])
 } /* end main function */
 
 
+
+/* ***************************** */
+/* Local Function Implementation */
+/* ***************************** */
+
+/* This function will batch process all events on the input file, printing the
+   output and all the rest. Created for the sake of main-routine simplicity */
+void batch_process(parameter_t* p)
+{
+  /* The number of events to load at each iteration is defined by the user, the
+     default is 10 per loop, as defined by parameter.c */
+  EVENT* eventp=NULL;
+
+  long int nev; /* number of events currently read in */
+  long int i; /* iterator */
+
+  /* Some guys to measure the time we spend processing */
+  clock_t start, end;
+
+  double elapsed = 0.;
+
+  waste_initial_info(p->ifp);
+
+  /* The initial progress report information: Table separators and others */
+  fprintf_progress(stderr, p->verbose);
+
+  /* Get the memory to allocate the events to be read in */
+  eventp = (EVENT*)malloc(p->load_events*sizeof(EVENT));
+
+  do {
+    /* Read in the events into the allocated buffer */
+    nev = readin_events(p->ifp, eventp, p->load_events);
+
+    start = clock();
+
+    /* The EVENT loop */
+    for (i=0; i < nev; ++i) {
+      ++event_counter;
+      process_EVENT(&eventp[i], p);
+      free_EVENT(&eventp[i]);
+      fprintf_progress(stderr, p->verbose);
+    } /* event loop */
+
+    end = clock();
+
+      /* Calculate the elapsed time since start and accumulates */
+    elapsed += ((double) end - start) / CLOCKS_PER_SEC;
+
+  } while (nev == p->load_events);
+
+  free(eventp);
+
+    /* just to make sure we don't start over at the middle of the screen */
+  if (p->verbose) fprintf(stderr,"\n");
+
+  /* The final printout, independent of the verbosity flag */
+  fprintf(stderr, "(main) I've dumped %d events ", dumped_events);
+  fprintf(stderr, "on %.3f seconds (%.3e secs per dumped ROI)\n",
+	  elapsed, elapsed/dumped_events);
+
+}
 
 /* This function prints the progress of execution if the v flag is on. The
    numbers printed come from global variables that control the number of events
@@ -331,3 +380,21 @@ int dump_rings (const uniform_roi_t* ur, parameter_t* p)
   }
   return (dumped_events);
 }
+
+/* This function will read in from the file on the first argument, the number
+   of EVENTs (data.[ch]) determined by nevent and store them over the second
+   argument. The space for this storage must be pre-allocated and the results
+   may be unconsistent otherwise or you may even get a core dump (likely to
+   happen, actually). The value returned is the number of events successfully
+   read into the event pointer (2nd. argument). It's likely that the file is
+   over when the number given by the third argument is not the same as the
+   number of (returned) events read in, which is returned to the user. */
+long readin_events(FILE* fp, EVENT* ep, const long nevent) 
+{
+  long i; /* iterator */
+  
+  for (i=0; i<nevent; ++i) if (read_EVENT(fp,&ep[i]) != ERR_SUCCESS) break;
+
+  return i;
+}
+
