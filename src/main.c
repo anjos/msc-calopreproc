@@ -5,7 +5,7 @@
    CaloDigi's that may be present in the file. The building of this file is
    accomplished by make (1).  */
 
-/* $Id: main.c,v 1.21 2000/10/23 02:27:36 andre Exp $ */
+/* $Id: main.c,v 1.22 2001/01/24 20:34:06 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -317,7 +317,7 @@ void process_EVENT (const EVENT* ev, parameter_t* p)
        choose to ignore events that contain more than 1 RoI. */
       for (i=0; i<1; ++i)
 	if (!process_ROI(&ev->roi[i], p)) {
-	  fprintf(stderr, "(ROI -> %d)\n",i);
+	  fprintf(stderr, "(ROI -> %d) ERROR\n",i);
 	  exit(EXIT_FAILURE);
 	}
 
