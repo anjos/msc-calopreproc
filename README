@@ -1,0 +1,78 @@
+This file is part of CaloASCII-tester package
+by André Rabello dos Anjos
+
+$Id: README,v 1.1 2000/03/14 21:49:59 rabello Exp $
+
+Introduction
+------------
+
+The aim of this package is to provide the user with tools (ANSI-C functions)
+for analysing dumps of calorimeter digis in ASCII format. Such format is
+defined in C by another library, called spec. This library demands a
+description file, not too complex, that is located in the 'src' subdir.
+
+All programs using the spec library must be compiled agains the file
+'libspec.a'.
+
+Besides that, I've create the calorimeter library, which is composed of simple
+functions that perform simple things like arranging the digis into trigger
+towers and so. Some processing methods like flattening and Et evaluation are
+also included as functions with simple calls. For that library I had to create
+some special types as well. They are mostly for internal library use, with
+exceptions, and you shouldn't have to bore a lot with those.  If you intend to
+use such functions you will have to compile your programs against 'libcalo.a'
+as well.
+
+Building and installing
+-----------------------
+
+Very easy:
+
+1) Unpack the distribution
+
+gzip -c CaloASCII-tester.tar.gz | tar xvf -
+
+or
+
+tar xvfz CaloASCII-tester.tar.gz
+
+2) Edit the central Makefile. Change the WORKDIR variable to point to your
+current distribution directory.
+
+cd CaloASCII-tester; vi Makefile
+
+3) Build
+
+make all
+
+This should be enough to compile the spec and calo libraries and build a small
+application that can do some nice tricks with the ascii files. Such application
+is called 'wrdata'. You can do 
+
+./wrdata -h
+
+In order to get some processing options.
+
+You can build another application as well, called 'test'. Just do:
+
+make test
+
+You can do
+
+./test -h to see what you can do with it.
+
+Ok, I think that's it for installation.
+
+Data Files repository
+---------------------
+
+Currently the files are being extracted from hbooks containing all the
+simulation data. There are repositories at CERN, but I've mirrored them to my
+lab, and hopefully now they can be accessed through www:
+
+http://www.lps.ufrj.br/~rabello/work
+
+That's it for now. Have fun, if you can.
+
+André Rabello dos Anjos.
+
