@@ -1,7 +1,9 @@
-#include "common.h"
+/* $Id: common.c,v 1.3 2000/04/06 01:16:57 rabello Exp $ */
 
-/* Look for PhiMax and PhiMin, adjust and return if are in wrap around region
- */ 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "common.h"
 
 const static double MaxPhiWindow = 2.0;
 
