@@ -1,9 +1,8 @@
-# $Id: Makefile,v 1.16 2000/09/01 01:08:19 andre Exp $
+# $Id: Makefile,v 1.17 2000/09/01 01:09:40 andre Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
 # in $(DISTRIBUTION-HOME)/src/data.spec
-# This library is composed of utilities and tests for those
 
 # def'ing important macros
 # ========================
@@ -46,7 +45,7 @@ depend: version spec $(DATASPEC:%=./src/%.c)
 	@cd dist/calo; $(MAKE) depend
 	@cd dist/spec/src; $(MAKE) depend
 	@if [ ! -e $(MKDEPFILE) ]; then touch $(MKDEPFILE); fi 
-	$(MKDEP) $(MKDEPFLAGS) $(INCLUDE) $(SRCS) ./src/test.c ./src/data.c
+	$(MKDEP) $(MKDEPFLAGS) $(INCLUDE) $(SRCS) ./src/data.c
 
 preproc: version spec $(DATASPEC:%=./src/%.o) $(OBJS) calo
 	@echo -----------------------
@@ -116,7 +115,7 @@ $(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.16 $$' of '$$Date: 2000/09/01 01:08:19 $$'
+	@echo \* -- current version is '$$Revision: 1.17 $$' of '$$Date: 2000/09/01 01:09:40 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
