@@ -1,0 +1,129 @@
+@node Installation
+@chapter How to install the Calorimeter Preprocessing Package
+
+@c $Id: install.texinfo,v 1.1 2000/11/13 12:20:53 rabello Exp $
+
+@ifnottex
+
+This node describes how to install the Calorimeter Preprocessing Package
+on you machine, with examplified steps.
+
+@menu
+
+* Obtaintion::     How to get the latest version of the package
+* Directory Tree:: What does the package should contain
+* Install::        Proper installation
+* Using::          The basics of usage
+
+@end menu
+
+@end ifnottex
+
+@node Obtaintion
+@section Obtaining the package
+
+The best way to get the package on its latest version is (now) to send
+an email to @email{Andre.Rabello@@ufrj.br}. On the near future, I intend
+to put this on some public place, but till there@dots{}
+
+For your work, you may eventually be interested in getting the data
+files that contain the real thing actual input data.Currently the files
+are being extracted from hbooks (CW Ntuples) containing all the
+simulation data. There are repositories at CERN, but I've mirrored them
+to @uref{http://www.lps.ufrj.br,my lab}. For now, there's no automatic
+way to get those, like through the web. Anyhow you can e-mail me if you
+need those.
+
+You can get a listing of what I have from
+@uref{http://www-wisconsin.cern.ch/~atsaul/egamma/data/refsw}
+
+As a matter of fact you can get the files through this web interface. But if
+you're closer to me (in Brazil or else), perhaps it's faster mailing me.
+
+@node Directory Tree
+@section What's on the package
+
+The directory tree is very simple and contains only a few directories:
+
+@table @code
+@item dist
+This directory include the distributions of the Calorimeter Library it
+self and the Spec Library. They are arranged inside as separated
+directories.
+
+@item doc
+Includes the documentation files and figures for reference. The figures
+are included in various formats, includding their original format
+(most of the times @inforef{top, Vector Drawing using Xfig, xfig}).
+
+@item include
+This directory include the header files for the @code{preproc}
+application (see @pxref{Examplified application}).
+
+@item src
+This directory include the source files for the @code{preproc}
+application (see @pxref{Examplified application}).
+
+@item utils
+This directory contains some utilities that may be used by the person
+who is installing this package. The utilities include a shell script
+named @code{change} to changed fields on files and a @code{sed} (see
+@inforef{top, Stream Editor, sed}) script to clean dumps with
+non-standard field descriptions.
+
+@end table
+
+@node Install
+@section Installing the @code{calo-preproc} package
+
+In order to install the @code{calo-preproc} package and all it contains
+just unpack de distribution:
+
+@example
+(your prompt)>> tar xvfz calo-preproc-0.XX.tar.gz
+
+ou
+
+(your prompt)>> zcat calo-preproc-0.XX.tar.gz | tar xvf -
+@end example
+
+And then tune the variables @code{WORKBASEDIR} and @code{MODULE} on the beginning of the central Makefile. So:
+
+@example
+(your prompt)>> cd calo-preproc
+(your prompt)>> vi Makefile
+@end example
+
+That's it, it should be enough for typing:
+
+@example
+(your prompt)>> make
+@end example
+
+Which will build all targets and documentation automatically.
+
+@node Using
+@section Using the Calorimeter Package
+
+The Calorimeter Package is composed of two main components:
+
+@table @code
+
+@item Libraries
+The libraries are C-functions compiled together into a big
+archive. There are 2 libraries: @code{calo} and @code{spec}. The first
+contains the calorimeter functions, i.e., functions that are helpful for
+calorimeter data processing. This includes normalization and data
+organization. The second library is usefull for datafile reading. You
+can browse into @code{package_root/dist/spec} to see how it works. This
+package includes this library in, the maintainer
+(@email{Reiner.Hauser@@cern.ch}) should still be contact for updates and
+doubts.
+
+@item @code{preproc} application
+I have included an application that fully utilizes both libraries and
+can do as a start-up resource to your own programs. For more information
+on this application, please refer to @xref{Examplified application}.
+
+@end table
+
