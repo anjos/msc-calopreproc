@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.1.1 2000/03/13 21:03:42 rabello Exp $
+# $Id: Makefile,v 1.2 2000/03/13 21:20:08 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -9,7 +9,7 @@
 # ========================
 
 # 1) for generation the specification files
-WORKDIR = $(HOME)/work/CaloASCII-tester
+WORKDIR = $(HOME)/work/tmp/ufrj
 GEN = ./dist/spec/src/genspec # the .c/cc .h file generator (invokes parser)
 DATASPEC = data # the filename to generate the .h and .c/cc for
 LANG = c # the language that was chosen for the output files
@@ -104,7 +104,7 @@ $(DATASPEC:%=./src/%.c): spec $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo -n \* -- current version is '$Revision: 1.1.1.1 $' of '$Date: 2000/03/13 21:03:42 $'
+	@echo \* -- current version is '$$Revision: 1.2 $$' of '$$Date: 2000/03/13 21:20:08 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
