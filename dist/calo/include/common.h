@@ -1,4 +1,4 @@
-/* $Id: common.h,v 1.2 2000/04/06 21:46:22 rabello Exp $ */
+/* $Id: common.h,v 1.2.1.1 2000/04/07 20:13:56 rabello Exp $ */
 
 #ifndef COMMON_H
 #define COMMON_H
@@ -6,6 +6,7 @@
 #define PI 3.141592653589793
 
 typedef enum Flag {ON = 1, OFF = 0} Flag;
+typedef enum bool_t {TRUE = 1, FALSE = 0} bool_t;
 typedef enum Calorimeter {PSBARRREL = 1, EMBARREL = 2, EMENDCAP = 3, TILECAL =
 			  4, HADENDCAP = 5, PSENDCAP = 11} Calorimeter;
 typedef enum LayerLevel { SCINTILLATOR = 0, FRONT = 1, MIDDLE = 2, BACK = 3}
