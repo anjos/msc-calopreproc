@@ -8,20 +8,17 @@
  *
  * 0 - zero; K - calo; m - module; S - side or signal; e - eta and p is phi.
  *                        (region)
- * $Log: portable.c,v $
- * Revision 1.1.1.1  2000/03/13 21:03:46  rabello
- * Initial Release
- *
- * Revision 1.1.1.1  1998/07/09 16:09:08  rabello
- * Calorimeter C Library
+ * $Id: portable.c,v 1.2 2000/04/06 00:48:58 rabello Exp $
  *
  * ************************************************************************* */
  
 #include "portable.h"
+#include <math.h>
 
-/* These functions can only be seen from inside this file */
-/* They just apply patches to the output numbers of GetCellInfo() */
+double rint(double x);
+double pow(double x, double y);
 
+/* local prototypes */
 ErrorCode DecodeId(const unsigned int, CellInfo*);
 ErrorCode ResolveLayer(CellInfo*);
 void CorrectCell(CellInfo*);
@@ -35,8 +32,26 @@ ErrorCode CorrectPSEndCap(const unsigned int id, CellInfo*);
 
 double round(double, int precision);
 
+#define DONT_ROUND_OUTPUT
+#define DETAIL 0 /* corrects region of EM EndCap between eta 1.8 and 2.0 */
+#define DETA 0.003125
+#define DPHI (2 * PI / 256)
+#define RND_PREC 15 /* required precision on the nth. decimal place */
+#define MAX_ABS_ERROR 1e-10
+
+/* *********************************** */
+/* *********************************** */
+/* *********************************** */
+/* -----------------------------------
+   FUNCTION IMPLEMENTATION STARTS HERE
+   ----------------------------------- */
+/* *********************************** */
+/* *********************************** */
+/* *********************************** */
+
 /* From a cell id, it writes the eta, phi, calorimeter and region
-   of the cell */
+   of the cell. The region target is not resolved by this function
+   correctly. Not problem, you can't call this directly. */
 ErrorCode DecodeId(const unsigned int id, CellInfo* cell) 
 {
   /* variable declaration */
@@ -126,11 +141,13 @@ ErrorCode CorrectPSBarrel(const unsigned int id, CellInfo* c)
 
 ErrorCode CorrectEMBarrel(const unsigned int id, CellInfo* c)
 {
+  const double etamax = 1.4;
+
   /* In the end of the barrel, 1st layer disappears and 2nd takes
      its place. 3rd layer replaces second */
   switch(c->region) {
   case 1: /* 1st layer */
-    if(c->center.Eta < E_14) {
+    if(c->center.Eta < etamax) {
       c->dphi = DPHI*4;
       c->deta = DETA;
     }
@@ -140,7 +157,7 @@ ErrorCode CorrectEMBarrel(const unsigned int id, CellInfo* c)
     }
     break;
   case 2: /* 2nd layer */
-    if(c->center.Eta < E_14) {
+    if(c->center.Eta < etamax) {
       c->deta = DETA*8;
     }
     else {
@@ -165,6 +182,14 @@ ErrorCode CorrectEMBarrel(const unsigned int id, CellInfo* c)
 
 ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
 {
+  const double E_14=1.4;
+  const double E_15=1.5;
+  const double E_18=1.8;
+  const double E_20=2.0;
+  const double E_24=2.4;
+  const double E_25=2.5;
+  const double E_32=3.2;
+
   double maxerr = MAX_ABS_ERROR;
 
   switch(c->region) {
@@ -180,73 +205,76 @@ ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
 	* DETA * ((DETAIL)?(8./6.):1) + E_14;
     }
 
-#ifdef DICEOLD
-    if(c->center.Eta - E_14 > -maxerr && 
-       c->center.Eta - E_15 < maxerr) { 
-      c->region = 7;
-      c->deta = DETA*8;
-      if (c->center.Eta < 1.42) c->center.Eta -= 0.025; /* correct a problem I
-							    can't describe.
-							    This was fixed in
-							    29.02.2000 
-							 */ 
-    }
+    if(DICEOLD) {
 
-    if(c->center.Eta - E_15 > -maxerr && 
-       c->center.Eta - E_18 < maxerr) { 
-      c->region = 6;
-      c->deta = DETA;
-    }
+      if(c->center.Eta - E_14 > -maxerr && 
+	 c->center.Eta - E_15 < maxerr) { 
+	c->region = 7;
+	c->deta = DETA*8;
+	if (c->center.Eta < 1.42) c->center.Eta -= 0.025; /* correct a problem
+							     I can't describe.
+							     This was fixed in
+							     29.02.2000 */
+      }
 
-    if(c->center.Eta - E_18 > -maxerr && 
-       c->center.Eta - E_20 < maxerr) { 
-      c->region = 5;
-      c->deta = DETA*8/6;
-    }
+      if(c->center.Eta - E_15 > -maxerr && 
+	 c->center.Eta - E_18 < maxerr) { 
+	c->region = 6;
+	c->deta = DETA;
+      }
 
-    if(c->center.Eta - E_20 > -maxerr && 
-       c->center.Eta - E_25 < maxerr) {
-      c->region = 4;
-      c->deta = DETA*2;
-    }
+      if(c->center.Eta - E_18 > -maxerr && 
+	 c->center.Eta - E_20 < maxerr) { 
+	c->region = 5;
+	c->deta = DETA*8/6;
+      }
 
-    if(c->center.Eta - E_25 > -maxerr && 
-       c->center.Eta - E_32 < maxerr) {
-      c->region = 1;
-      c->deta = DETA*32;
-    }
+      if(c->center.Eta - E_20 > -maxerr && 
+	 c->center.Eta - E_25 < maxerr) {
+	c->region = 4;
+	c->deta = DETA*2;
+      }
+
+      if(c->center.Eta - E_25 > -maxerr && 
+	 c->center.Eta - E_32 < maxerr) {
+	c->region = 1;
+	c->deta = DETA*32;
+      }
+
+    } /* end of DICEOLD correction routines */
       
-#else
-    if(c->center.Eta - E_14 > -maxerr && 
-       c->center.Eta - E_15 < maxerr) {
-       c->region = 1;
-      c->deta = DETA*8;
-    }
+    else {
 
-    if(c->center.Eta - E_15 > -maxerr && 
-       c->center.Eta - E_18 < maxerr) {
-      c->region = 4;
-      c->deta = DETA;
-    }
+      if(c->center.Eta - E_14 > -maxerr && 
+	 c->center.Eta - E_15 < maxerr) {
+	c->region = 1;
+	c->deta = DETA*8;
+      }
+      
+      if(c->center.Eta - E_15 > -maxerr && 
+	 c->center.Eta - E_18 < maxerr) {
+	c->region = 4;
+	c->deta = DETA;
+      }
+      
+      if(c->center.Eta - E_18 > -maxerr &&
+	 c->center.Eta - E_20 < maxerr) {
+	c->region = 5;
+	c->deta = DETA*8/6;
+      }
 
-    if(c->center.Eta - E_18 > -maxerr &&
-       c->center.Eta - E_20 < maxerr) {
-      c->region = 5;
-      c->deta = DETA*8/6;
-    }
+      if(c->center.Eta - E_20 > -maxerr && 
+	 c->center.Eta - E_24 < maxerr) {
+	c->region = 6;
+	c->deta = DETA*2;
+      }
+      
+      if(c->center.Eta - E_24 > -maxerr) {
+	c->region = 7;
+	c->deta = DETA*8;
+      }
 
-    if(c->center.Eta - E_20 > -maxerr && 
-       c->center.Eta - E_24 < maxerr) {
-      c->region = 6;
-      c->deta = DETA*2;
-    }
-
-    if(c->center.Eta - E_24 > -maxerr) {
-      c->region = 7;
-      c->deta = DETA*8;
-    }
-
-#endif
+    } /* end of NEW DICE correction routines */
 
     c->dphi = DPHI*4;
     break;
@@ -340,6 +368,9 @@ ErrorCode CorrectTileCal(const unsigned int id, CellInfo* c)
 
 ErrorCode CorrectHadEndCap(const unsigned int id, CellInfo* c)
 {
+  const double E_15 = 1.5;
+  const double E_25 = 2.5;
+  const double E_31 = 3.1;
   c->center.Eta *= 2; /* correction, no space for bits in correct order, so 
 			    they had to occupy the previous house (0.05) as
 			    well the price to pay is a multiplication */
@@ -361,8 +392,7 @@ ErrorCode CorrectHadEndCap(const unsigned int id, CellInfo* c)
   case 4: 
   case 6:
     c->dphi = DPHI*8;
-    if(c->center.Eta >= E_25 && c->center.Eta < E_31) c->deta =
-							      DETA*64; 
+    if(c->center.Eta >= E_25 && c->center.Eta < E_31) c->deta = DETA*64; 
     else c->deta = DETA*32;
     break;
   default:
@@ -375,6 +405,7 @@ ErrorCode CorrectHadEndCap(const unsigned int id, CellInfo* c)
 
 ErrorCode CorrectPSEndCap(const unsigned int id, CellInfo* c)
 {
+  const double E_14=1.4;
   c->center.Eta += E_14;
   c->region = 1;
   c->deta = DETA*8;
@@ -413,15 +444,14 @@ void i2ucn(unsigned int i, char *s)
   *(s+29) = (char)NULL; /* for string like printing */
 }
 
-ErrorCode GetCellInfo(const int id, const Flag wrap, const double minimum, 
-		      CellInfo* cell)
+ErrorCode GetCellInfo(const int id, CellInfo* cell, const Flag wrap)
 {
   if(DecodeId(id, cell) == ERROR) {
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't decode cell\n");
       return(ERROR);
   }
 
-  if (wrap == ON && cell->center.Phi < minimum) CorrectCell(cell);
+  if (wrap == ON && cell->center.Phi < PI) CorrectCell(cell);
   
   if(ResolveLayer(cell) == ERROR) {/* loose some region info */
     fprintf(stderr, "ERROR(trigtowr.c): Couldn't find region for digi\n"); 
@@ -515,7 +545,7 @@ ErrorCode ResolveLayer(CellInfo* cell)
       /* Oops! */
       fprintf(stderr, "ERROR(calolib.c): No such layer exists for a cell\n");
       return(ERROR);
-      
+
     }
     
   }
