@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.11 2000/07/12 04:30:42 rabello Exp $
+# $Id: Makefile,v 1.12 2000/07/20 00:40:57 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -23,10 +23,11 @@ MKDEPFLAGS = -f $(MKDEPFILE)
 
 # 2) for proper C compilation and linking
 CC = gcc 
+CFLAGS =  -ansi -pedantic -Wall -g $(INCLUDE)
 #CPPFLAGS = -DTRACE_DEBUG
+CPPFLAGS = -D_GNU_SOURCE
 INCLUDE = -I./include -I./dist/spec/include -I./dist/calo/include
-CFLAGS = -g $(INCLUDE)
-LDFLAGS = -L./lib -L./dist/spec/src -L./dist/calo -lcalo -lspec -lm #-lefence
+LDFLAGS=-L./dist/spec/src -L./dist/calo -lcalo -lspec -lm #-lefence
 SRCDIR = ./src
 SRCFILES = util.c main.c
 SRCS = $(SRCFILES:%=$(SRCDIR)/%)
@@ -96,7 +97,7 @@ $(DATASPEC:%=./src/%.o): $(DATASPEC:%=./src/%.c)
 	@echo Compiling specification files...
 	@echo --------------------------------
 	@echo " "
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 	@echo DONE\!
 	@echo " "
 
@@ -121,7 +122,7 @@ $(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.11 $$' of '$$Date: 2000/07/12 04:30:42 $$'
+	@echo \* -- current version is '$$Revision: 1.12 $$' of '$$Date: 2000/07/20 00:40:57 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
