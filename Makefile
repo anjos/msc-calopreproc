@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.21 2000/09/11 23:12:52 andre Exp $
+# $Id: Makefile,v 1.22 2000/09/19 00:35:52 andre Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -51,7 +51,7 @@ OBJS = $(SRCS:%.c=%.o)
 # Configuring the data file sources
 # =================================
 
-all: preproc docs
+all: preproc docs tags
 
 depend: version spec $(DATASPEC:%=./src/%.c)
 	@echo -------------------------
@@ -135,7 +135,7 @@ docs:
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.21 $$' of '$$Date: 2000/09/11 23:12:52 $$'
+	@echo \* -- current version is '$$Revision: 1.22 $$' of '$$Date: 2000/09/19 00:35:52 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
