@@ -18,7 +18,6 @@ fi
 # path of the test_parser program
 #
 PARSER=$4
-echo $PARSER
 
 #
 # check if CPP can be found
@@ -27,7 +26,8 @@ if [ ! -x $CPP ]
 then
 
   # try GNU compiler instead
-  if which gcc
+  CPP=`which gcc`;
+  if [ -x $CPP ]
   then
     CPP="gcc -x c-header -E"
   else
