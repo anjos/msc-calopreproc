@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.1.1.1 2000/03/13 21:03:42 rabello Exp $ */
+/* $Id: main.c,v 1.2 2000/05/31 11:51:51 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -135,13 +135,13 @@ int main (int argc, char* argv[])
   /* Using libcalo.a. I will build a trigger tower, with zero suppression
      (actually, the library doesn't work right with zero suppression flag
      OFF) and will put the results in the variable tt */
-  if (ERROR == BuildCaloTTS(&(event.roi[roi-1]), ON, &ttroi)) {
+  if (CALO_ERROR == BuildCaloTTS(&(event.roi[roi-1]), TRUE, &ttroi)) {
     fprintf(stderr,"(main) Can't put RoI into trigger tower format\n");
     exit(EXIT_FAILURE);
   }
 
   /* Flattening this roi. It's the easyiest way to produce something */
-  if (ERROR == Flatten(&ttroi, em, had)) {
+  if (CALO_ERROR == Flatten(&ttroi, em, had)) {
     fprintf(stderr,"(main) Can't flatten trigger tower\n");
     exit(EXIT_FAILURE);
   }

@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: test.c,v 1.1 2000/03/13 21:03:42 rabello Exp $ */
+/* $Id: test.c,v 1.2 2000/05/31 11:52:48 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,6 +19,7 @@
 #include "data.h" /* the data file description */
 #include "trigtowr.h" /* for processing the data into trigger towers */
 #include "flat.h" /* for flattening the trigger towers */
+#include "portable.h" /* for CellInfo type */
 
 int getopt(int argc, char* const argv[], const char* optstring);
 extern char* optarg;
@@ -155,7 +156,7 @@ int main (int argc, char* argv[])
 	      event.roi[roi-1].calDigi.emDigi[i].CaloRegion);
       fprintf(outfile,"(teste.c) UCN for this cell is %s.\n", ucn);
     }
-    if(fcomp(cell.center.Phi,event.roi[roi-1].calDigi.emDigi[i].phi,MAXERR)==ERROR) {
+    if(fcomp(cell.center.Phi,event.roi[roi-1].calDigi.emDigi[i].phi,MAXERR)==CALO_ERROR) {
       fprintf(outfile,"(teste.c) Cell %d: DecodeId gives me a phi of ",i+1);
       fprintf(outfile,"%e and the file, %e.\n", cell.center.Phi,
 	      event.roi[roi-1].calDigi.emDigi[i].phi);
@@ -163,7 +164,7 @@ int main (int argc, char* argv[])
 	      (cell.center.Phi-event.roi[roi-1].calDigi.emDigi[i].phi));
       fprintf(outfile,"(teste.c) UCN for this cell is %s.\n", ucn);
     }
-    if(fcomp(cell.center.Eta,event.roi[roi-1].calDigi.emDigi[i].eta,0.001)==ERROR) {
+    if(fcomp(cell.center.Eta,event.roi[roi-1].calDigi.emDigi[i].eta,0.001)==CALO_ERROR) {
       fprintf(outfile,"(teste.c) Cell %d: DecodeId gives me an eta of ",i+1);
       fprintf(outfile,"%e and the file, %e.\n", cell.center.Eta,
 	      event.roi[roi-1].calDigi.emDigi[i].eta);
@@ -187,7 +188,7 @@ int main (int argc, char* argv[])
 	      event.roi[roi-1].calDigi.hadDigi[i].CaloRegion);
       fprintf(outfile,"(teste.c) UCN for this cell is %s.\n", ucn);
     }
-    if(fcomp(cell.center.Phi,event.roi[roi-1].calDigi.hadDigi[i].phi,MAXERR)==ERROR) {
+    if(fcomp(cell.center.Phi,event.roi[roi-1].calDigi.hadDigi[i].phi,MAXERR)==CALO_ERROR) {
       fprintf(outfile,"(teste.c) Cell %d: DecodeId gives me a phi of ",i);
       fprintf(outfile,"%e and the file, %e.\n", i+1, cell.center.Phi,
 	      event.roi[roi-1].calDigi.hadDigi[i].phi);
@@ -195,7 +196,7 @@ int main (int argc, char* argv[])
 	      (cell.center.Phi-event.roi[roi-1].calDigi.hadDigi[i].phi));
       fprintf(outfile,"(teste.c) UCN for this cell is %s.\n", ucn);
     }
-    if(fcomp(cell.center.Eta,event.roi[roi-1].calDigi.hadDigi[i].eta,MAXERR)==ERROR) {
+    if(fcomp(cell.center.Eta,event.roi[roi-1].calDigi.hadDigi[i].eta,MAXERR)==CALO_ERROR) {
       fprintf(outfile,"(teste.c) Cell %d: DecodeId gives me an eta of ",i);
       fprintf(outfile,"%e and the file, %e.\n", i+1, cell.center.Eta, 
 	      event.roi[roi-1].calDigi.hadDigi[i].eta);
