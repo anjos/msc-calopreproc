@@ -4,14 +4,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "energy.h"
 #include "data.h"
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.3 2000/08/20 04:38:10 andre Exp $ */
+/* $Id: energy.c,v 1.4 2000/09/06 14:51:03 andre Exp $ */
 
 /* Some prototypes used here on */
 Energy* energy_from_all_digis(const ROI*, Energy*);
+Energy uniform_layer_energy (const CaloLayer*);
 
 /* These are the shorts that define what we'll dump. Each of those is explained
    above. */
@@ -228,4 +230,61 @@ Energy* energy_from_all_digis(const ROI* r, Energy* ep)
   return ep;
 }
 
+
+/* This function shall add all energies on a uniform RoI. It returns the result
+   of that summation. */
+Energy uniform_roi_energy (const uniform_roi_t* rp)
+{
+  Energy counter = 0;
+  int i;
+  
+  for (i=0; i< rp->nlayer; ++i)
+    counter += uniform_layer_energy(&rp->layer[i]);
+    
+  return (counter);
+}
+
+/* This function shall add all energies on a uniform RoI:EM section. It returns
+   the result of that summation. */
+Energy uniform_roi_EM_energy (const uniform_roi_t* rp)
+{
+  Energy counter = 0;
+  int i;
+  
+  for (i=0; i< rp->nlayer; ++i)
+    if (rp->layer[i].calo == EM || rp->layer[i].calo == PS)
+      counter += uniform_layer_energy(&rp->layer[i]);
+    
+  return (counter);
+}
+/* This function shall add all energies on a uniform RoI:HAD section. It
+   returns the result of that summation. */
+Energy uniform_roi_HAD_energy (const uniform_roi_t* rp)
+{
+  Energy counter = 0;
+  int i;
+  
+  for (i=0; i< rp->nlayer; ++i)
+    if (rp->layer[i].calo == HAD)
+      counter += uniform_layer_energy(&rp->layer[i]);
+    
+  return (counter);
+}
+
+/* This function shall add all energies over a layer. It returns the result of
+   that summation. */
+Energy uniform_layer_energy (const CaloLayer* lp)
+{
+  Energy counter = 0;
+  int eta,phi;
+  int cell_index;
+
+  for(phi=0; phi < lp->PhiGran; ++phi)
+    for(eta=0; eta < lp->EtaGran; ++eta) {
+      cell_index = eta + phi* lp->EtaGran;
+      counter += lp->cell[cell_index].energy;
+  }
+
+  return (counter);
+}
 
