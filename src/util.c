@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.3 2000/05/22 20:34:37 rabello Exp $ */
+/* $Id: util.c,v 1.3.1.1 2000/05/22 22:10:06 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,7 +46,7 @@ EVENT search_event(FILE* in, const long evno)
   int has_info;
   EVENT event;
 
-  /* waste_initial_info(in); */
+  waste_initial_info(in);
 
   /* Read in the designated event (evno) */
   for(itor=1; itor<=evno; ++itor) {
