@@ -6,13 +6,14 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.7 2000/08/03 06:30:01 rabello Exp $ */
+/* $Id: main.c,v 1.8 2000/08/11 16:11:38 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <obstack.h>
 #include <string.h>
+#include <time.h>
 
 /* Functions that shall be initialized */
 FILE * open_obstack_stream (struct obstack*);
@@ -42,11 +43,17 @@ typedef struct pararamter_t
   char* ifbuf; /* The input file buffer */
   FILE* ofp; /* The output file pointer */
   char* ofbuf; /* The output file buffer */
-  char ofname[256]; /* The output file name */
+  char ofname[256]; /* The output file name will be copied into here */
+  char ifname[256]; /* The input file name will be copied into here */
+  FILE* cfp; /* The file where the config will be stored */
 
   particle_t particle; /* The type of particle present on file */
-  unsigned short layer_flags; /* Which layers to process. See module uniform */
+  unsigned short layer_flags; /* Which layers to process. See uniform.[ch] */
+  char layer_names[50]; /* The layer names for future reference */
+  unsigned short print_flags; /* Which layers to dump. See uniform.[ch] */
+  char print_names[50]; /* The print layer names for future reference */
   unsigned short normalization; /* Normalization scheme. See module uniform */
+  char norm_name[10]; /* The used normalization for future reference */
 
   long int event_no; /* The event number to process */
   long int roi_no; /* The roi number to process */
@@ -68,6 +75,7 @@ void fprintf_progress (FILE*, const bool_t, const int, const int);
 bool_t process_ROI (const ROI*, const parameter_t*);
 void process_EVENT (const EVENT*, const parameter_t*);
 int dump_rings (const tt_roi_t*, const parameter_t*);
+void dump_config(FILE*, const parameter_t*);
 
 static int _iunits = 0; /* This shall, during execution, be set to the
 			   number of dumped features */
@@ -91,6 +99,7 @@ int main (int argc, char* argv[])
   params.ifbuf = 0;
   params.ofp = stdout; /* by default, dump to screen */
   params.ofbuf = 0;
+  params.cfp = stdout; /* by default dump configuration to screen */
   params.particle = ELECTRON; /* by default, use electron */
   params.event_no = 0;
   params.roi_no = 0;
@@ -102,13 +111,19 @@ int main (int argc, char* argv[])
   params.process_all_rois = TRUE; /* processs all rois */
   params.verbose = FALSE; /* verbose output? */
 
-  /* Enable all layers by default */
+  /* Require all layers by default */
   string2layer(&params.layer_flags, "all");
+  /* Dump all layers by default */
+  string2layer(&params.print_flags, "all");
   /* Don't normalize by default */
   string2normalization(&params.normalization, "none");
   
   /* get and treat parameters */
   process_flags(&params,argc,argv);
+
+  /* dump configuration. It shall close the output file automatically. Do *NOT*
+     attempt to write on it afterwards! */
+  dump_config(params.cfp, &params);
 
   if (!params.process_all_events) {
     event = search_event(params.ifp, params.event_no);
@@ -163,6 +178,7 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     /* These options set a flag. */ 
     {"input-file", 1, 0, 'i'},
     {"output-file", 1, 0, 'o'},
+    {"config-file", 1, 0, 'c'},
     {"help", 0, 0, 'h'},
     {"event-number", 1, 0, 'e'},
     {"roi-number", 1, 0, 'r'},
@@ -170,12 +186,13 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {"format", 1, 0, 'f'},
     {"particle", 1, 0, 'p'},
     {"layer", 1, 0, 'l'},
+    {"select", 1, 0, 's'},
     {"normalization", 1, 0, 'n'},
     {"verbose", 0, 0, 'v'},
     {0, 0, 0, 0}
   };
   
-  while (EOF != (c=getopt_long(argc, argv, "i:o:he:r:d:f:p:l:n:v", 
+  while (EOF != (c=getopt_long(argc, argv, "i:o:c:he:r:d:f:p:l:s:n:v", 
 			       long_options, &option_index) ) ) {
     switch (c) {
 
@@ -190,6 +207,10 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 	fprintf(stderr, "(main) Can't open input file %s\n", optarg);
 	exit(EXIT_FAILURE);
       }
+
+      /* If opened the input filename, copy the filename to a safe place, so it
+	 can be re-used latter */
+      strcpy(p->ifname,optarg);
 
       /* get file status, includding optimal buffer block size */
       stat(optarg, &buf);
@@ -243,7 +264,6 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 	exit(EXIT_FAILURE);
       }
 
-
     case 'p': /* What's the target? */
       if ( strcasecmp(optarg, "jet" ) == 0 ) {
 	p->particle = JET;
@@ -260,12 +280,19 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 	exit(EXIT_FAILURE);
       }
 
-    case 'l': /* Which layers to use? */
+    case 'l': /* Which layers to require? */
       string2layer(&p->layer_flags,optarg);
+      strcpy(p->layer_names,optarg);
+      break;
+
+    case 's': /* Which layers to print to output? */
+      string2layer(&p->print_flags,optarg);
+      strcpy(p->print_names,optarg);
       break;
 
     case 'n': /* Which normalization to use? */
       string2normalization(&p->normalization,optarg);
+      strcpy(p->norm_name,optarg);
       break;
 
     case 'v': /* dump rings instead of plain RoIs */
@@ -304,6 +331,14 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 	exit(EXIT_FAILURE);
       }
       
+      break;
+    }
+
+    case 'c': { /* output configuration parameters to file 'configfile' */
+      if (NULL==(p->cfp=fopen(optarg,"w"))) {
+	fprintf(stderr, "(main) Can\'t open config file %s\n", optarg);
+	exit(EXIT_FAILURE);
+      }
       break;
     }
 
@@ -364,6 +399,12 @@ void test_flags (parameter_t* p)
     fprintf(stderr, "(main)WARN: SNNS formatting DEACTIVATED!\n");
   }
 
+  /* No sense in printing something that is not required */
+  if ( validate_print_selection(&p->layer_flags, &p->print_flags) == FALSE ) {
+    fprintf(stderr, "(main)ERROR: Can't continue. Will abort\n");
+    exit(EXIT_FAILURE);
+  }
+
 }
 
 void print_help_msg(FILE* fp, const char* prog)
@@ -371,7 +412,8 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "Calorimeter ASCII Data Preprocessor version 0.2\n");
   fprintf(fp, "author: André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>\n");
   fprintf(fp, "usage: %s -i file [-d what] [-f format] [-v]", prog);
-  fprintf(fp, "[-o file] [-e # -r #]\n");
+  fprintf(fp, " [-n normalization] [-l layer] [-p particle]");
+  fprintf(fp, " [-o file] [-e # -r #]\n");
   fprintf(fp, "       %s -h or --help prints this help message.\n", prog);
   fprintf(fp, "[OPTIONS SUMMARY]\n");
 
@@ -383,6 +425,11 @@ void print_help_msg(FILE* fp, const char* prog)
 
   fprintf(fp, "-o file | --output-file=file\n");
   fprintf(fp, "\t sets the output file name (default is stdout)\n");
+  fprintf(fp, "\t 'file' will be created if doesn't exist or truncated if");
+  fprintf(fp, " it does\n");
+
+  fprintf(fp, "-c file | --config-file=file\n");
+  fprintf(fp, "\t sets the config file name (default is stdout)\n");
   fprintf(fp, "\t 'file' will be created if doesn't exist or truncated if");
   fprintf(fp, " it does\n");
 
@@ -414,9 +461,11 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t   jets     - jets file (target = -1)\n");
 
   fprintf(fp, "-l string | --layer=string\n");
-  fprintf(fp, "\t dumps the layers specified by string. The layers shall\n");
-  fprintf(fp, "\t separated by comman and/or spaces and may be one of\n");
-  fprintf(fp, "\t the following:\n");
+  fprintf(fp, "\t Requires information of the layers specified by string.\n"); 
+  fprintf(fp, "\t to be present on event. Event is eliminated if do not \n");
+  fprintf(fp, "\t contain this information. This has no importance when \n");
+  fprintf(fp, "\t dumping digis. The layers shall be separated by comman\n");
+  fprintf(fp, "\t and/or spaces and may be one or more of the following:\n");
   fprintf(fp, "\t   ps   - dump PreSample information\n");
   fprintf(fp, "\t   em1  - dump EM front layer\n");
   fprintf(fp, "\t   em2  - dump EM middle layer\n");
@@ -425,6 +474,22 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t   had2 - dump HAD middle layer\n");
   fprintf(fp, "\t   had3 - dump HAD back layer\n");
   fprintf(fp, "\t   all  - dump all layers. If such flag is activated, the\n");
+  fprintf(fp, "\t          others will be ignored since are redundant\n");
+  fprintf(fp, "\t          this is the default behaviour \n");
+
+  fprintf(fp, "-s string | --select=string\n");
+  fprintf(fp, "\t Prints layer information of the layers specified by\n");
+  fprintf(fp, "\t string. This flag has only sense when dumping urois or\n");
+  fprintf(fp, "\t rings. If The layers shall be separated by comma and/or\n");
+  fprintf(fp, "\t spaces and may be one or more of the following:\n");
+  fprintf(fp, "\t   ps   - require PreSample information\n");
+  fprintf(fp, "\t   em1  - require EM front layer\n");
+  fprintf(fp, "\t   em2  - require EM middle layer\n");
+  fprintf(fp, "\t   em3  - require EM back layer\n");
+  fprintf(fp, "\t   had1 - require HAD front layer\n");
+  fprintf(fp, "\t   had2 - require HAD middle layer\n");
+  fprintf(fp, "\t   had3 - require HAD back layer\n");
+  fprintf(fp, "\t   all  - require all layers. If this is activated, the\n");
   fprintf(fp, "\t          others will be ignored since are redundant\n");
   fprintf(fp, "\t          this is the default behaviour \n");
 
@@ -493,7 +558,7 @@ bool_t process_ROI(const ROI* roi, const parameter_t* p)
       if ( uniformize (&ttroi,&ur,p->layer_flags,p->normalization) != NULL ) {
 
 	if (p->dump_uniform_digis) dump_DIGIS(p->ofp,roi);
-	else print_uniform_roi (p->ofp,&ur);
+	else print_uniform_roi (p->ofp,&ur,p->print_flags);
 	free_uniform_roi (&ur);
       }
     }
@@ -560,20 +625,20 @@ int dump_rings (const tt_roi_t* roi, const parameter_t* p)
 {
   char* dump;
   char* temp;
-  ring_t* rp;
-  int nring; /* the number of rings produced */
+  ringroi_t ringroi;
 
   /* I have to change the value pointed by rp */
-  nring = ring_sum (roi, &rp, p->layer_flags, p->normalization);
+  ringroi.nring = ring_sum(roi, &ringroi, p->layer_flags, 
+			   p->print_flags, p->normalization);
 
-  if (nring > 0) {
+  if (ringroi.nring > 0) {
       ++_nevents;
 
-      _iunits = asprintf_ring_vector (&dump, rp, nring);
+      _iunits = asprintf_ring_vector (&dump, ringroi.ring, ringroi.nring);
 
       if (p->format_snns) {
 	temp = dump;
-	asprintf(&dump, "## INPUT roi=%d features=%d\n%s", 
+	asprintf(&dump, "## INPUT roi=%d features=%d\n%s",
 		 _nevents, _iunits, dump);
 	free(temp);
 
@@ -597,10 +662,58 @@ int dump_rings (const tt_roi_t* roi, const parameter_t* p)
 
       fprintf(p->ofp,"%s",dump);
 
-      free_ring_vector(rp, nring);
+      free_ring_vector(ringroi.ring, ringroi.nring);
       free(dump); /* the information to print */
   }
   return (_nevents);
+}
+
+/* This procedure will dump the configuration data into a organized format,
+   optionally into a file. Between the dumped data one may find the current
+   date of the test and the output and input file name. For understand these
+   lines, go through the printed strings. It can't be hard. */
+void dump_config(FILE* fp, const parameter_t* par) 
+{
+  time_t current_time = time(NULL); /* just a dummy variable for timing */
+
+  fprintf(fp, "-+- CONFIGURATION PARAMETERS\n");
+  fprintf(fp, " +- Date: %s", ctime(&current_time));
+  fprintf(fp, " +- Input File: %s\n", par->ifname);
+  fprintf(fp, " +- Output File: %s \n", par->ofname);
+
+  fprintf(fp, " +- Output Information: ");
+  if (par->dump_rings) fprintf(fp, "Rings\n");
+  else if (par->dump_digis) fprintf(fp, "Digis\n");
+  else if (par->dump_digis) fprintf(fp, "Uniform Digis\n");
+  else fprintf(fp, "Uniform Rois\n");
+
+  if (! par->dump_digis ) {
+    fprintf(fp, " +- Uniformizing Selection: %s\n", par->layer_names);
+    if (! par->dump_uniform_digis ) {
+      fprintf(fp, " +- Printing Selection: %s\n", par->print_names);
+      fprintf(fp, " +- Normalization: %s\n", par->norm_name);
+    }
+  }
+
+  fprintf(fp, " +- Output Format: ");
+  if (par->format_snns) {
+    fprintf(fp, "SNNS\n");
+    fprintf(fp, " +- Particle Type for SNNS targets: ");
+    if (par->particle == JET) fprintf(fp, "Jet\n");
+    else fprintf(fp, "Electron\n");
+  }
+  else fprintf(fp, "Raw\n");
+
+  if (par->process_all_rois)
+    fprintf(fp, " +- Processing: All Events\n");
+  else
+    fprintf(fp, " +- Processing: Event %ld, RoI %ld\n", 
+	    par->event_no, par->roi_no);
+
+  fprintf(fp, "==========================================\n");
+
+  fclose(fp);
+  
 }
 
 
