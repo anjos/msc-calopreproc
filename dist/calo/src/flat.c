@@ -1,7 +1,7 @@
 #include "flat.h"
 
 /* Flattens trigger towers of EM RoI */
-ErrorCode Flatten(const CaloTTEMRoI* roi, FlatEM em, FlatHad had)
+ErrorCode Flatten(const tt_roi_t* roi, FlatEM em, FlatHad had)
 {
   const int EMRoIGran = EMROIGRAN;
   unsigned int eta, phi, i;
@@ -20,11 +20,11 @@ ErrorCode Flatten(const CaloTTEMRoI* roi, FlatEM em, FlatHad had)
   /* flatten RoI info */
   for(phi = 0; phi < EMRoIGran; phi++)
     for(eta = 0; eta < EMRoIGran; eta++)
-      for(i = 0; i < roi->tt[phi][eta].NoOfLayers; i++) {
+      for(i = 0; i < roi->em_tt[phi][eta].NoOfLayers; i++) {
 
-	lay = &roi->tt[phi][eta].layer[i]; /* simplifies reading */
+	lay = &roi->em_tt[phi][eta].layer[i]; /* simplifies reading */
 
-	switch(roi->tt[phi][eta].layer[i].calo) {
+	switch(roi->em_tt[phi][eta].layer[i].calo) {
 	case PSBARRREL:
 	case PSENDCAP:
 	  section = ELECTROMAGNETIC;
@@ -111,8 +111,8 @@ ErrorCode AddEMLayer(FlatEM em, const int tteidx, const int ttpidx, CaloLayer*
   
   for(i=0; i< l->NoOfCells; i++) {
     nrj = l->cell[i].energy / div;
-    estart = tteidx + l->cell[i].index.Eta * etaoc;
-    pstart = ttpidx + l->cell[i].index.Phi * phioc;
+    estart = tteidx + l->cell[i].index.eta * etaoc;
+    pstart = ttpidx + l->cell[i].index.phi * phioc;
     for(phi = pstart; phi < pstart + phioc; phi++)
       for(eta = estart; eta < estart + etaoc; eta++)
 	em[phi][eta] = nrj;
@@ -149,14 +149,14 @@ CaloLayer* CreateProvStripLayer(const CaloLayer* in)
   /* init cells */
   for(i = 0; i < out->NoOfCells; i++) {
     out->cell[i].energy = 0.;
-    out->cell[i].index.Eta = i;
-    out->cell[i].index.Phi = 0;
+    out->cell[i].index.eta = i;
+    out->cell[i].index.phi = 0;
   }
 
   /* evaluate cells */
   for(i = 0; i < in->NoOfCells; i++) {
     sum = in->cell[i].energy / 4;
-    eta = in->cell[i].index.Eta / (in->EtaGran / TTGran);
+    eta = in->cell[i].index.eta / (in->EtaGran / TTGran);
     out->cell[eta].energy += sum;
   }
 
@@ -204,7 +204,7 @@ ErrorCode AddPSZS(const CaloLayer* layer, const int TTEtaIndex, const int
   
     for(x = 0; x < layer->NoOfCells; x++) {
       sum = layer->cell[x].energy / 4;
-      eta = 4 * TTEtaIndex + layer->cell[x].index.Eta;
+      eta = 4 * TTEtaIndex + layer->cell[x].index.eta;
       for(phi = 4 * TTPhiIndex; phi < 4 * TTPhiIndex + TTGran; phi++)
 	em[phi][eta] += sum;
     }
@@ -273,7 +273,7 @@ ErrorCode AddEMBarrelZS(const CaloLayer* layer, const int TTEtaIndex, const
     case 1: /* Fmont (or Strip) Layer */
       for(x = 0; x < layer->NoOfCells; x++) {
 	EtaDrop = (int)rint((double)layer->EtaGran / (double)TTGran);
-	eta = (int)rint((double)layer->cell[x].index.Eta / (double) EtaDrop);
+	eta = (int)rint((double)layer->cell[x].index.eta / (double) EtaDrop);
 	eta += TTEtaIndex;
 	sum = layer->cell[x].energy / 4;
 	for (aux = 4 * TTPhiIndex; phi < 4 * TTPhiIndex + TTGran; phi++)
@@ -283,16 +283,16 @@ ErrorCode AddEMBarrelZS(const CaloLayer* layer, const int TTEtaIndex, const
 
     case 2: /* Middle Layer, direct mapping */
       for(x = 0; x < layer->NoOfCells; x++) {
-	eta = 4 * TTEtaIndex + layer->cell[x].index.Eta;
-	phi = 4 * TTPhiIndex + layer->cell[x].index.Phi;
+	eta = 4 * TTEtaIndex + layer->cell[x].index.eta;
+	phi = 4 * TTPhiIndex + layer->cell[x].index.phi;
 	em[phi][eta] += layer->cell[x].energy;
       }
       break;
     
     case 3: /* Back Layer */
       for(x = 0; x < layer->NoOfCells; x++) {
-	phi = 4 * TTPhiIndex + layer->cell[x].index.Phi;
-	eta = 4 * TTEtaIndex + 2 * layer->cell[x].index.Eta;
+	phi = 4 * TTPhiIndex + layer->cell[x].index.phi;
+	eta = 4 * TTEtaIndex + 2 * layer->cell[x].index.eta;
 	em[phi][eta] = layer->cell[x].energy;
 	em[phi][eta+1] = layer->cell[x].energy;
       }
@@ -412,7 +412,7 @@ ErrorCode AddEMEndcapZS(const CaloLayer* layer, const int TTEtaIndex, const
     case 4:      
       for(x = 0; x < layer->NoOfCells; x++) {
 	EtaDrop = (int)rint((double)layer->EtaGran / (double)TTGran); 
-	eta = (int)rint((double)layer->cell[x].index.Eta / (double)
+	eta = (int)rint((double)layer->cell[x].index.eta / (double)
 			 EtaDrop); 
 	eta += TTEtaIndex;
 	sum = layer->cell[x].energy / 4;
@@ -439,8 +439,8 @@ ErrorCode AddEMEndcapZS(const CaloLayer* layer, const int TTEtaIndex, const
     switch (layer->EtaGran) {
     case 4:
       for(x = 0; x < layer->NoOfCells; x++) {
-	eta = 4 * TTEtaIndex + layer->cell[x].index.Eta;
-	phi = 4 * TTPhiIndex + layer->cell[x].index.Phi;
+	eta = 4 * TTEtaIndex + layer->cell[x].index.eta;
+	phi = 4 * TTPhiIndex + layer->cell[x].index.phi;
 	em[phi][eta] += layer->cell[x].energy;
       }
       break;
@@ -461,8 +461,8 @@ ErrorCode AddEMEndcapZS(const CaloLayer* layer, const int TTEtaIndex, const
 
   case 3: /* Back Layer */
     for(x = 0; x < layer->NoOfCells; x++) {
-      phi = 4 * TTPhiIndex + layer->cell[x].index.Phi;
-      eta = 4 * TTEtaIndex + 2 * layer->cell[x].index.Eta;
+      phi = 4 * TTPhiIndex + layer->cell[x].index.phi;
+      eta = 4 * TTEtaIndex + 2 * layer->cell[x].index.eta;
       em[phi][eta] = layer->cell[x].energy;
       em[phi][eta+1] = layer->cell[x].energy;
     }
