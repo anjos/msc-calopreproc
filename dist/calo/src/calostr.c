@@ -1,3 +1,7 @@
+/* Hello emacs, this is -*- c -*- */
+
+/* $Id: calostr.c,v 1.2 2000/04/07 19:31:34 rabello Exp $ */
+
 #include "calostr.h"
 
 ErrorCode SplitCells(const ROI* roi, CaloStringRoI* stringroi)
@@ -33,8 +37,8 @@ ErrorCode SplitCells(const ROI* roi, CaloStringRoI* stringroi)
     StringLayer* current = NULL;
     int i;
 
-    if (GetCellInfo(roi->calDigi.emDigi[counter].id, stringroi->PhiWrap,
-		    stringroi->region.LowerLeft.Phi, &cellinfo) == ERROR) {
+    if (GetCellInfo(roi->calDigi.emDigi[counter].id, &cellinfo, 
+		    stringroi->PhiWrap) == ERROR) {
       fprintf(stderr, "ERROR(calostr.c): Couldn't get cell info\n");
       return(ERROR);
     }
