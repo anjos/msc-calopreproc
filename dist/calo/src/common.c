@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: common.c,v 1.8 2000/08/16 11:21:21 andre Exp $ */
+/* $Id: common.c,v 1.9 2000/12/08 15:19:27 rabello Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,6 +96,31 @@ int ascat_double (char** to, const double* dp)
 
   /* Concat */
   count = asprintf(to, "%s %e", temp, *dp);
+
+  /* free the old used string */
+  free(temp);
+
+  /* return what we promissed */
+  return count;
+}
+
+/* Concatenate one string to a float, returning the first. The memory needed
+   is allocated as with malloc(). If *to is NULL, newly allocated memory is
+   returned. The returned value is the number of chars passed to (*to) */
+int ascat_float (char** to, const float* fp)
+{
+  char* temp; /* a temporary stack for placing changes */
+  int count; /* the number of elements put onto the new string */
+
+  if (*to == NULL) return asprintf(to, "%e", *fp);
+
+  /* else, meaning that *to is pointing somewhere, I have to concat */
+
+  /* backup original string */
+  asprintf(&temp, "%s", *to);
+
+  /* Concat */
+  count = asprintf(to, "%s %e", temp, *fp);
 
   /* free the old used string */
   free(temp);

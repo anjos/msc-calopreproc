@@ -1,7 +1,7 @@
 /* hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: common.h,v 1.10 2000/09/06 14:51:54 andre Exp $ */
+/* $Id: common.h,v 1.11 2000/12/08 15:19:27 rabello Exp $ */
 
 #ifndef COMMON_H
 #define COMMON_H
@@ -106,6 +106,16 @@ int ascat (char**, const char*);
    to be placed there. I suggest using &((char*)charptr) instead of creating a
    double-char-pointer. */
 int ascat_double (char**, const double*);
+
+/* Concatenate one string to a float  forming a new string with the float 
+   value included. The precision used is the default of XXprintf() functions in
+   general, i.e. "%e". The memory needed is allocated as with malloc(). If *to
+   is NULL, newly allocated memory is returned. The returned value is the
+   number of chars passed to the first argument. ATTENTION: The first argument
+   is a double-char-pointer. The string which is going to be allocated is going
+   to be placed there. I suggest using &((char*)charptr) instead of creating a
+   double-char-pointer. */
+int ascat_float (char**, const float*);
 
 /* Concatenate one string to an int forming a new string with the int value
    included. The precision used is the default of XXprintf() functions in
