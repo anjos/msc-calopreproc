@@ -17,7 +17,7 @@ typedef ErrorCode (*AddEMFunPtr) (const CaloLayer*, const int, const int,
 
 extern double rint(double x);
 
-extern ErrorCode Flatten(const CaloTTEMRoI*, FlatEM, FlatHad);
+extern ErrorCode Flatten(const tt_roi_t*, FlatEM, FlatHad);
 
 extern ErrorCode AddEMLayer(FlatEM, const int, const int, CaloLayer*);
 extern CaloLayer* CreateProvStripLayer(const CaloLayer*);
