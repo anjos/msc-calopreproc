@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.h,v 1.4 2000/09/06 14:49:36 andre Exp $ */
+/* $Id: parameter.h,v 1.5 2000/09/19 00:34:20 andre Exp $ */
 
 /* The door keepers */
 #ifndef __PARAMETER_H
@@ -69,8 +69,12 @@ typedef struct pararamter_t
   /* Which layers to dump. See uniform.[ch] */
   unsigned short print_flags; 
 
-  /* Normalization scheme. See module uniform */
+  /* Normalization scheme. See module normal */
   unsigned short normalization; 
+
+  /* Holds the value of radius to use when normalizing using the unity+
+     technique. */
+  Energy max_radius;
 
   /* The event number to process */
   long int event_no; 
