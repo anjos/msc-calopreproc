@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.h,v 1.6 2000/08/27 16:26:13 andre Exp $ */
+/* $Id: uniform.h,v 1.7 2000/09/06 14:52:09 andre Exp $ */
 
 #ifndef _UNIFORM_H
 #define _UNIFORM_H
@@ -79,18 +79,6 @@ char* layer2string(const unsigned short*, char*);
    second to the print_flags. */
 bool_t validate_print_selection(const unsigned short*, unsigned short*);
 
-/* Converts the string token to one of the possible normalization parameters,
-   defined on the body of uniform.c:normal_t. This function checks
-   automatically for ambiguities, so there's no problem in trying to define
-   more than one type of normalization. In the last case, a warning shall be
-   issued. */
-unsigned short* string2normalization(unsigned short*, const char*);
-
-/* Commits the inverse processing of string2normalization(). The char* must
-   have its space pre-allocated since it won't be inside the function. The
-   minimum space requirement is 60 bytes */
-char* normalization2string(const unsigned short*, char*);
-
 /* This functions frees the contents of a uniform_roi_t pointer. The pointed
    variable is *not* freed in here. If you created it, you must free it as
    well. */
@@ -112,15 +100,6 @@ bool_t flag_contains_layer(const unsigned short, const CaloLayer*);
    functions that have to preallocate space based on the number of layers that
    should be processed. */
 short flag_contains_nlayers(const unsigned short flags);
-
-/* The next functions extract the energy sum of all cells of the collected
-   RoI. The RoI cells available are selected at run time by the appropriate
-   layer_flags on main.c. The EM and HAD versions of it return only the EM and
-   hadronic sections energies. */
-Energy uniform_roi_energy (const uniform_roi_t*);
-Energy uniform_roi_EM_energy (const uniform_roi_t*);
-Energy uniform_roi_HAD_energy (const uniform_roi_t*);
-
 
 #endif /* _UNIFORM_H */
 
