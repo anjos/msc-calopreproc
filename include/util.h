@@ -8,7 +8,7 @@
    strings into doubles or longs. 
 */
 
-/* $Id: util.h,v 1.3 2000/07/12 04:49:38 rabello Exp $ */
+/* $Id: util.h,v 1.4 2000/07/20 00:44:40 rabello Exp $ */
 
 #ifndef __UTIL_H
 #define __UTIL_H
@@ -51,6 +51,11 @@ void waste_initial_info(FILE*);
 
 /* Dumps all the digis in an RoI in human readable format */
 void dump_DIGIS(FILE* fp,const ROI* roi);
+
+/* Dumps the SNNS file header into the file pointed by the first argument. The
+   next three arguments will indicate, respectively, the number of patterns in
+   file, the number of input units, and the number of output units. */
+void fprintf_SNNS_header(FILE*, const int, const int, const int);
 
 #endif /* __UTIL_H */
 
