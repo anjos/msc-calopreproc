@@ -9,8 +9,8 @@
  * 0 - zero; K - calo; m - module; S - side or signal; e - eta and p is phi.
  *                        (region)
  * $Log: portable.c,v $
- * Revision 1.1  2000/03/13 21:03:46  rabello
- * Initial revision
+ * Revision 1.1.1.1  2000/03/13 21:03:46  rabello
+ * Initial Release
  *
  * Revision 1.1.1.1  1998/07/09 16:09:08  rabello
  * Calorimeter C Library

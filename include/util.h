@@ -3,7 +3,7 @@
 /* The utility header file. This library helps the user, providing facilities
    to dump on screen or file, tags of some ascii data file */
 
-/* $Id: util.h,v 1.1 2000/03/13 21:03:42 rabello Exp $ */
+/* $Id: util.h,v 1.1.1.1 2000/03/13 21:03:42 rabello Exp $ */
 
 #ifndef __UTIL_H
 #define __UTIL_H

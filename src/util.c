@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.1 2000/03/13 21:03:42 rabello Exp $ */
+/* $Id: util.c,v 1.1.1.1 2000/03/13 21:03:42 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>

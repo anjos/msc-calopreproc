@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.1 2000/03/13 21:03:42 rabello Exp $ */
+/* $Id: main.c,v 1.1.1.1 2000/03/13 21:03:42 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>

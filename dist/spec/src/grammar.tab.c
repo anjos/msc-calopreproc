@@ -14,7 +14,7 @@
 
 
   /* 
-   * $Id: grammar.tab.c,v 1.1 2000/03/13 21:03:43 rabello Exp $
+   * $Id: grammar.tab.c,v 1.1.1.1 2000/03/13 21:03:43 rabello Exp $
    */
      
 #ifdef __hpux

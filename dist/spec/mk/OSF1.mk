@@ -1,5 +1,5 @@
 #
-# $Id: OSF1.mk,v 1.1 2000/03/13 21:03:45 rabello Exp $
+# $Id: OSF1.mk,v 1.1.1.1 2000/03/13 21:03:45 rabello Exp $
 #
 # variables for OS dependent source files
 # Digital Unix 4.0b

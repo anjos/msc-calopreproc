@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2000/03/13 21:03:42 rabello Exp $
+# $Id: Makefile,v 1.1.1.1 2000/03/13 21:03:42 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -104,7 +104,7 @@ $(DATASPEC:%=./src/%.c): spec $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo -n \* -- current version is '$Revision: 1.1 $' of '$Date: 2000/03/13 21:03:42 $'
+	@echo -n \* -- current version is '$Revision: 1.1.1.1 $' of '$Date: 2000/03/13 21:03:42 $'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "

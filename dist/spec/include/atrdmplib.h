@@ -2,7 +2,7 @@
 #define CLIB_H_
 
 /*
- * $Id: atrdmplib.h,v 1.1 2000/03/13 21:03:42 rabello Exp $
+ * $Id: atrdmplib.h,v 1.1.1.1 2000/03/13 21:03:42 rabello Exp $
  */
 
 /*
