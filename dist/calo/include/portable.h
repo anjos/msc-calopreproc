@@ -1,4 +1,4 @@
-/* $Id: portable.h,v 1.4 2000/04/07 22:12:33 rabello Exp $ */
+/* $Id: portable.h,v 1.5 2000/05/31 13:39:52 rabello Exp $ */
 
 #ifndef PORTABLE_H
 #define PORTABLE_H
@@ -40,7 +40,7 @@ typedef struct CellInfo{
    whether one should correct the Phiwraping (ON) or not (OFF). If yes,
    correction is applied by shifting cell's center->Phi to center->Phi + 2*pi
    IF the center of such cell is place between 0 and the PI. */
-ErrorCode GetCellInfo(const int, CellInfo*, const Flag);
+ErrorCode GetCellInfo(const int, CellInfo*, const bool_t);
 
 /* Converts a UCN integer into string format. This format is given by Stefan
    Simion and is basically CCCC.mmm.s.eeeeeeeee.pppppppp where each bit codes
@@ -49,7 +49,7 @@ ErrorCode GetCellInfo(const int, CellInfo*, const Flag);
 void i2ucn(const unsigned int, char*);
 
 /* Compares, given an maximum error diference at the third argument, the two
-   floats of the first and second arguments. */
+   double floats of the first and second arguments. */
 ErrorCode fcomp(const double, const double, const double); 
 
 /* From a cell id, it writes the eta, phi, calorimeter and region
