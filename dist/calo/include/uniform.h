@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.h,v 1.5 2000/08/16 11:22:17 andre Exp $ */
+/* $Id: uniform.h,v 1.6 2000/08/27 16:26:13 andre Exp $ */
 
 #ifndef _UNIFORM_H
 #define _UNIFORM_H
@@ -96,14 +96,13 @@ char* normalization2string(const unsigned short*, char*);
    well. */
 bool_t free_uniform_roi (uniform_roi_t*);
 
-/* This function prints all layers of the uniform roi given
-   (2nd. argument). The first argument should be a valid FILE*. The function
-   returns the number of cells printed for this uniform RoI.  The output
-   organization is done using the layer granularity. So, for instance, if the
-   layer is 16x16 (phixeta), there will be 16 lines with 16 numbers each,
-   separated by spaces. If the layer is 10x5, there will be 10 lines with 5
-   numbers in each one */
-int print_uniform_roi (FILE*, const uniform_roi_t*, const unsigned short);
+/* This function prints all layers of the uniform roi given (1st. argument)
+   into a C-style string that is returned to the user (therefore one must free
+   afterwards). The output organization is done using the layer
+   granularity. So, for instance, if the layer is 16x16 (phixeta), there will
+   be 16 lines with 16 numbers each, separated by spaces. If the layer is 10x5,
+   there will be 10 lines with 5 numbers in each one */
+char* get_uniform_roi (const uniform_roi_t*, const unsigned short);
 
 /* Returns TRUE if the flags contain a description for inclusion of layer on
    the current processing and FALSE otherwise. */

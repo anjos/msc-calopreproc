@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.7 2000/08/18 03:12:02 andre Exp $ */
+/* $Id: uniform.c,v 1.8 2000/08/27 16:26:01 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@ bool_t uniformize_had_tt(const hadtt_t, CaloLayer*);
 
 void free_had_tt (hadtt_t);
 
-int print_uniform_layer (FILE*, const CaloLayer*);
+char* get_uniform_layer (const CaloLayer*);
 Energy uniform_layer_energy (const CaloLayer*);
 void uniform_roi_normalize (uniform_roi_t*, const Energy);
 void uniform_layer_normalize (CaloLayer*, const Energy);
@@ -64,42 +64,54 @@ CaloLayer* copy_layer (CaloLayer*, const CaloLayer*, const size_t);
 bool_t gather_tilecal_layers(hadtt_t);
 bool_t add_equal_layers(CaloLayer*, CaloLayer*);
 
-int print_uniform_roi (FILE* fp, const uniform_roi_t* rp, 
-		       const unsigned short flags)
+char* get_uniform_roi (const uniform_roi_t* rp, const unsigned short flags)
 {
-  int counter = 0;
   int i;
+  char* info; /* the output string */
+  char* temp=""; /* a temporary handler */
+  char* temp2; /* another temporary handler */
   
   for (i=0; i< rp->nlayer; ++i)
-    if ( flag_contains_layer(flags, &rp->layer[i]) )
-      counter += print_uniform_layer(fp, &rp->layer[i]);
-  return (counter);
+    if ( flag_contains_layer(flags, &rp->layer[i]) ) {
+      temp2 = get_uniform_layer(&rp->layer[i]);
+      asprintf(&info, "%s%s", temp, temp2);
+      free(temp);
+      free(temp2);
+      temp = info;
+    }
+  
+  return (info);
 }
 
 
-/* This function prints the given layer (2nd. argument). The first argument
-   should be a valid FILE*. It returns the number of printed cells.
+/* This function prints the given layer (2nd. argument) into a C-style string
+   that is allocated internally (the user must free it afterwards). Such string
+   is returned to the caller.
  
    The output organization is done using the layer granularity. So, for
    instance, if the layer is 16x16 (phixeta), there will be 16 lines with 16
    numbers each, separated by spaces. If the layer is 10x5, there will be 10
    lines with 5 numbers in each one */
-int print_uniform_layer (FILE* fp, const CaloLayer* lp)
+char* get_uniform_layer (const CaloLayer* lp)
 {
-  int counter = 0;
   int eta,phi;
   int cell_index;
+  char* info; /* the output string */
+  char* temp=""; /* a temporary handler */
 
   for(phi=0; phi < lp->PhiGran; ++phi) {
     for(eta=0; eta < lp->EtaGran; ++eta) {
       cell_index = eta + phi* lp->EtaGran;
-      fprintf(fp, "%e ", lp->cell[cell_index].energy);
-      ++counter;
+      asprintf(&info, "%s%e ", temp, lp->cell[cell_index].energy);
+      free(temp);
+      temp = info;
     }
-    fprintf(fp, "\n");
+    asprintf(&info, "%s\n", temp);
+    free(temp);
+    temp=info;
   }
   
-  return (counter);
+  return (info);
 }
 
 uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur, 
