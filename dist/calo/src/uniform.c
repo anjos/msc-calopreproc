@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.8 2000/08/27 16:26:01 andre Exp $ */
+/* $Id: uniform.c,v 1.9 2000/09/06 14:51:17 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,6 +10,7 @@
 #include "common.h"
 #include "uniform.h"
 #include "trigtowr.h"
+#include "normal.h"
 
 /* This global holds the number of errors due to contour problems. Contourning
    problems are usually related to the lack of uniform granularity of certain
@@ -17,14 +18,6 @@
    simply not count the events, but I have to have an estimate of how many
    RoIs per file do not go into the specification for some processing. */
 int uniform_contour_err = 0;
-
-/* In order to make things simpler, I should enumerate a new type that holds
-   only 2 sub-types of calorimeters. */
-typedef enum mycalo_t {PS=PSBARRREL, EM=EMBARREL, HAD=TILECAL} mycalo_t;
-
-/* For normalization specification */
-typedef enum normal_t {NORMAL_NONE=0x0, NORMAL_ALL=0x1, NORMAL_SECTION=0x2, 
-		       NORMAL_LAYER=0x4} normal_t;
 
 /* The next types are defined for the sake of simplicity */
 typedef CaloTriggerTower emtt_t[EMROIGRAN][EMROIGRAN];
@@ -36,7 +29,7 @@ typedef struct uni_layerinfo_t
 {
   gran_t granularity;
   int nphi_per_tt;
-  mycalo_t calorimeter;
+  section_t calorimeter;
   LayerLevel level;
 } uni_layerinfo_t;
 
@@ -52,12 +45,9 @@ bool_t uniformize_had_tt(const hadtt_t, CaloLayer*);
 void free_had_tt (hadtt_t);
 
 char* get_uniform_layer (const CaloLayer*);
-Energy uniform_layer_energy (const CaloLayer*);
-void uniform_roi_normalize (uniform_roi_t*, const Energy);
-void uniform_layer_normalize (CaloLayer*, const Energy);
 
-int search_layer(const CaloTriggerTower*, const mycalo_t, const LayerLevel);
-bool_t is_layer(const CaloLayer*, const mycalo_t, const LayerLevel);
+int search_layer(const CaloTriggerTower*, const section_t, const LayerLevel);
+bool_t is_layer(const CaloLayer*, const section_t, const LayerLevel);
 
 void copy_had_tt(hadtt_t, const hadtt_t);
 CaloLayer* copy_layer (CaloLayer*, const CaloLayer*, const size_t);
@@ -259,95 +249,9 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur,
   }
 
   /* Now, if necessary, I normalize */
-  if ( (norm_flags & NORMAL_ALL) != 0 ) {
-    Energy etot = uniform_roi_energy(ur);
-    uniform_roi_normalize(ur,etot);
-  }
+  uniform_roi_normalize(ur, norm_flags);
 
   return(ur);
-}
-
-/* This function shall add all energies on a uniform RoI. It returns the result
-   of that summation. */
-Energy uniform_roi_energy (const uniform_roi_t* rp)
-{
-  Energy counter = 0;
-  int i;
-  
-  for (i=0; i< rp->nlayer; ++i)
-    counter += uniform_layer_energy(&rp->layer[i]);
-    
-  return (counter);
-}
-
-/* This function shall add all energies on a uniform RoI:EM section. It returns
-   the result of that summation. */
-Energy uniform_roi_EM_energy (const uniform_roi_t* rp)
-{
-  Energy counter = 0;
-  int i;
-  
-  for (i=0; i< rp->nlayer; ++i)
-    if (rp->layer[i].calo == EM || rp->layer[i].calo == PS)
-      counter += uniform_layer_energy(&rp->layer[i]);
-    
-  return (counter);
-}
-/* This function shall add all energies on a uniform RoI:HAD section. It
-   returns the result of that summation. */
-Energy uniform_roi_HAD_energy (const uniform_roi_t* rp)
-{
-  Energy counter = 0;
-  int i;
-  
-  for (i=0; i< rp->nlayer; ++i)
-    if (rp->layer[i].calo == HAD)
-      counter += uniform_layer_energy(&rp->layer[i]);
-    
-  return (counter);
-}
-
-/* This function shall add all energies over a layer. It returns the result of
-   that summation. */
-Energy uniform_layer_energy (const CaloLayer* lp)
-{
-  Energy counter = 0;
-  int eta,phi;
-  int cell_index;
-
-  for(phi=0; phi < lp->PhiGran; ++phi)
-    for(eta=0; eta < lp->EtaGran; ++eta) {
-      cell_index = eta + phi* lp->EtaGran;
-      counter += lp->cell[cell_index].energy;
-  }
-
-  return (counter);
-}
-
-/* Just divides all energy values on the pointer to the uniform RoI by the
-   energy value contained in nfactor. OBS: the uniform RoI is changed during
-   this call. */
-void uniform_roi_normalize (uniform_roi_t* rp, const Energy nfactor)
-{
-  int i;
-  for (i=0; i< rp->nlayer; ++i) 
-    uniform_layer_normalize(&rp->layer[i], nfactor);
-  return;
-}
-
-/* Do the same as uniform_roi_normalize(), but on CaloLayers */
-void uniform_layer_normalize (CaloLayer* lp, const Energy nfactor)
-{
-  int eta,phi;
-  int cell_index;
-
-  for(phi=0; phi < lp->PhiGran; ++phi)
-    for(eta=0; eta < lp->EtaGran; ++eta) {
-      cell_index = eta + phi* lp->EtaGran;
-      lp->cell[cell_index].energy /= nfactor;
-  }
-
-  return;
 }
 
 bool_t flag_contains_layer(const unsigned short flags, const CaloLayer* lp)
@@ -510,72 +414,6 @@ bool_t validate_print_selection(const unsigned short* layer,
 
   return TRUE;
   
-}
-
-/* Although simple, its hacked for future upgrades, that's why the complexity
-   of it. */
-unsigned short* string2normalization(unsigned short* to, const char* from)
-{
-  char* token;
-  const char delimiters [] = " ,";
-
-  /* copies the initial string, not to alter it with a strtok() call */
-  char* temp = strdup (from);
-
-  /* Well, if you had something coded on to, say goodbye */
-  (*to) = 0;
-
-  if ( temp == NULL ) {
-    fprintf(stderr, "(uniform)ERROR: Can't copy string on");
-    fprintf(stderr, "string2normalization()\n");
-    exit(EXIT_FAILURE);
-  }
-
-  token = strtok(temp,delimiters);
-
-  if ( strcasecmp(token,"all") == 0 ) (*to) = NORMAL_ALL;
-  else if ( strcasecmp(token,"layer") == 0 ) { /* (*to)=NORMAL_LAYER; */
-    fprintf(stderr, "(uniform)WARN: layer normalization not implemented\n");
-    fprintf(stderr, "(uniform)WARN: switching to all\n");
-    (*to) = NORMAL_ALL;
-  }
-  else if ( strcasecmp(token,"section") == 0 )  { /* (*to)=NORMAL_SECTION; */
-    fprintf(stderr, "(uniform)WARN: section normalization not ");
-    fprintf(stderr, "implemented\n");
-    fprintf(stderr, "(uniform)WARN: switching to all\n");
-    (*to) = NORMAL_ALL;
-  }
-  else if ( strcasecmp(token,"none") == 0 ) (*to) = NORMAL_NONE;
-  else {
-    fprintf(stderr, "(uniform)WARN: valid token? -> %s\n", token);
-    fprintf(stderr, "(uniform)WARN: switching to no normalization\n");
-    (*to) = NORMAL_NONE;
-  }
-  
-  /* Can't forget to free the space I've allocated... */
-  free(temp);
-
-  return (to);
-}
-
-char* normalization2string(const unsigned short* from, char* to)
-{
-  char* retval; /* the place where we're going to put the output description */
-  retval = NULL;
-
-  /* Check if I have to return nothing */
-  if (*from == 0) {
-    strcpy(to, "None");
-    return to;
-  }
-
-  if (*from & NORMAL_ALL) ascat(&retval,"Total RoI Energy");
-  if (*from & NORMAL_SECTION) ascat(&retval,"Section Energy (EM/HAD)");
-  if (*from & NORMAL_LAYER) ascat(&retval,"Layer Energy");
-
-  strncpy(to,retval,59);
-  free(retval);
-  return to;
 }
 
 /* It should check whether the RoI has an uniform granularity over the proposed
@@ -784,7 +622,7 @@ void free_had_tt (hadtt_t tt)
    argument is expected to be an uniformized CaloLayer*. Note here, that if
    there are two layers with the same characteristics then only the first one
    is taken into account. For that, one has to be prepared previously. */
-int search_layer(const CaloTriggerTower* tt, const mycalo_t calo, const
+int search_layer(const CaloTriggerTower* tt, const section_t calo, const
 		 LayerLevel level)
 {
   int layer_idx = -1;
@@ -805,7 +643,8 @@ int search_layer(const CaloTriggerTower* tt, const mycalo_t calo, const
    primary use is to verify if a layer from a trigger tower contains some
    features what make them usable for some type of processing. If it's the
    case, it should return TRUE. */
-bool_t is_layer(const CaloLayer* l,const mycalo_t calo,const LayerLevel level) 
+bool_t is_layer(const CaloLayer* l,const section_t calo,
+		const LayerLevel level) 
 {
   switch (calo) { /* What kind of calorimeter am I looking for? */
 
