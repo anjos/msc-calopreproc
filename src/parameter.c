@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.9 2000/11/25 19:32:41 andre Exp $ */
+/* $Id: parameter.c,v 1.10 2000/12/08 15:20:27 rabello Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -620,7 +620,7 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "[OPTIONS SUMMARY]\n");
 
   fprintf(fp, " ** Please, refer to the INFO documentation: ");
-  fprintf(fp, "\"Exemplified Application/Usage\"\n");
+  fprintf(fp, "\"Examplified Application/Usage\"\n");
   fprintf(fp, " <your prompt>$ info -f <root>/doc/calo-preproc.info\n");
 
   return;
