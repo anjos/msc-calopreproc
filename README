@@ -1,7 +1,7 @@
 This file is part of calo-preproc package
 Author: André Rabello dos Anjos <Andre.Rabello@ufrj.br>
 
-$Id: README,v 1.6 2000/08/21 18:57:52 andre Exp $
+$Id: README,v 1.7 2000/08/21 20:08:30 andre Exp $
 
 Introduction
 ------------
@@ -72,6 +72,8 @@ the distribution):
 	           divided into:
 <root>/dist/spec/include - headers for the spec library
 <root>/dist/spec/src - source code for the spec library
+
+<root>/utils - a set of utilities, sed files and others for your work.
 
 Building and installing
 -----------------------
