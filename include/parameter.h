@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.h,v 1.6 2000/10/23 02:27:09 andre Exp $ */
+/* $Id: parameter.h,v 1.7 2001/01/30 16:36:17 andre Exp $ */
 
 /* The door keepers */
 #ifndef __PARAMETER_H
@@ -112,6 +112,9 @@ typedef struct pararamter_t
 
   /* Do I have to dump digis? */
   bool_t dump_digis; 
+
+  /* If I have to dump digis, shall I dump control data only? */
+  bool_t control_only;
 
   /* Do I have to dump digis from uniform RoIs? */
   bool_t dump_uniform_digis; 
