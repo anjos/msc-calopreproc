@@ -9,11 +9,11 @@
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.4 2000/09/06 14:51:03 andre Exp $ */
+/* $Id: energy.c,v 1.5 2000/09/06 21:12:55 rabello Exp $ */
 
 /* Some prototypes used here on */
 Energy* energy_from_all_digis(const ROI*, Energy*);
-Energy uniform_layer_energy (const CaloLayer*);
+Energy* uniform_layer_energy (const CaloLayer*, Energy*);
 
 /* These are the shorts that define what we'll dump. Each of those is explained
    above. */
@@ -86,49 +86,53 @@ unsigned short* string2edump(unsigned short* to, const char* from)
    7) ROI_DIGIS - The total amount of energy summing all digis with no
    preprocessing */
 char* get_energy(const ROI* r, const uniform_roi_t* ur,
-		 const unsigned short flags, const char* initstring)
+		 const unsigned short* flags, const char* initstring)
 {
   char* retval = NULL;
+  char nl[] = "\nl";
   Energy temp; /* a temporary space for holding some values */
 
   /* First of all see if we have to print something */
-  if (flags == EDUMP_NONE) return 0;
+  if ((*flags) == EDUMP_NONE) return 0;
 
   /* In such case I have to allocate the space for the initstring */
   ascat(&retval, initstring);
 
-  if (flags & EDUMP_DB_ET) {
+  if ((*flags) & EDUMP_DB_ET) {
     temp = r->l2CalEm.Et;
     ascat_double(&retval, &temp);
   }
 
-  if (flags & EDUMP_DB_ETHAD) { 
+  if ((*flags) & EDUMP_DB_ETHAD) { 
     temp = r->l2CalEm.EtHad;
     ascat_double(&retval, &temp);
   }
 
-  if (flags & EDUMP_DB_T1ET) 
+  if ((*flags) & EDUMP_DB_T1ET) 
     ascat_int(&retval, &r->header.t1Et);
 
-  if (flags & EDUMP_ROI_ET) {
-    temp = uniform_roi_energy(ur);
+  if ((*flags) & EDUMP_ROI_ET) {
+    uniform_roi_energy(ur,&temp);
     ascat_double(&retval, &temp);
   }
 
-  if (flags & EDUMP_ROI_ETEM) {
-    temp = uniform_roi_EM_energy(ur);
+  if ((*flags) & EDUMP_ROI_ETEM) {
+    uniform_roi_EM_energy(ur,&temp);
     ascat_double(&retval,&temp);
   }
 
-  if (flags & EDUMP_ROI_ETHAD) {
-    temp = uniform_roi_HAD_energy(ur);
+  if ((*flags) & EDUMP_ROI_ETHAD) {
+    uniform_roi_HAD_energy(ur,&temp);
     ascat_double(&retval, &temp);
   }
 
-  if (flags & EDUMP_ROI_DIGIS) {
+  if ((*flags) & EDUMP_ROI_DIGIS) {
     energy_from_all_digis(r,&temp);
     ascat_double(&retval, &temp);
   }
+
+  /* Add a new-line to the end of each row */
+  ascat(&retval, nl);
 
   /* Now we can return the final stuff */
   return retval;
@@ -175,27 +179,31 @@ char* edump2string (const unsigned short* from, char* to)
 bool_t validate_energy_selection(const unsigned short* layer_flags, 
 				 unsigned short* energy_flags)
 {
-  if (*energy_flags & EDUMP_ROI_ETEM)
-    if (! flag_contains_nlayers (*layer_flags & 
-				 (FLAG_PS | FLAG_EM1 | FLAG_EM2 | FLAG_EM3))) {
+  unsigned short result;
+
+  if (*energy_flags & EDUMP_ROI_ETEM) {
+    result = (*layer_flags) & (FLAG_PS | FLAG_EM1 | FLAG_EM2 | FLAG_EM3);
+    if (! flag_contains_nlayers ( &result ) ) {
       fprintf(stderr, "(energy) You can't demand ET energy if you did not");
       fprintf(stderr, " selected it\n");
       *energy_flags &= ~(EDUMP_ROI_ETEM);
       fprintf(stderr, "(energy) I won't print EM URoI energies\n");
     }
+  }
 
-  if (*energy_flags & EDUMP_ROI_ETHAD)
-    if (! flag_contains_nlayers (*layer_flags & 
-				 (FLAG_HAD1 | FLAG_HAD2 | FLAG_HAD3))) {
+  if (*energy_flags & EDUMP_ROI_ETHAD) {
+    result = (*layer_flags) & (FLAG_HAD1 | FLAG_HAD2 | FLAG_HAD3);
+    if (! flag_contains_nlayers ( &result ) ) {
       fprintf(stderr, "(energy) You can't demand HAD energy if you did not");
       fprintf(stderr, " selected it\n");
       *energy_flags &= ~(EDUMP_ROI_ETHAD);
       fprintf(stderr, "(energy) I won't print HAD URoI energies\n");
     }
+  }
 
   /* This is quite difficult to happen, but let's try it */
   if (*energy_flags & EDUMP_ROI_ET)
-    if (! flag_contains_nlayers (*layer_flags)) {
+    if (! flag_contains_nlayers (layer_flags)) {
       fprintf(stderr, "(energy) You can't demand Et energy if you did not");
       fprintf(stderr, " selected anything\n");
       *energy_flags = EDUMP_NONE;
@@ -232,59 +240,81 @@ Energy* energy_from_all_digis(const ROI* r, Energy* ep)
 
 
 /* This function shall add all energies on a uniform RoI. It returns the result
-   of that summation. */
-Energy uniform_roi_energy (const uniform_roi_t* rp)
+   of that summation on a pointer. This pointer has the same address of the
+   second argument, which should be passed pre-allocated with the space needed
+   by 1 (one) Energy variable. */
+Energy* uniform_roi_energy (const uniform_roi_t* rp, Energy* counter)
 {
-  Energy counter = 0;
   int i;
+  Energy temp;
   
-  for (i=0; i< rp->nlayer; ++i)
-    counter += uniform_layer_energy(&rp->layer[i]);
+  (*counter) = 0.;
+
+  for (i=0; i< rp->nlayer; ++i) {
+      uniform_layer_energy(&rp->layer[i], &temp);
+      (*counter) += temp;
+    }
     
-  return (counter);
+  return counter;
 }
 
 /* This function shall add all energies on a uniform RoI:EM section. It returns
-   the result of that summation. */
-Energy uniform_roi_EM_energy (const uniform_roi_t* rp)
+   the result of that summation. The space required to store the Energy has to
+   be pre-allocated by the caller */
+Energy* uniform_roi_EM_energy (const uniform_roi_t* rp, Energy* counter)
 {
-  Energy counter = 0;
   int i;
+  Energy temp;
   
+  (*counter) = 0.;
+
   for (i=0; i< rp->nlayer; ++i)
-    if (rp->layer[i].calo == EM || rp->layer[i].calo == PS)
-      counter += uniform_layer_energy(&rp->layer[i]);
+    if (rp->layer[i].calo == EM || rp->layer[i].calo == PS) {
+      uniform_layer_energy(&rp->layer[i], &temp);
+      (*counter) += temp;
+    }
     
-  return (counter);
+  return counter;
 }
+
 /* This function shall add all energies on a uniform RoI:HAD section. It
-   returns the result of that summation. */
-Energy uniform_roi_HAD_energy (const uniform_roi_t* rp)
+   returns the result of that summation on the space pointed by the second
+   argument and to the caller (pointer). The space required to store the Energy
+   has to be pre-allocated by the caller */
+Energy* uniform_roi_HAD_energy (const uniform_roi_t* rp, Energy* counter)
 {
-  Energy counter = 0;
   int i;
+  Energy temp;
   
+  (*counter) = 0.;
+
   for (i=0; i< rp->nlayer; ++i)
-    if (rp->layer[i].calo == HAD)
-      counter += uniform_layer_energy(&rp->layer[i]);
-    
-  return (counter);
+    if (rp->layer[i].calo == HAD) {
+      uniform_layer_energy(&rp->layer[i], &temp);
+      (*counter) += temp;
+    }
+
+  return counter;
 }
 
 /* This function shall add all energies over a layer. It returns the result of
-   that summation. */
-Energy uniform_layer_energy (const CaloLayer* lp)
+   that summation on the value pointed by the second argument and to the caller
+   (pointer). The space required to store the Energy has to be pre-allocated by
+   the caller */
+Energy* uniform_layer_energy (const CaloLayer* lp, Energy* counter)
 {
-  Energy counter = 0;
   int eta,phi;
   int cell_index;
+
+  /* If you had anything there, say goodbye:) */
+  (*counter) = 0.;
 
   for(phi=0; phi < lp->PhiGran; ++phi)
     for(eta=0; eta < lp->EtaGran; ++eta) {
       cell_index = eta + phi* lp->EtaGran;
-      counter += lp->cell[cell_index].energy;
+      (*counter) += lp->cell[cell_index].energy;
   }
 
-  return (counter);
+  return counter;
 }
 
