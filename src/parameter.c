@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.8 2000/10/23 02:27:26 andre Exp $ */
+/* $Id: parameter.c,v 1.9 2000/11/25 19:32:41 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -535,8 +535,8 @@ void test_flags (parameter_t* p)
 
   /* No sense in requiring to print ROI energies if dumping digis */
   if (p->dump_energy && p->dump_digis) {
-    fprintf(stderr, "(param)WARN: Can't print energies or layers when digis");
-    fprintf(stderr, "are required to be printed.\n");
+    fprintf(stderr, "(param)WARN: Can't print energies or layers when digis\n");
+    fprintf(stderr, " are required to be printed.\n");
     fprintf(stderr, "             I'll adjust layer and energy properties");
     fprintf(stderr, " myself \n");
     string2edump(&p->dump_energy, "none");
