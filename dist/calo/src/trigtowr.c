@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* copyleft Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: trigtowr.c,v 1.3 2000/05/31 13:55:25 rabello Exp $ */
+/* $Id: trigtowr.c,v 1.4 2000/06/16 21:29:50 rabello Exp $ */
 
 #include "trigtowr.h"
 
@@ -19,15 +19,19 @@ extern double rint(double x);
 
 bool_t PointIsInRegion(const Point*, const Area*);
 int GetIndex(const CellInfo*, const int, const int, const Point*);
+
 ErrorCode CreateCaloLayer(CaloTriggerTower*, const CellInfo*);
 ErrorCode InitCaloLayer(CaloLayer*, const CellInfo*);
 CaloCell* CreateCaloCells(CaloCell*, const int);
-void InitCaloCells(const int, CaloCell*);
+
 ErrorCode PlaceCell(const Energy, const CellInfo*, const Point*, CaloLayer*); 
+
 void FreeCaloTriggerTower(CaloTriggerTower*);
 void FreeCaloLayer(CaloLayer* layer);
-ErrorCode PutEMDigis(emCalDigiType*, const int, const bool_t, CaloTTEMRoI*); 
 
+ErrorCode PutEMDigis(emCalDigiType*, const int, const bool_t, CaloTTEMRoI*); 
+CaloTTEMRoI* FixRoIParams (CaloTTEMRoI*);
+CellInfo DecodeDigi (const emCalDigiType*, const bool_t);
 
 /*
   =========================
@@ -83,14 +87,14 @@ ErrorCode BuildCaloTTS(const ROI* roi, const bool_t zsup, CaloTTEMRoI* caloroi)
   This function has provisions to deal with decoding errors from DecodeId and
   with RoI's that fall into the wraparound regions of phi.
 */
-ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const bool_t zsup,
-		     CaloTTEMRoI* roi) 
+ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, 
+		     const bool_t zsup, CaloTTEMRoI* roi)
 {
   int counter;
   ErrorCode (*ccallay) (CaloTriggerTower*, const CellInfo*);
   ErrorCode (*pcell) (const Energy, const CellInfo*, const Point*, CaloLayer*);
 
-  /* switch to right functions */
+  /* switch to the right functions */
   if ( zsup == TRUE ) {
     ccallay = &CreateZSCaloLayer;
     pcell = &PlaceZSCell;
@@ -100,21 +104,8 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const bool_t zsup
     pcell = &PlaceCell;
   }
 
-  /* provisional trick to use dumped files with wrong RoI window */
-  if (roi->fixed == FALSE) {
-    if( (roi->Region.LowerLeft.Phi -= 0.1) < 0. ) 
-      roi->Region.LowerLeft.Phi += 2 * PI; 
-    if( (roi->Region.UpperRight.Phi += 0.1) > 2 * PI ) 
-      roi->Region.UpperRight.Phi -= 2 * PI; 
-    roi->Region.LowerLeft.Eta -= 0.1;
-    roi->Region.UpperRight.Eta += 0.1;
-    roi->fixed = TRUE;
-
-    /* check whether we are talking about the phi wrap around area */
-    roi->PhiWrap = PhiWrap(&(roi->Region.UpperRight.Phi),
-			   &(roi->Region.LowerLeft.Phi));
-  }
-
+  /* Fix RoI size and corners */
+  roi = FixRoIParams (roi);
 
   /* finds out cells and layers associated to each TT */
   if (NoOfDigis == 0) return (CALO_SUCCESS);
@@ -125,50 +116,40 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const bool_t zsup
     int eta, phi;
     Area area; /* lower left and upper right */
 
-    if ( GetCellInfo( (digi+counter)->id, &cell, roi->PhiWrap) == CALO_ERROR) {
-      fprintf(stderr, "ERROR(trigtowr.c): Couldn't get cell info\n");
-      return(CALO_ERROR);
-    }
-
-    /* This is a special trick that should NOT be used regurlarly. It replaces
-       the eta that is found to be wrong. Phi decoding is fine, but eta
-       decoding presents some inconsistencies. Those are not a problem of this
-       library, but mistakes in the way files are dumped into ASCII format or
-       even at the original hbook files. This should be taken out as soon as
-       this problem is correct, though it will do no harm, if decoding is fine
-    */ 
-    if(fcomp(cell.center.Eta,(digi+counter)->eta,0.0001)== CALO_ERROR ) {
-      cell.center.Eta = (digi+counter)->eta;
-    } 
-    /* End of magic trick */
+    /* the next call mask what we really do here (see PutEMDigis.fig) */
+    cell = DecodeDigi(&digi[counter], roi->PhiWrap);
 
     /* cell center is taken into account */
     for(phi = 0; phi < EMRoIGran; phi++)
       for(eta = 0; eta < EMRoIGran; eta++) {
 
-	/* lower left and upper right corners of TT */
+	/* define the limits of this RoI */
 	area.LowerLeft.Phi = roi->Region.LowerLeft.Phi + phi * PhiTTSize;
 	area.LowerLeft.Eta = roi->Region.LowerLeft.Eta + eta * EtaTTSize;
 	area.UpperRight.Phi = area.LowerLeft.Phi + PhiTTSize;
 	area.UpperRight.Eta = area.LowerLeft.Eta + EtaTTSize;
 	
+	/* Does this digi belongs to this Trigger Tower ? */
 	if ( PointIsInRegion(&(cell.center), &area) == TRUE )
 	{
+	    /* The cell fits into this TT! */
 
-	    /* fits in this TT */
 	    bool_t layer_exist = FALSE;
 	    int LayerIndex;
-	    int i;
+	    int i; /* iterator */
 
 	    fit = TRUE;
 
+	    /* Tests if layer was already initialized before */
 	    for (i = 0; i < roi->tt[phi][eta].NoOfLayers; i++)
+
 	      if (cell.calo == roi->tt[phi][eta].layer[i].calo &&
 		  cell.region == roi->tt[phi][eta].layer[i].level) {
 		layer_exist = TRUE;
 		LayerIndex = i;
 	      }
 
+	    /* If not, then create this layer */
 	    if (layer_exist == FALSE) {
 	      if ( ccallay(&(roi->tt[phi][eta]), &cell) == CALO_ERROR ) {
 		fprintf(stderr, "ERROR(trigtowr.c): Couldn't create layer\n");
@@ -177,6 +158,7 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const bool_t zsup
 	      LayerIndex = roi->tt[phi][eta].NoOfLayers - 1;
 	    }
 	      
+	    /* And finally, put the cell into it */
 	    if ( pcell( (digi+counter)->Et, &cell, &(area.LowerLeft),
 			&roi->tt[phi][eta].layer[LayerIndex]) == CALO_ERROR ) {
 	      fprintf(stderr, "ERROR(trigtowr.c): No index for cell\n");
@@ -198,6 +180,64 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const bool_t zsup
   
 } /* end PutDigis */
 
+/* This function takes the RoI we are working with and fix it's parameters,
+   taking into account its size and wheter it's lying over the phi wrap
+   region. The fixed parameters are the RoI size and the RoI corner variables
+   over the Eta x Phi plane.
+*/ 
+CaloTTEMRoI* FixRoIParams (CaloTTEMRoI* roi)
+{
+  /* provisional trick to use dumped files with wrong RoI window */
+  if (roi->fixed == FALSE) {
+    if( (roi->Region.LowerLeft.Phi -= 0.1) < 0. ) 
+      roi->Region.LowerLeft.Phi += 2 * PI; 
+    if( (roi->Region.UpperRight.Phi += 0.1) > 2 * PI ) 
+      roi->Region.UpperRight.Phi -= 2 * PI; 
+    roi->Region.LowerLeft.Eta -= 0.1;
+    roi->Region.UpperRight.Eta += 0.1;
+    roi->fixed = TRUE;
+
+    /* check whether we are talking about the phi wrap around area */
+    roi->PhiWrap = PhiWrap(&(roi->Region.UpperRight.Phi),
+			   &(roi->Region.LowerLeft.Phi));
+  }
+
+  return roi;
+}
+
+/* This function masks the usage of GetCellInfo. It also, for the time being,
+   implements a way to bypass the errors on calo digi identification numbers
+   (UCN) */
+CellInfo DecodeDigi (const emCalDigiType* d, const bool_t pw)
+{
+  CellInfo cell;
+
+  if ( GetCellInfo( d->id, &cell, pw) == CALO_ERROR) {
+    fprintf(stderr, "ERROR(trigtowr.c): Couldn't get cell info.\n");
+    exit(CALO_ERROR);
+  }
+
+  /* This is a special trick that should NOT be used regurlarly. It replaces
+     the eta that is found to be wrong. Phi decoding is fine, but eta
+     decoding presents some inconsistencies. Those are not a problem of this
+     library, but mistakes in the way files are dumped into ASCII format or
+     even at the original hbook files. This should be taken out as soon as
+     this problem is correct, though it will do no harm, if decoding is fine
+  */ 
+  if(fcomp(cell.center.Eta, d->eta, 0.0001)== CALO_ERROR ) {
+    div_t result;
+    result = div(d->CaloRegion, 100);
+    cell.calo = result.quot;
+    cell.region = result.rem;
+    
+    cell.center.Eta = d->eta;
+    cell.center.Phi = d->phi;
+  }
+  /* End of magic trick */
+
+  return cell;
+}  
+	     
 bool_t PointIsInRegion(const Point* p, const Area* a)
 {
   if( p->Phi > a->LowerLeft.Phi && p->Phi < a->UpperRight.Phi && p->Eta >
@@ -231,6 +271,7 @@ int GetIndex(const CellInfo* cell, const int etagran, const int phigran, const
 
 } 
 
+/* Create Non-zero suppressed calo layers */
 ErrorCode CreateCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
 {
   /* update and verify */
@@ -242,22 +283,19 @@ ErrorCode CreateCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
   }
   
   /* alloc space */
-  if ( (tt->layer = SmartAlloc(tt->layer, tt->NoOfLayers * sizeof(CaloLayer)))
-       == NULL ) 
-    {
-      fprintf(stderr, "ERROR(trigtowr.c): No space for layer\n");
-      return(CALO_ERROR);
-    }
+  tt->layer = (CaloLayer*) mxalloc(tt->layer,tt->NoOfLayers,sizeof(CaloLayer));
+  if ( tt->layer == 0 )  {
+    fprintf(stderr, "ERROR(trigtowr.c): No space for layer\n");
+    return(CALO_ERROR);
+  }
 
-  /* init */
-  if ( InitCaloLayer(&tt->layer[tt->NoOfLayers-1], cell) == CALO_ERROR )
-    {
-      fprintf(stderr, "ERROR(trigtowr.c): Couldn't init layer\n");
-      return(CALO_ERROR);
-    }
+  /* else init */
+  if ( InitCaloLayer(&tt->layer[tt->NoOfLayers-1], cell) == CALO_ERROR ) {
+    fprintf(stderr, "ERROR(trigtowr.c): Couldn't init layer\n");
+    return(CALO_ERROR);
+  }
  
   return(CALO_SUCCESS);
-
 }
 
 ErrorCode InitCaloLayer(CaloLayer* layer, const CellInfo* cell) 
@@ -273,7 +311,7 @@ ErrorCode InitCaloLayer(CaloLayer* layer, const CellInfo* cell)
   layer->NoOfCells = etagran * phigran;
 
   if ((layer->cell = CreateCaloCells(layer->cell, layer->NoOfCells)) == NULL){
-    fprintf(stderr, "ERROR(trigtowr.c): Couldn't initialise cells\n");
+    fprintf(stderr, "ERROR(trigtowr.c): Couldn't initialize cells\n");
     return(CALO_ERROR);
   }
   
@@ -282,24 +320,13 @@ ErrorCode InitCaloLayer(CaloLayer* layer, const CellInfo* cell)
 
 CaloCell* CreateCaloCells(CaloCell* cell, const int size)
 {
-  
-  if ( (cell = SmartAlloc( cell, size * sizeof(CaloCell))) == NULL ) {
+
+  cell = (CaloCell*) mxalloc (cell, size, sizeof(CaloCell));
+
+  if ( cell  == 0 )
     fprintf(stderr, "ERROR(trigtowr.c): Couldn't alloc cells\n");
-    return(NULL);
-  }
 
-  InitCaloCells(size, cell);
   return(cell);
-}
-
-void InitCaloCells(const int size, CaloCell* cell)
-{
-  int CellIndex = 0;
-  
-  for(CellIndex = 0; CellIndex < size; CellIndex++)
-    (cell+CellIndex)->energy = 0.; 
-  
-  return;
 }
 
 ErrorCode PlaceCell(const Energy energy, const CellInfo* cell, const Point* p,
