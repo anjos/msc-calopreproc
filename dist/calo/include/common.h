@@ -1,7 +1,7 @@
 /* hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: common.h,v 1.6 2000/06/16 21:26:42 rabello Exp $ */
+/* $Id: common.h,v 1.7 2000/06/28 16:07:28 rabello Exp $ */
 
 #ifndef COMMON_H
 #define COMMON_H
@@ -15,8 +15,10 @@ typedef enum bool_t {TRUE = 1, FALSE = 0} bool_t;
 typedef enum Calorimeter {PSBARRREL = 1, EMBARREL = 2, EMENDCAP = 3, TILECAL =
 			  4, HADENDCAP = 5, PSENDCAP = 11} Calorimeter;
 
-typedef enum LayerLevel { SCINTILLATOR = 0, FRONT = 1, MIDDLE = 2, BACK = 3}
-LayerLevel; 
+/* typedef enum LayerLevel { SCINTILLATOR = 0, FRONT = 1, MIDDLE = 2, BACK = 3}
+  LayerLevel; */
+
+typedef int LayerLevel;
 
 typedef enum CaloType {ELECTROMAGNETIC = 0, HADRONIC = 1} CaloType;
 
