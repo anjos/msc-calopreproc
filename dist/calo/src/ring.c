@@ -1,18 +1,15 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.c,v 1.1 2000/06/28 15:58:40 rabello Exp $ */
+/* $Id: ring.c,v 1.2 2000/07/07 18:50:09 rabello Exp $ */
 
 #include "ring.h"
 #include "ttdef.h"
 #include "common.h"
 #include "trigtowr.h"
+#include "uniform.h"
 
 int get_max_idx(const CaloLayer*);
 ring_t* ring_sum_around (const CaloLayer*, const int, ring_t*);
-uniform_roi_t* uniformize (const CaloTTEMRoI*, uniform_roi_t*);
-bool_t free_uniform_roi (uniform_roi_t*);
-void uni_eta_line (CaloCell*, const CaloTriggerTower*);
-void uni_tt_line(CaloCell*, const CaloTriggerTower*, const int);
 bool_t put_ring(ring_t*, const Energy, int);
 
 
@@ -27,112 +24,28 @@ void print_ring (FILE* fp, const ring_t* rp)
 }
 
 
-ring_t* ring_sum (const CaloTTEMRoI* r, ring_t* ring)
+ring_t* ring_sum (const tt_roi_t* r, ring_t* ring)
 {
   int max;
-  uniform_roi_t* ur = (uniform_roi_t*) mxalloc(NULL,1,sizeof(uniform_roi_t));
+  uniform_roi_t ur;
+
+  ur.nlayer = 0;
+  ur.layer = NULL;
   
-  /* Transform the CaloTTEMRoI in succesive layers of a uniform TT*/
-  uniformize(r,ur);
+  /* Transform the tt_roi_t in succesive layers of a uniform TT*/
+  uniformize(r,&ur);
 
   /* Search for the highest energy value. For now working only with one layer
    */ 
-  max = get_max_idx(&ur->layer[0]);
+  max = get_max_idx(&ur.layer[0]);
 
   /* Evaluate the rings */
-  ring_sum_around(ur->layer,max,ring);
+  ring_sum_around(&ur.layer[0],max,ring);
   
-  free_uniform_roi(ur);
+  free_uniform_roi(&ur);
 
   return (ring);
 }
-
-/* This function uniformizes the roi given by the only argument, generating an
-   uniform EM middle layer. It allocates memory for the return variable,
-   therefore one should free it after usage.  */
-uniform_roi_t* uniformize (const CaloTTEMRoI* r, uniform_roi_t* ur)
-{
-  int phi;
-  int e,p;
-
-  /* Initializes the uniform trigger tower */
-  ur->nlayer = 0;
-  ur->layer = (CaloLayer*) mxalloc(NULL, 1, sizeof(CaloLayer));
-  ur->layer[0].EtaGran = 16;
-  ur->layer[0].PhiGran = 16;
-  ur->layer[0].NoOfCells = ur->layer[0].EtaGran * ur->layer[0].PhiGran;
-  ur->layer[0].calo = EMBARREL; /* Not perfect, but that's one can do...*/
-  ur->layer[0].level = 2;
-  ur->layer[0].cell = (CaloCell*) mxalloc(NULL, ur->layer[0].NoOfCells,
-					  sizeof(CaloCell));
-
-  /* Now, index the newly created cells */
-  for (p=0; p < ur->layer[0].PhiGran; ++p)
-    for (e=0; e < ur->layer[0].EtaGran; ++e) {
-      ur->layer[0].cell[e+ p*ur->layer[0].EtaGran].index.Phi = p;
-      ur->layer[0].cell[e+ p*ur->layer[0].EtaGran].index.Eta = e;
-    }
-  
-  /* The procedure here should be similar to the one applied when printing the
-     second layer of EM's. */
-  for (phi = 0; phi < EMRoIGran; ++phi)  {
-    p = 4 * phi * ur->layer[0].EtaGran; /* the initial address of cells */
-    uni_eta_line(&ur->layer[0].cell[p], &r->tt[phi][0]);
-  }
-
-  ur->nlayer = 1;  
-
-  return(ur);
-}
-
-
-
-/* This function acts like trigtowr.c::print_eta_line(), but dumping it's
-   results to a uniformtt_t*. There's no check for the stability of the address
-   given by the caller. This function believes it should start dumping in
-   cell[0]. */
-void uni_eta_line (CaloCell* c, const CaloTriggerTower* line)
-{
-  int eta;
-  int sphi; /* Tells which subphi to take within the TT */
-  int cell; /* iterators */
-
-  for (sphi = 0; sphi < 4; ++sphi)
-    for (eta = 0; eta < EMRoIGran; ++eta) {
-      if (verify_tt(&line[eta])) /* I can do the right stuff */
-	uni_tt_line(&c[eta*4 + sphi*16], &line[eta], sphi);
-    
-      else /* Well, then I have to print zeros... */
-	for (cell = 0; cell < 4; ++cell)
-	  c[ cell+ eta*4 + sphi*16 ].energy = 0;
-  }
-
-  return;
-  
-}
-
-
-/* This function acts like trigtowr.c::print_tt_line(), but dumping it's
-   results to a uniformtt_t*. There's no check for the stability of the address
-   given by the caller. This function believes it should start dumping in
-   cell[0]. */
-void uni_tt_line(CaloCell* c, const CaloTriggerTower* tt, const int phi)
-{
-  int layer_idx = -1;
-  int i; /* iterator */
-
-  for (i = 0; i < tt->NoOfLayers; i++)
-    if (is_middle(tt->layer[i].calo, tt->layer[i].level)) {
-      layer_idx = i;
-      break;
-    }
-  
-  for (i = 0; i < 4; ++i)
-    c[i].energy = tt->layer[layer_idx].cell[i+4*phi].energy;
-  
-  return;
-}
-
 
 /* This function only evaluates the maximum energy peak and return the results
    to the caller */
@@ -156,29 +69,17 @@ int get_max_idx(const CaloLayer* l)
    free this afterwards, using free_ring(). */
 ring_t* ring_sum_around (const CaloLayer* l, const int max, ring_t* ring)
 {
-  /* The simplest solution here is with pointers, so, to those unfamiliar with
-     pointers in C: hurry up and learn it, sometimes it can help! */
-  CaloCell** c;
-  int phi;
   int x1,x2,y1,y2; /* helpers for placement */
   int nf = 0; 
-  
-  /* Allocates space for these double pointers */
-  c = (CaloCell**) mxalloc (NULL, l->PhiGran, sizeof(CaloCell**));
-
-  /* initializes all pointers */
-  for (phi=0; phi< l->PhiGran; ++phi) {
-    c[phi] = &l->cell[l->EtaGran*phi];
-  }
   
   /* Place the cell with maximum energy at the front */
   ring->nfeat = 0;
   put_ring(ring,l->cell[max].energy, nf++);
   
   /* set the helpers in order to start */
-  x1 = l->cell[max].index.Eta;
+  x1 = l->cell[max].index.eta;
   x2 = x1;
-  y1 = l->cell[max].index.Phi;
+  y1 = l->cell[max].index.phi;
   y2 = y1;
 
   /* Now let's get to the neighbors */
@@ -192,7 +93,7 @@ ring_t* ring_sum_around (const CaloLayer* l, const int max, ring_t* ring)
 
     for (p = y1; p <= y2; ++p)
       for (e = x1; e <= x2; ++e)
-	put_ring(ring,l->cell[e+p*l->PhiGran].energy,nf);
+	put_ring(ring,l->cell[e+p*l->EtaGran].energy,nf);
 
     /* Since I've added ring(nf-1) as well on the above loop, I should take
        it out (discount). */
@@ -241,13 +142,6 @@ bool_t put_ring(ring_t* r, const Energy e, int nr)
   
   return (TRUE);
   
-}
-
-/* Free allocated space for uniform trigger towers */
-bool_t free_uniform_roi (uniform_roi_t* u)
-{
-  free_layer(u->layer);
-  return (TRUE);
 }
 
 bool_t free_ring (ring_t* r)
