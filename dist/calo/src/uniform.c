@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.3 2000/07/20 00:47:30 rabello Exp $ */
+/* $Id: uniform.c,v 1.4 2000/08/11 16:12:46 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -70,14 +70,15 @@ CaloLayer* copy_layer (CaloLayer*, const CaloLayer*, const size_t);
 bool_t gather_tilecal_layers(hadtt_t);
 bool_t add_equal_layers(CaloLayer*, CaloLayer*);
 
-int print_uniform_roi (FILE* fp, const uniform_roi_t* rp)
+int print_uniform_roi (FILE* fp, const uniform_roi_t* rp, 
+		       const unsigned short flags)
 {
   int counter = 0;
   int i;
   
   for (i=0; i< rp->nlayer; ++i)
-    counter += print_uniform_layer(fp, &rp->layer[i]);
-    
+    if ( flag_contains_layer(flags, &rp->layer[i]) )
+      counter += print_uniform_layer(fp, &rp->layer[i]);
   return (counter);
 }
 
@@ -316,6 +317,47 @@ void uniform_layer_normalize (CaloLayer* lp, const Energy nfactor)
   return;
 }
 
+bool_t flag_contains_layer(const unsigned short flags, const CaloLayer* lp)
+{
+  /* If all flags are set do not check a thing */
+  if ( flags == FLAG_ALL ) return TRUE;
+
+  if ( ((flags & FLAG_PS) != 0) && lp->calo == PS) return TRUE;
+  if ( ((flags & FLAG_EM1) != 0) && lp->calo == EM && lp->level == 1 )
+    return TRUE;
+  if ( ((flags & FLAG_EM2) != 0) && lp->calo == EM && lp->level == 2 )
+    return TRUE;
+  if ( ((flags & FLAG_EM3) != 0) && lp->calo == EM && lp->level == 3 )
+    return TRUE;
+  if ( ((flags & FLAG_HAD1) != 0) && lp->calo == HAD && lp->level == 1 )
+    return TRUE;
+  if ( ((flags & FLAG_HAD2) != 0) && lp->calo == HAD && lp->level == 2 )
+    return TRUE;
+  if ( ((flags & FLAG_HAD3) != 0) && lp->calo == HAD && lp->level == 3 )
+    return TRUE;
+
+  /* well my friend, if you can't get a match, you're in serious trouble. */
+  return FALSE;
+}
+
+short flag_contains_nlayers(const unsigned short flags)
+{
+  short retval = 0;
+
+  /* If all flags are set do not check a thing */
+  if ( flags == FLAG_ALL ) return (short)7;
+
+  if ((flags & FLAG_PS)!=0) ++retval;
+  if ((flags & FLAG_EM1)!=0) ++retval;
+  if ((flags & FLAG_EM2)!=0) ++retval;
+  if ((flags & FLAG_EM3)!=0) ++retval;
+  if ((flags & FLAG_HAD1)!=0) ++retval;
+  if ((flags & FLAG_HAD2)!=0) ++retval;
+  if ((flags & FLAG_HAD3)!=0) ++retval;
+
+  return retval;
+}
+
 unsigned short* string2layer(unsigned short* to, const char* from)
 {
   char* token;
@@ -355,6 +397,52 @@ unsigned short* string2layer(unsigned short* to, const char* from)
   free(temp2);
 
   return (to);
+}
+
+bool_t validate_print_selection(const unsigned short* layer, 
+				unsigned short* print) 
+{
+  unsigned short temp;
+
+  /* Do I have anything selected? */
+  if ( *layer == 0 || *print == 0 ) {
+    fprintf(stderr, "(uniform)ERROR: Can't do NOTHING. Shutting down.\n");
+    return FALSE;
+  }
+  
+  /* This is the case where I want to print ALL. Then this will circumevent the
+     fact that this is a wrong setup by masking it with the current layers
+     being extracted since ALL I can print is that. It returns TRUE */
+  if ( *print == FLAG_ALL ) {
+    *print &= *layer;
+    return TRUE;
+  }
+
+  /* If I require all layers to be present, no need for printing restrictions
+   */ 
+  if ( *layer == FLAG_ALL ) {
+    return TRUE;
+  }
+
+  /* If this procedure got here is because one is not selecting all to be
+     printed AND also is not selection all to be required. In such cases I have
+     to check if I'm asking to print more than what I'm processing. This would
+     be very boring to implement since I would have to traverse the bit field
+     looking for fiels of print that don't agree with the layer bit field. I
+     would prefer to issue a warning, AND both and return TRUE with the new
+     print mask. */
+  temp = *print & *layer;
+  if ( temp != *print ) {
+    *print = temp;
+    fprintf(stderr, "(uniform)WARNING: You asked too much information to be");
+    fprintf(stderr, " printed.\n");
+    fprintf(stderr, "(uniform)WARNING: I'll adjust the print string to ");
+    fprintf(stderr, "reflect these restrictions.\n");
+    return TRUE;
+  }
+
+  return TRUE;
+  
 }
 
 /* Although simple, its hacked for future upgrades. */
