@@ -9,19 +9,20 @@
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.5 2000/09/06 21:12:55 rabello Exp $ */
+/* $Id: energy.c,v 1.6 2000/11/25 19:38:18 andre Exp $ */
 
 /* Some prototypes used here on */
 Energy* energy_from_all_digis(const ROI*, Energy*);
 Energy* uniform_layer_energy (const CaloLayer*, Energy*);
+void uniform_roi_classics(const ROI*, const uniform_roi_t*, char**);
 
 /* These are the shorts that define what we'll dump. Each of those is explained
    above. */
 typedef enum edump_flag_t {EDUMP_DB_ET=0x1, EDUMP_DB_ETHAD=0x2,
 			   EDUMP_DB_T1ET=0x4, EDUMP_ROI_ET=0x8,
 			   EDUMP_ROI_ETEM=0x10, EDUMP_ROI_ETHAD=0x20, 
-			   EDUMP_ROI_DIGIS=0x40, EDUMP_ALL=0x7F,
-			   EDUMP_NONE=0x0} edump_flag_t;
+			   EDUMP_ROI_DIGIS=0x40, EDUMP_ALL=0xFF,
+			   EDUMP_NONE=0x0, EDUMP_CLASSICS=0x80} edump_flag_t;
 
 /* 
    This simple procedure just catches a string given by the user and transforms
@@ -57,6 +58,8 @@ unsigned short* string2edump(unsigned short* to, const char* from)
     else if ( strcasecmp(token,"roi_etem") == 0 ) (*to) |= EDUMP_ROI_ETEM;
     else if ( strcasecmp(token,"roi_ethad") == 0 ) (*to) |= EDUMP_ROI_ETHAD;
     else if ( strcasecmp(token,"roi_digis") == 0 ) (*to) |= EDUMP_ROI_DIGIS;
+    else if ( strcasecmp(token,"classics") == 0 ) 
+      (*to) |= (EDUMP_CLASSICS | EDUMP_DB_ETHAD);
     else if ( strcasecmp(token,"all") == 0 ) {
       (*to) = EDUMP_ALL;
       break;
@@ -84,12 +87,19 @@ unsigned short* string2edump(unsigned short* to, const char* from)
    5) ROI_ETEM - The EM part of ROI_ET
    6) ROI_ETHAD. - The HAD part of ROI_ET
    7) ROI_DIGIS - The total amount of energy summing all digis with no
-   preprocessing */
+                  preprocessing 
+   8) CLASSICS - Will dump the classical features for e/jet discrimination, as
+                 defined by the ATLAS Trigger TPR. Those are basically cell
+		 sums in different configurations. There 4 features on the
+		 grand total. The first 2 are 1) and 2) from this listing the
+		 others are described on the Trigger Performance TPR.
+*/ 
 char* get_energy(const ROI* r, const uniform_roi_t* ur,
 		 const unsigned short* flags, const char* initstring)
 {
   char* retval = NULL;
-  char nl[] = "\nl";
+  char* tempval = NULL;
+  char nl[] = "\n";
   Energy temp; /* a temporary space for holding some values */
 
   /* First of all see if we have to print something */
@@ -131,6 +141,13 @@ char* get_energy(const ROI* r, const uniform_roi_t* ur,
     ascat_double(&retval, &temp);
   }
 
+  /* This will print on tempval, the classical features. The RoI contains, at
+     least, the layers necessary for performing this feature extraction. */
+  if ((*flags) & EDUMP_CLASSICS) {
+    uniform_roi_classics(r, ur, &tempval);
+    ascat(&retval, tempval);
+  }
+
   /* Add a new-line to the end of each row */
   ascat(&retval, nl);
 
@@ -162,6 +179,7 @@ char* edump2string (const unsigned short* from, char* to)
   if (*from & EDUMP_ROI_ETEM) ascat(&retval,"ROI_ETEM");
   if (*from & EDUMP_ROI_ETHAD) ascat(&retval,"ROI_ETHAD");
   if (*from & EDUMP_ROI_DIGIS) ascat(&retval,"ROI_DIGIS");
+  if (*from & EDUMP_CLASSICS) ascat(&retval,"CLAS_ET37 CLAS_RCORE CLAS_RSTRIP");
 
   /* final delimiter */
   ascat(&retval,")");
@@ -317,4 +335,52 @@ Energy* uniform_layer_energy (const CaloLayer* lp, Energy* counter)
 
   return counter;
 }
+
+/* This function is actually, just a front end to the functions that will
+   perform classical feature extraction. The first parameter is the ROI, as
+   seen by level 2, depending on implementationg, this function may take the
+   values from the RoI header directly, process the 'raw' RoI to get them or
+   process the uniformized RoI. Anyway, results are print on (*retval), the
+   last argument. The user should not note differences between direct RoI
+   header access or calculations, with matter to the interface usage.
+*/
+void uniform_roi_classics(const ROI* r, const uniform_roi_t* ur, char** retval)
+{
+  Energy temp;
+
+  /* I */
+  /* This energy is assumed to be PS+EM cells into a 3x7 (etaxphi) region
+     around the peak of energy. The values are corrected according to a formula
+     shown on TPR. Now, I'll take for granted that this is the same as the
+     quantity Et_EM, since I can't see why to have other value for the same
+     stuff. */
+  temp = r->l2CalEm.Et37;
+  ascat_double(retval, &temp);
+
+  /* II */
+  /* ------ ETHAD IS DUMPED BY THE DEFAULT PROCEDURE UPSTAIRS ------ */
+  /* This is actually the same as above, but taken for the Hadronic
+     Calorimeter. The quantity is used with predefined cuts, that are used
+     according to the object Et (calculated on the first step). For Et till
+     25.5GeV, the cut is 2.2, till 60GeV, 4.0 and abover 120Gev the cut used is
+     1000 (no cut). */
+
+  /* III */
+  /* This measures the lateral shape of the current object. This quantity is
+     not influenced directly by the objects' Et, but there should be caution
+     using it with different objects. */
+  temp = r->l2CalEm.Etlay[2] / r->l2CalEm.Et77lay[2];
+  ascat_double(retval, &temp);
+
+  /* IV */
+  /* The last quantity measures the lateral shape in the first sampling. This
+     cut is applied by last and therefore is more "fine" than the others. You
+     have to tune it correctly in order to get the most out of it. */
+  temp = (r->l2CalEm.E1st - r->l2CalEm.E2nd) /
+    (r->l2CalEm.E1st + r->l2CalEm.E2nd);
+  ascat_double(retval, &temp);
+
+  return;
+}
+
 
