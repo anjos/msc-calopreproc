@@ -1,0 +1,42 @@
+This small document describes the Calorimeter Regions designated by
+The ASCII data files. It includes a table that describes the calorimeter 
+regions, etaxphi ranges and cell granularity.
+
+by André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
+
+The CaloRegion tag is composed of a decimal with 3 digits:
+
+xxx -> The Module
+||
+|+---> A zero for separating both digits
+|
++----> The Calorimeter
+
+The Calorimeter could be one of the numbers bellow:
+    PSBAR = 1
+    EMBAR = 2
+    EMEND = 3
+    TILE = 4 
+    HADEND = 5
+    PSEND = 11
+
+The Module could be one of the numbers bellow:
+    ZERO = 0
+    FRONT = 1
+    MIDDLE = 2
+    BACK = 3
+    FOUR = 4
+    FIVE = 5
+    SIX = 6
+    SEVEN = 7
+    ANY_MODULE = 8
+
+Depending on the Calorimeter, only a subset of possible modules exist. So, this is the description of valid modules for each calorimeter:
+
+PSBAR : only module ZERO for eta < 1.51
+
+EMBAR : FRONT MIDDLE BACK till eta < 1.4 or FRONT MIDDLE till eta < 1.475
+
+EMEND : FRONT MIDDLE for 1.4 < eta < 1.5 or FRONT MIDDLE BACK till eta < 2.5 or         only FRONT MIDDLE if eta>2.5
+
+TILE: FRONT MIDDLE BACK till eta < 1.0

@@ -1,0 +1,55 @@
+#!/bin/sh
+
+#
+# path of the C preprocessor
+#
+CPP="/usr/ccs/lib/cpp"
+
+#
+# check argument count
+#
+if [ $# != 4 ] 
+then
+  echo "usage : genspec basename outname language parser-path"
+  exit 1
+fi
+
+#
+# path of the test_parser program
+#
+PARSER=$4
+echo $PARSER
+
+#
+# check if CPP can be found
+#
+if [ ! -x $CPP ] 
+then
+
+  # try GNU compiler instead
+  if which gcc
+  then
+    CPP="gcc -x c-header -E"
+  else
+    echo "genspec: cannot find preprocessor: $CPP"
+    echo "genspec: set CPP variable in genspec script"
+    exit 1
+  fi
+fi
+
+#
+# check if PARSER can be found
+#
+if [ ! -x $PARSER ] 
+then
+  echo "genspec: cannot find parser"
+  echo "genspec: set PARSER variable in genspec script"
+  exit 1
+fi
+
+#
+# call parser
+#
+$CPP -P $1 | $PARSER $2 $3
+
+exit 0

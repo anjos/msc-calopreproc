@@ -1,0 +1,26 @@
+
+1. Look into the ./mk directory to see if your
+   system is supported. Check for a filename of the form
+   $(OS).mk, where OS is the output of the 'uname -s' command.
+
+   If you don't find one, copy one of the existing files and
+   make any necessary adjustments. For a system using the
+   GNU compilers, start with 'OSF1.mk'.
+
+2. Type 'gmake' in the top level directory.
+   This will build 
+
+   ./src/libspec.a 
+
+   against which you have to link your own programs, and
+
+   ./src/parser
+
+   which is used by 'genspec' to generate the reading routines from a
+   *.spec file.
+
+3. The ./data directory contains an example 'data.spec' file.
+   Always use the *.spec file which corresponds to your
+   actual data files. You can always regenerate the 
+   atrdmpgen.[ch] files from scratch by simply deleting them
+   and typing 'gmake' again.
