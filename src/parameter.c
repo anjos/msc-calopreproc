@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.1 2000/08/22 02:48:47 andre Exp $ */
+/* $Id: parameter.c,v 1.2 2000/08/27 16:22:55 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,12 +10,41 @@
 #include <time.h>
 #include <sys/stat.h>
 
+/* Obstack stands for object stack and is a kind of memory bank that can hold
+   several different types of variables together. In principal, one could start
+   adding things to it and print them to a file afterwards. An obstack is smart
+   enough to grow it self up and make more room for incoming data. One only has
+   to say which function to use for that. I chose stdlib::malloc() and
+   stdlib::free() for allocation and de-allocation procedures. This is usefull
+   for extra-fast processing without writing results to disk all the time,
+   which can be time consuming if the file is across the network. For more
+   information on obstacks do 'info libc' at your (linux?) prompt. */
+#include <obstack.h>
+
 #include "parameter.h"
 #include "energy.h"
 #include "uniform.h"
 #include "util.h"
 
+/* The definition of obstack initialization and destruction */
+#define obstack_chunk_alloc malloc 
+#define obstack_chunk_free free
+
+/**********************/
 /* The internal stuff */
+/**********************/
+
+/* This function puts a string into an obstack of strings. It eliminates the
+   NULL char at the end of the argument string automatically and places it at
+   the end of the whole set. The obstack pointer should point to an initialized
+   obstack. This function returns the number of chars into object at the
+   instant after the allocation for the current string. */
+int grow_obstring(struct obstack*, const char*);
+
+/* Terminates the obstring as determined by its implementation. This also puts
+   a null character at the end of the string so one can use the string
+   actively. This function will return the final obstack address. */
+char* close_obstring(struct obstack*);
 
 /* This function will test the conditions of program execution and see if one
    has a coherent set of flags activated */
@@ -107,6 +136,9 @@ parameter_t* init_parameters (parameter_t* p)
   /* Don't normalize by default */
   string2normalization(&p->normalization, "none");
 
+  /* by, default, run using local file deposition instead of memory (slower)*/
+  p->run_fast = FALSE;
+
   return p;
 }
 
@@ -139,11 +171,12 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {"roi-number", 1, 0, 'r'},
     {"select", 1, 0, 's'},
     {"energy-comment", 1, 0, 't'},
+    {"fast-output", 0, 0, 'u'},
     {"verbose", 0, 0, 'v'},
     {0, 0, 0, 0}
   };
   
-  while (EOF != (c=getopt_long(argc, argv, "i:o:bcajk:g:he:r:d:f:p:l:s:n:vt:",
+  while (EOF != (c=getopt_long(argc, argv, "i:o:bcajk:g:he:r:d:f:p:l:s:n:t:uv",
 			       long_options, &option_index) ) ) {
     switch (c) {
 
@@ -365,6 +398,16 @@ void process_flags (parameter_t* p, const int argc, char** argv)
       }
       free(temp);
       break;
+    }
+
+    /* The runner whats fast output. This means obstacks for all outputs and
+       their initialization, and of course lots of memory */
+    case 'u': { 
+     obstack_init(&p->eventno_obs);
+     obstack_init(&p->output_obs);
+     obstack_init(&p->energy_obs);
+     p->run_fast = TRUE;
+     break;
     }
 
     case 'h': /* give help */
@@ -593,10 +636,25 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t   layer   - normalize using layer energy\n");
   fprintf(fp, "\t   none    - no normalization at all (default)\n");
 
+  fprintf(fp, "-u | --fast-output\n");
+  fprintf(fp, "\t when this option is activated, the output for each\n");
+  fprintf(fp, "\t event will happen to a memory bank instead of \n");
+  fprintf(fp, "\t direct access to a file. This will save access time\n");
+  fprintf(fp, "\t what can be crucial at network operations but may \n");
+  fprintf(fp, "\t consume huges amounts of memory, so be warned.\n");
+  fprintf(fp, "\t At the end, the memory banks are dumped into files.\n");
+
 }
 
 void terminate_parameters (parameter_t* p)
 {
+  /* Dump, if fast-executing, the obstacks into files */
+  if (p->run_fast) {
+    fprintf ( p->efp, "%s", close_obstring ( &p->energy_obs ) );
+    fprintf ( p->evfp, "%s", close_obstring ( &p->eventno_obs ) );
+    fprintf ( p->ofp, "%s", close_obstring ( &p->output_obs ) );
+  }
+
   /* close the files we may open: event-number and energy */
   if ( (p->evfp != p->ofp) && (p->evfp != stdout) )
     fclose(p->evfp);
@@ -740,4 +798,40 @@ double to_valid_double(const char* str)
   }
 
   return(number);
+}
+
+/* This function puts a string into an obstack of strings. It eliminates the
+   NULL char at the end of the argument string automatically and places it at
+   the end of the whole set. The obstack pointer should point to an initialized
+   obstack. This function returns the number of chars into object at the
+   instant after the allocation for the current string. */
+int grow_obstring(struct obstack* to, const char* from)
+{
+  const int slen = strlen(from);
+  obstack_grow (to, from, slen);
+  return obstack_object_size(to);
+}
+
+/* Terminates the obstring as determined by its implementation. This also puts
+   a null character at the end of the string so one can use the string
+   actively. This function will return the final obstack address. */
+char* close_obstring(struct obstack* strob)
+{
+  /* Places NULL char at the end of string */
+  obstack_1grow(strob, 0);
+
+  /* Closes the obstack-string */
+  return obstack_finish(strob);
+}
+
+/* This function will write the event into file or memory bank, depending on
+   the users' choice. As parameters, it receives the output file, the output
+   object stack, whether to dump to the memory (TRUE) or to directly to file
+   (FALSE) and the information on a C-style string. */
+void output_string(FILE* fp, struct obstack* obp, const bool_t run_fast, 
+		   const char* info)
+{
+  if (run_fast) grow_obstring(obp, info);
+  else fprintf(fp, "%s", info);
+  return;
 }
