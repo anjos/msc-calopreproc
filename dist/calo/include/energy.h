@@ -1,13 +1,14 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: energy.h,v 1.2 2000/08/16 11:24:20 andre Exp $ */
+/* $Id: energy.h,v 1.3 2000/08/22 02:50:08 andre Exp $ */
 
 #ifndef _ENERGY_H
 #define _ENERGY_H
 
 #include "data.h"
 #include "common.h"
+#include "uniform.h"
 
 /* 
    This component includes functions for processing event energy. It introduces
