@@ -1,3 +1,5 @@
+/* Hello emacs, this is -*- c -*- */
+
 struct majMin {
   int major;  /* major version number */
   int minor;  /* minor version number */
@@ -151,25 +153,33 @@ tag CALDIGI {
 tag L2CALEM {
     int    ID;
     int    idObjT;
-    float  Et;
-    float  phi;
-    float  eta;
+    float  Et; /* EM Energy of the object. It's basically calculated using PS
+		  and EM cells, in a 3x7 region around the peak, found on
+		  EM2. The cells are not summed only, some correction is
+		  applied to the PS cells and also to the global sum. Such
+		  correction is linear and is there to correct for shower
+		  development not considered by the RoI geometry used. */
+    float  phi; /* The peak of energy on EM2, phi coordinate, normalized by
+		   energy37_lay2 */ 
+    float  eta; /* The peak of energy on EM2, eta coordinate, normalized by
+		   energy37_lay2 */
     float  depth;
     float  z2;
     float  r2;
-    float  Et37;
-    float  Et57;
-    float  Et79;
-    float  Etlay[4];
-    float  Et33lay[4];
-    float  Et77lay[4];
-    float  EtHad;
+    float  Et37; /* Taken around the peak in a 3x7 (etaxphi) region on PS+EM */
+    float  Et57; /* Taken around the peak in a 5x7 (etaxphi) region on PS+EM */
+    float  Et79; /* Taken around the peak in a 7x9 (etaxphi) region on PS+EM */
+    float  Etlay[4]; /* Taken from the RoI on EM2 */
+    float  Et33lay[4]; /* Taken around the peak in a 3x3 region on PS+EM */
+    float  Et77lay[4]; /* Taken around the peak in a 7x7 region on PS+EM */
+    float  EtHad; /* The Et on the Hadronic Cells */
     float  wEta2;
     float  wEta2c;
     float  wEta1;
     float  wEta1mc;
-    float  E1st;
-    float  E2nd;
+    float  E1st; /* The energy of the strip with bigger energy on EM1 */
+    float  E2nd; /* The energy of the strip with the second bigger energy on
+		    EM1 */
     float  Elow;
     float  frac73;
     float  EtLVL1;
