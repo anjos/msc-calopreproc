@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.h,v 1.2 2000/08/27 16:25:15 andre Exp $ */
+/* $Id: parameter.h,v 1.3 2000/08/29 20:48:41 andre Exp $ */
 
 /* The door keepers */
 #ifndef __PARAMETER_H
@@ -33,8 +33,11 @@ typedef struct pararamter_t
   /* The output file buffer */
   char* ofbuf;
 
+  /* Shall I use an output file? */
+  bool_t output_file;
+
   /* The output object stack. (for fast execution) */
-  struct obstack output_obs;
+  struct obstack* output_obsp;
 
   /* The output file name hint will be copied into here */
   char ofhint[MAX_FILENAME+1];
@@ -45,11 +48,17 @@ typedef struct pararamter_t
   /* The file where the config will be stored */
   FILE* cfp;
 
+  /* Shall I use a configuration file? */
+  bool_t config_file;
+
   /* The file where the energy data will be stored if asked */
   FILE* efp;
 
+  /* Shall I use an energy file? */
+  bool_t energy_file;
+
   /* The energy object stack. (for fast execution) */
-  struct obstack energy_obs;
+  struct obstack* energy_obsp;
 
   /* The type of particle present on file */
   particle_t particle; 
@@ -72,8 +81,11 @@ typedef struct pararamter_t
   /* The file where the event numbers will be stored if asked */
   FILE* evfp; 
 
+  /* Shall I use a event number file? */
+  bool_t eventno_file;
+
   /* The event number object stack. (for fast execution) */
-  struct obstack eventno_obs;
+  struct obstack* eventno_obsp;
 
   /* Do I have to output data to memory instead of file? */
   bool_t run_fast;
