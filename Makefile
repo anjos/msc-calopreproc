@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.12 2000/07/20 00:40:57 rabello Exp $
+# $Id: Makefile,v 1.13 2000/08/11 16:11:18 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -122,7 +122,7 @@ $(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.12 $$' of '$$Date: 2000/07/20 00:40:57 $$'
+	@echo \* -- current version is '$$Revision: 1.13 $$' of '$$Date: 2000/08/11 16:11:18 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
@@ -145,12 +145,17 @@ clean: cleanlib cleanfig
 	rm -f preproc testfile TAGS
 
 dist: clean
-	@echo \* Creating distribution...
-	@cd ..; tar cvf - ufrj | gzip > CaloASCII-tester-`cat ufrj/VERSION`.tar.gz
+	@echo \* Creating distribution (date will be written on DATE)...
+	@echo \* Today is `date +%A,\ %d\ of\ %B\ of\ %Y`
+	@echo `date` > DATE
+	@cd ..; tar cvf - ufrj | gzip > calo-preproc-`cat ufrj/VERSION`.tar.gz
 
-sdist: clean
-	@echo \* Creating small name distribution...
-	@cd ..; tar cvf - ufrj | gzip > ufrj.tar.gz
+shot: clean
+	@echo \* Creating a snapshot of today\'s source...
+	@echo \* The date will be written at DATE.
+	@echo \* Today is `date +%A,\ %d\ of\ %B\ of\ %Y`
+	@echo `date` > DATE
+	@cd ..; tar cvf - ufrj | gzip > ufrj-`date +%Y.%m.%d`.tar.gz
 
 tags:
 	@echo \* Creating TAGS file...
