@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.4 2000/04/05 22:42:05 rabello Exp $
+# $Id: Makefile,v 1.5 2000/05/23 01:06:33 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -31,7 +31,7 @@ all: wrdata
 
 testfile: version $(DATASPEC:%=./src/%.o) ./src/test.o ./src/util.o calo
 	@echo --------------------------
-	@echo 6\) Building executables...
+	@echo 5\) Building executables...
 	@echo --------------------------
 	@echo " "
 	$(CC) ./src/test.o $(DATASPEC:%=./src/%.o) ./src/util.o $(LDFLAGS) -o $@
@@ -42,7 +42,7 @@ testfile: version $(DATASPEC:%=./src/%.o) ./src/test.o ./src/util.o calo
 
 wrdata: version $(DATASPEC:%=./src/%.o) $(OBJS) calo
 	@echo --------------------------
-	@echo 6\) Building executables...
+	@echo 5\) Building executables...
 	@echo --------------------------
 	@echo " "
 	$(CC) $(DATASPEC:%=./src/%.o) $(OBJS) $(LDFLAGS) -o $@
@@ -55,7 +55,7 @@ calo: $(DATASPEC:%=./src/%.c)
 	@echo DONE\!
 	@echo " "
 	@echo --------------------------------
-	@echo 5\) Compiling the calo library...
+	@echo 4\) Compiling the calo library...
 	@echo --------------------------------
 	@cd ./dist/calo; $(MAKE)
 	@echo DONE\!
@@ -79,10 +79,6 @@ $(DATASPEC:%=./src/%.o): $(DATASPEC:%=./src/%.c)
 	$(CC) $(CFLAGS) -c $< -o $@
 	@echo DONE\!
 	@echo " "
-	@echo ----------------------------
-	@echo 4\) Compiling source files...
-	@echo ----------------------------
-	@echo " "
 
 $(DATASPEC:%=./src/%.c): spec $(DATASPEC:%=./src/%.spec)
 	@echo ----------------------------------
@@ -103,7 +99,7 @@ $(DATASPEC:%=./src/%.c): spec $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.4 $$' of '$$Date: 2000/04/05 22:42:05 $$'
+	@echo \* -- current version is '$$Revision: 1.5 $$' of '$$Date: 2000/05/23 01:06:33 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
