@@ -9,7 +9,7 @@
  * 0 - zero; K - calo; m - module; S - side or signal; e - eta and p is phi.
  *                        (region)
  *
- * $Id: portable.c,v 1.4 2000/05/31 13:50:44 rabello Exp $
+ * $Id: portable.c,v 1.5 2000/07/07 18:48:36 rabello Exp $
  *
  ****************************************************************************/
  
@@ -68,11 +68,11 @@ ErrorCode DecodeId(const unsigned int id, CellInfo* cell)
   cell->region = (id >> 18) & 0x7;
   side = (id >> 17) & 0x1;
 
-  cell->center.Eta = (id >> 8) & 0x1ff;
-  cell->center.Eta *= DETA;
+  cell->center.eta = (id >> 8) & 0x1ff;
+  cell->center.eta *= DETA;
 
-  cell->center.Phi = id & 0xff;
-  cell->center.Phi *= DPHI;
+  cell->center.phi = id & 0xff;
+  cell->center.phi *= DPHI;
   
   /* special cases corrections */
   switch(cell->calo) {
@@ -115,16 +115,16 @@ ErrorCode DecodeId(const unsigned int id, CellInfo* cell)
   }
 
   /* correction for cell coordinates (center) */
-  cell->center.Eta += cell->deta/2;
-  cell->center.Phi += cell->dphi/2;
+  cell->center.eta += cell->deta/2;
+  cell->center.phi += cell->dphi/2;
 
   /* side/signal test */
-  if(side) cell->center.Eta *= -1;
+  if(side) cell->center.eta *= -1;
 
 #ifdef ROUND_OUTPUT
   /* correction (rounding) */
   cell->center.Phi = round(cell->center.Phi, RND_PREC);
-  cell->center.Eta = round(cell->center.Eta, RND_PREC);
+  cell->center.eta = round(cell->center.eta, RND_PREC);
   cell->dphi = round(cell->dphi, RND_PREC);
   cell->deta = round(cell->deta, RND_PREC);
 #endif
@@ -149,7 +149,7 @@ ErrorCode CorrectEMBarrel(const unsigned int id, CellInfo* c)
   switch(c->region) {
 
   case 1: /* 1st layer */
-    if(c->center.Eta < 1.4) {
+    if(c->center.eta < 1.4) {
       c->dphi = DPHI*4;
       c->deta = DETA;
     }
@@ -160,7 +160,7 @@ ErrorCode CorrectEMBarrel(const unsigned int id, CellInfo* c)
     break;
 
   case 2: /* 2nd layer */
-    if(c->center.Eta < 1.4) {
+    if(c->center.eta < 1.4) {
       c->deta = DETA*8;
     }
     else {
@@ -198,48 +198,48 @@ ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
   switch(c->region) {
   case 1:
 
-    c->center.Eta += E_14; /* the start of EM Endcap */
+    c->center.eta += E_14; /* the start of EM Endcap */
 
-    /* correct Eta in case we're between 1.8 and 2.0 */
-    if(c->center.Eta - E_18 > -maxerr && 
-       c->center.Eta - E_20 < maxerr) {
+    /* correct.eta in case we're between 1.8 and 2.0 */
+    if(c->center.eta - E_18 > -maxerr && 
+       c->center.eta - E_20 < maxerr) {
       
-      c->center.Eta = ((id >> 11) & 0x3f) * DETA*8 + ((id >> 8) & 0x7) 
+      c->center.eta = ((id >> 11) & 0x3f) * DETA*8 + ((id >> 8) & 0x7) 
 	* DETA * ((DETAIL)?(8./6.):1) + E_14;
     }
 
     if(DICEOLD) {
 
-      if(c->center.Eta - E_14 > -maxerr && 
-	 c->center.Eta - E_15 < maxerr) { 
+      if(c->center.eta - E_14 > -maxerr && 
+	 c->center.eta - E_15 < maxerr) { 
 	c->region = 7;
 	c->deta = DETA*8;
-	/*if (c->center.Eta < 1.42) c->center.Eta -= 0.025;  correct a problem
+	/*if (c->center.eta < 1.42) c->center.eta -= 0.025;  correct a problem
 							     I can't describe.
 							     This was fixed in
 							     29.02.2000 */
       }
 
-      if(c->center.Eta - E_15 > -maxerr && 
-	 c->center.Eta - E_18 < maxerr) { 
+      if(c->center.eta - E_15 > -maxerr && 
+	 c->center.eta - E_18 < maxerr) { 
 	c->region = 6;
 	c->deta = DETA;
       }
 
-      if(c->center.Eta - E_18 > -maxerr && 
-	 c->center.Eta - E_20 < maxerr) { 
+      if(c->center.eta - E_18 > -maxerr && 
+	 c->center.eta - E_20 < maxerr) { 
 	c->region = 5;
 	c->deta = DETA*8/6;
       }
 
-      if(c->center.Eta - E_20 > -maxerr && 
-	 c->center.Eta - E_25 < maxerr) {
+      if(c->center.eta - E_20 > -maxerr && 
+	 c->center.eta - E_25 < maxerr) {
 	c->region = 4;
 	c->deta = DETA*2;
       }
 
-      if(c->center.Eta - E_25 > -maxerr && 
-	 c->center.Eta - E_32 < maxerr) {
+      if(c->center.eta - E_25 > -maxerr && 
+	 c->center.eta - E_32 < maxerr) {
 	c->region = 1;
 	c->deta = DETA*32;
       }
@@ -248,31 +248,31 @@ ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
       
     else {
 
-      if(c->center.Eta - E_14 > -maxerr && 
-	 c->center.Eta - E_15 < maxerr) {
+      if(c->center.eta - E_14 > -maxerr && 
+	 c->center.eta - E_15 < maxerr) {
 	c->region = 1;
 	c->deta = DETA*8;
       }
       
-      if(c->center.Eta - E_15 > -maxerr && 
-	 c->center.Eta - E_18 < maxerr) {
+      if(c->center.eta - E_15 > -maxerr && 
+	 c->center.eta - E_18 < maxerr) {
 	c->region = 4;
 	c->deta = DETA;
       }
       
-      if(c->center.Eta - E_18 > -maxerr &&
-	 c->center.Eta - E_20 < maxerr) {
+      if(c->center.eta - E_18 > -maxerr &&
+	 c->center.eta - E_20 < maxerr) {
 	c->region = 5;
 	c->deta = DETA*8/6;
       }
 
-      if(c->center.Eta - E_20 > -maxerr && 
-	 c->center.Eta - E_24 < maxerr) {
+      if(c->center.eta - E_20 > -maxerr && 
+	 c->center.eta - E_24 < maxerr) {
 	c->region = 6;
 	c->deta = DETA*2;
       }
       
-      if(c->center.Eta - E_24 > -maxerr) {
+      if(c->center.eta - E_24 > -maxerr) {
 	c->region = 7;
 	c->deta = DETA*8;
       }
@@ -284,14 +284,14 @@ ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
 
   case 2:
     c->region = 8;
-    c->center.Eta += E_14;
+    c->center.eta += E_14;
     c->deta = DETA*8;
     c->dphi = DPHI;
     break;
       
   case 3:
     c->region = 9;
-    c->center.Eta += E_14 + 0.0125; /* the 0.0125 term
+    c->center.eta += E_14 + 0.0125; /* the 0.0125 term
 				       was added (3.apr.98) to correct
 				       some differences which I can't 
 				       explain now... */
@@ -301,14 +301,14 @@ ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
       
   case 5:
     c->region = 1;
-    c->center.Eta += E_25;
+    c->center.eta += E_25;
     c->deta = DETA*32;
     c->dphi = DPHI*4;
     break;
       
   case 6:
     c->region = 2;
-    c->center.Eta += E_25;
+    c->center.eta += E_25;
     c->deta = DETA*32;
     c->dphi = DPHI*4;
     break;
@@ -327,12 +327,12 @@ ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
 ErrorCode CorrectTileCal(const unsigned int id, CellInfo* c)
 {
   /* Defaults for this calorimeter */
-  c->deta = DETA*32;
-  c->dphi = DPHI*4;
+  c->deta = DETA*32; /* 0.1 */
+  c->dphi = DPHI*4; /* 0.0982 */
 
   /* Corrects misusage of codification patterns */
   if ( ( (id >> 8) & 0x1f ) > 0xf) /* rounds */
-    c->center.Eta += DETA;
+    c->center.eta += DETA;
 
   switch(c->region) {
   case 0: 
@@ -373,8 +373,7 @@ ErrorCode CorrectTileCal(const unsigned int id, CellInfo* c)
     /* Same comments as above, for region 2. only change is that deta is
        different to this layer. */
     if(((id >> 13) & 0xf) > 7) c->region = 8;
-    c->deta = DETA*64;
-    c->center.Eta -= DETA*16; /* Dont't know really what this is for... */
+    c->center.eta -= DETA*16; /* Dont't know really what this is for... */
     break;
 
 
@@ -385,8 +384,7 @@ ErrorCode CorrectTileCal(const unsigned int id, CellInfo* c)
       
   case 7:
     c->region -= 1;
-    c->deta = DETA*64; /* approximative */
-    c->center.Eta -= DETA*16; /* Don't know really what this is for... */
+    c->center.eta -= DETA*16; /* Don't know really what this is for... */
     break;
 
   default:
@@ -404,10 +402,10 @@ ErrorCode CorrectHadEndCap(const unsigned int id, CellInfo* c)
   const double E_15 = 1.5;
   const double E_25 = 2.5;
   const double E_31 = 3.1;
-  c->center.Eta *= 2; /* correction, no space for bits in correct order, so 
+  c->center.eta *= 2; /* correction, no space for bits in correct order, so 
 			    they had to occupy the previous house (0.05) as
 			    well the price to pay is a multiplication */
-  c->center.Eta += E_15;
+  c->center.eta += E_15;
   switch(c->region) {
   case 1:
     break;
@@ -418,14 +416,14 @@ ErrorCode CorrectHadEndCap(const unsigned int id, CellInfo* c)
   default:
     c->region = 5;
   }
-  if(c->center.Eta >= E_25) c->region++;
+  if(c->center.eta >= E_25) c->region++;
     
   switch(c->region) {
   case 2: /* eta > 2.5 && eta < 3.2 */
   case 4: 
   case 6:
     c->dphi = DPHI*8;
-    if(c->center.Eta >= E_25 && c->center.Eta < E_31) c->deta = DETA*64; 
+    if(c->center.eta >= E_25 && c->center.eta < E_31) c->deta = DETA*64; 
     else c->deta = DETA*32;
     break;
   default:
@@ -439,7 +437,7 @@ ErrorCode CorrectHadEndCap(const unsigned int id, CellInfo* c)
 ErrorCode CorrectPSEndCap(const unsigned int id, CellInfo* c)
 {
   const double E_14=1.4;
-  c->center.Eta += E_14;
+  c->center.eta += E_14;
   c->region = 1;
   c->deta = DETA*8;
   c->dphi = DPHI*4;
@@ -484,7 +482,7 @@ ErrorCode GetCellInfo(const int id, CellInfo* cell, const bool_t wrap)
       return(CALO_ERROR);
   }
 
-  if (wrap == TRUE && cell->center.Phi < PI) CorrectCell(cell);
+  if (wrap == TRUE && cell->center.phi < PI) CorrectCell(cell);
   
   if(ResolveLayer(cell) == CALO_ERROR) {/* loose some region info */
     fprintf(stderr, "ERROR(trigtowr.c): Couldn't find region for digi\n"); 
@@ -590,7 +588,7 @@ ErrorCode ResolveLayer(CellInfo* cell)
 /* For the phi wrap around region */
 void CorrectCell(CellInfo* cell)
 {
-  if(cell->center.Phi > 0) cell->center.Phi += 2 * PI;
+  if(cell->center.phi > 0) cell->center.phi += 2 * PI;
 }
 
 ErrorCode fcomp(const double x, const double y, const double maxerr)
