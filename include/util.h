@@ -1,16 +1,21 @@
 /* Hello emacs, this is -*- c -*- */
 
 /* The utility header file. This library helps the user, providing facilities
-   to dump on screen or file, tags of some ascii data file */
+   to dump on screen or file, tags of some ascii data files. This can be done
+   according to some internal format. 
 
-/* $Id: util.h,v 1.1.1.1 2000/03/13 21:03:42 rabello Exp $ */
+   This library also includes functions to deal with the conversion from
+   strings into doubles or longs. 
+*/
+
+/* $Id: util.h,v 1.2 2000/05/26 17:34:24 rabello Exp $ */
 
 #ifndef __UTIL_H
 #define __UTIL_H
 
 #include <stdio.h>
 #include "data.h"
-#include "error.h"
+#include "error.h" /* This is from calo library... */
 
 /* This function simply reads de data file in parameter 0 and tries to locate a
    VERSION tag. In case of success, it writes it to the file in parameter
@@ -27,7 +32,10 @@ int fprint_filespec(FILE*, FILE*);
 long count_events(FILE*);
 
 /* This function will search (and return) the event number designated by the
-   second argument. It will also waste the initial tags of this file. */
+   second argument. It will also waste the initial tags of this file. In the
+   case the searched event has no RoI info, a warning to stderr will be
+   issued. This will happen also in the case there are RoIs, but no cell
+   information is present in none of them. Both warnings are distingueshable.*/
 EVENT search_event(FILE*, const long);
 
 /* This funtion just returns a valid long based on a string. It's an
@@ -42,7 +50,7 @@ double to_valid_double(const char*);
    the first argument */
 void waste_VERSION(FILE*);
 
-#endif __UTIL_H
+#endif /* __UTIL_H */
 
 
 
