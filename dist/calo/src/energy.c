@@ -10,7 +10,7 @@
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.8 2000/11/30 10:31:30 rabello Exp $ */
+/* $Id: energy.c,v 1.9 2000/12/05 18:20:40 rabello Exp $ */
 
 /* Some prototypes used here on */
 Energy* energy_from_all_digis(const ROI*, Energy*);
@@ -19,6 +19,7 @@ void uniform_roi_classics(const ROI*, const uniform_roi_t*, char**);
 
 /* Functions for classical feature extraction */
 void build_etem (const uniform_roi_t*, const int*, double*);
+void build_ethad(const uniform_roi_t*, const int*, double*);
 void build_rshape (const CaloLayer*, const int*, double*);
 void build_rstrip (const CaloLayer*, const int*, double*);
 
@@ -358,7 +359,7 @@ Energy* uniform_layer_energy (const CaloLayer* lp, Energy* counter)
 void uniform_roi_classics(const ROI* r, const uniform_roi_t* ur, char** retval)
 {
   Energy temp;
-  int max;
+  int max=0;
   double eta;
   double phi;
   int i; /* iterator */
@@ -367,10 +368,8 @@ void uniform_roi_classics(const ROI* r, const uniform_roi_t* ur, char** retval)
   /* Find the peak of energy on EM2 and put it into retval */
   for (i=0; i<ur->nlayer; ++i) {
     if (ur->layer[i].calo == EM && ur->layer[i].level == 2) 
-      peak_find(ur->layer, &max, &eta, &phi);
+      peak_find(&ur->layer[i], &max, &eta, &phi);
   }
-/*    ascat_double(retval, &eta); */
-/*    ascat_phi(retval, &phi); */
 
   /* II */
   /* This energy is assumed to be PS+EM cells into a 3x7 (etaxphi) region
@@ -387,7 +386,7 @@ void uniform_roi_classics(const ROI* r, const uniform_roi_t* ur, char** retval)
      according to the object Et (calculated on the first step). For Et till
      25.5GeV, the cut is 2.2, till 60GeV, 4.0 and abover 120Gev the cut used is
      1000 (no cut). */
-  uniform_roi_HAD_energy(ur, &temp);
+  build_ethad(ur, &max, &temp);
   ascat_double(retval, &temp);
 
   /* IV */
@@ -446,8 +445,51 @@ void build_etem (const uniform_roi_t* ur, const int* max, double* val)
       for (j=0; j<ur->layer[i].NoOfCells; ++j) {
 	vector2point(&ur->layer[i].EtaGran, &ur->layer[i].PhiGran,
 		     &j, &eta, &phi);
-	if (fabs(eta-eta_max) <= cluster_eta_range &&
-	    fabs(eta-phi_max) <= cluster_phi_range) {
+	if (fabs(eta-eta_max) <= (0.5*cluster_eta_range) &&
+	    fabs(phi-phi_max) <= (0.5*cluster_phi_range) ) {
+	  (*val) += ur->layer[i].cell[j].energy;
+	}
+      }
+    }
+
+  return;
+}
+
+/* This function will calculate the Hadronic energy on a 0.2 by 0.2 window
+   around the peak of energy. It basically does the same as the previous
+   function (build_etem()), but for the hadronic section. The first argument
+   points to the RoI, already uniformized, the second to the maximum point
+   found on EM layer 2 and the third is there for returning the result only. */
+void build_ethad(const uniform_roi_t* ur, const int* max, double* val)
+{
+  int i; /* iterator */
+  int j; /* iterator */
+  double eta_max;
+  double phi_max;
+  double eta;
+  double phi;
+
+  const int stdgran_on_em2_eta = 16;
+  const int stdgran_on_em2_phi = 16;
+
+  const double cluster_eta_range = 0.2;
+  const double cluster_phi_range = 0.2;
+
+  /* Initializes (*val) */
+  (*val) = 0;
+
+  /* Get coordinates of the peak */
+  vector2point(&stdgran_on_em2_eta, &stdgran_on_em2_phi, max, 
+	       &eta_max, &phi_max);
+
+  /* Sums all cells from within the prescribed range */
+  for (i=0; i<ur->nlayer; ++i)
+    if (ur->layer[i].calo == HAD) {
+      for (j=0; j<ur->layer[i].NoOfCells; ++j) {
+	vector2point(&ur->layer[i].EtaGran, &ur->layer[i].PhiGran,
+		     &j, &eta, &phi);
+	if (fabs(eta-eta_max) <= 0.5*cluster_eta_range &&
+	    fabs(phi-phi_max) <= 0.5*cluster_phi_range) {
 	  (*val) += ur->layer[i].cell[j].energy;
 	}
       }
@@ -460,8 +502,9 @@ void build_etem (const uniform_roi_t* ur, const int* max, double* val)
    the 3x7 energy found on EM layer 2 by the 7x7 energy on the same layer. Both
    ranges are considered for the peak. Here I won't have to convert the cell
    indexes into real numbers since will operate only on layer 2. The input
-   argument #1 will be expected to be _that_ layer. Output, as always will be
-   on the second argument. */  
+   argument #1 will be expected to be _that_ layer. Output, as always, will be
+   on the second argument. Note that this quantity may be greater than one
+   since the pedestal of events may be removed. */  
 void build_rshape (const CaloLayer* layer, const int* peak, double* val)
 {
   int j; /* iterator */
