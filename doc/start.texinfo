@@ -1,7 +1,7 @@
 @node Examplified application
 @chapter The @code{preproc} Program
 
-@c $Id: start.texinfo,v 1.1 2000/09/11 13:56:54 andre Exp $
+@c $Id: start.texinfo,v 1.2 2000/09/19 00:34:38 andre Exp $
 
 @ifnottex
 
@@ -371,11 +371,41 @@ criterium. That is, @code{preproc} will evaluate the modulus for the
 vector consisted of @emph{all} RoI values and will then divide each
 value by that modulus.
 
+@item unity+
+This normalization type can @strong{only} be applied to @code{rings}. A
+check should be done at startup. In this case, the set of values that
+belong to each RoI will be projected against the sphere of
+N+1-dimensions, where N is the current number of features for each
+@emph{ring} RoI. This value should be added to the rings, making further
+processing transparent. After projection, trivial @code{unity}
+normalization is applied (no need for explicit user selection) to the
+@emph{ring} RoI. This scheme guarantees that information is not lost in
+case @code{unity} normalization is applied to clusters (that are going
+to be identified by later processes) that have mean vectors pointing on
+close directions. In this case, a maximum radius value should be given
+as an argument (using the @code{-m} option). If this is forgot, an error
+message should be reported and the @code{preproc} utility should abort.
+
 @item none
 This is the default behaviour. At this case, no normalization is applied
 to the output values.
 
 @end table
+
+@item -m=value
+@itemx --max-radius=value
+This @code{value} represents the maximum radius of the N+1 dimensional
+sphere that will serve as the projection apparatus for the @emph{ring}
+RoI data, as explained on the @code{-n} option section. There's
+@emph{no} default for this value and not giving it in case of
+@code{unity+} normalization is considered to be an error. This value
+should be chosen by histogramming the @emph{ring} RoI modulus of all
+input data. The maximum registered value of that study should
+@strong{not} be greater than this given @code{value} or an error message
+shall be reported indicating this error. Such error message will
+@emph{only} appear when this @code{value} is less than the modulus of
+the current RoI being processed, so pay attention when mass-processing a
+number of input files.
 
 @item -u 
 @itemx --fast-output
