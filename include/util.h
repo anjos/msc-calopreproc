@@ -8,7 +8,7 @@
    strings into doubles or longs. 
 */
 
-/* $Id: util.h,v 1.5 2000/08/22 02:49:33 andre Exp $ */
+/* $Id: util.h,v 1.6 2000/08/27 16:24:43 andre Exp $ */
 
 #ifndef __UTIL_H
 #define __UTIL_H
@@ -41,13 +41,16 @@ EVENT search_event(FILE*, const long);
 /* Waste all initial crap */
 void waste_initial_info(FILE*);
 
-/* Dumps all the digis in an RoI in human readable format */
-void dump_DIGIS(FILE* fp,const ROI* roi);
+/* Dumps all the digis in an RoI into a string in human readable format. The
+   string is allocated within this procedure and its space must be freed
+   afterwards. */
+char* get_DIGIS(const ROI* roi);
 
-/* Dumps the SNNS file header into the file pointed by the first argument. The
-   next three arguments will indicate, respectively, the number of patterns in
-   file, the number of input units, and the number of output units. */
-void fprintf_SNNS_header(FILE*, const int, const int, const int);
+/* Dumps the SNNS file header into a string that is allocated internally and
+   returned by the function (the user must free it afterwards). The three
+   arguments will indicate, respectively, the number of patterns in file, the
+   number of input units, and the number of output units. */
+char* get_SNNS_header(const int, const int, const int);
 
 #endif /* __UTIL_H */
 

@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.8 2000/08/22 02:49:14 andre Exp $ */
+/* $Id: util.c,v 1.9 2000/08/27 16:22:34 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -193,9 +193,11 @@ void waste_SCTGEOM(FILE* fp)
   return;
 }
 
-void dump_DIGIS(FILE* fp,const ROI* roi)
+char* get_DIGIS(const ROI* roi)
 {
   int i; /* iterator */
+  char* info; /* the output data will be stored here */
+  char* temp = ""; /* a temporary holder */
 
   for(i=0; i<roi->calDigi.nEmDigi; ++i) {
     int   cr = roi->calDigi.emDigi[i].CaloRegion;
@@ -204,7 +206,9 @@ void dump_DIGIS(FILE* fp,const ROI* roi)
     float p  = roi->calDigi.emDigi[i].phi;
     int   id = roi->calDigi.emDigi[i].id;
 
-    fprintf(fp, "%d %e %e %e %d\n", cr, en, e, p, id);
+    asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
+    free(temp);
+    temp = info;
   }
 
   for(i=0; i<roi->calDigi.nhadDigi; ++i) {
@@ -214,13 +218,15 @@ void dump_DIGIS(FILE* fp,const ROI* roi)
     float p  = roi->calDigi.hadDigi[i].phi;
     int   id = roi->calDigi.hadDigi[i].id;
 
-    fprintf(fp, "%d %e %e %e %d\n", cr, en, e, p, id);
+    asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
+    free(temp);
+    temp = info;
   }
 
-  return;
+  return info;
 }
 
-void fprintf_SNNS_header(FILE* fp, const int pats, const int i, const int o)
+char* get_SNNS_header(const int pats, const int i, const int o)
 {
   /* The header is it self simple, but tricky. The date, for instance, should
      follow a predefined format of 3-chars weekday, space, 3-chars month name,
@@ -229,22 +235,41 @@ void fprintf_SNNS_header(FILE* fp, const int pats, const int i, const int o)
      space and year with 4 digits (tip: this is *EXACTLY* what is returnd by
      time.h::asctime()) . */
   time_t current;
+  char* info; /* the output information */
+  char* temp; /* a temporary handler */
    
-  fprintf(fp, "SNNS pattern definition file V3.2\n");
-  fprintf(fp, "generated at ");
+  asprintf(&info, "SNNS pattern definition file V3.2\n");
+  temp = info;
+
+  asprintf(&info, "%sgenerated at ", temp);
+  free(temp);
+  temp = info;
   
   /* Now the date, output by the system, with a system call, naturally. Pay
      attention, asctime already includes a "\n" at the end of the string it
      returns! */
   current = time(NULL);
-  fprintf(fp, "%s", asctime( localtime(&current) ) );
+  asprintf(&info, "%s%s", temp, asctime( localtime(&current) ) );
+  free(temp);
+  temp = info;
   
-  fprintf(fp, "\n\n");
+  asprintf(&info, "%s\n\n", temp);
+  free(temp);
+  temp = info;
   
-  fprintf(fp, "No. of patterns : %d\n", pats);
-  fprintf(fp, "No. of input units : %d\n", i);
-  fprintf(fp, "No. of output units : %d\n", o);
+  asprintf(&info, "%sNo. of patterns : %d\n", temp, pats);
+  free(temp);
+  temp = info; 
 
-  fprintf(fp, "\n");
-  
+  asprintf(&info, "%sNo. of input units : %d\n", temp, i);
+  free(temp);
+  temp = info;
+
+  asprintf(&info, "%sNo. of output units : %d\n\n", temp, o);
+  free(temp);
+
+  return info;
 }
+
+
+
