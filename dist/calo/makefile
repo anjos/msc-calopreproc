@@ -1,7 +1,7 @@
 ## hello emacs, this is a -*- makefile -*- 
 ## Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
 
-## $Id: makefile,v 1.5 2000/06/28 16:06:30 rabello Exp $
+## $Id: makefile,v 1.6 2000/07/07 18:24:37 rabello Exp $
 
 ### Calorimeter Library compilation
 
@@ -9,7 +9,9 @@
 
 INCLUDE = -I../../include -I../spec/include -I./include
 FILES = trigtowr.c flat.c common.c \
-	portable.c zstt.c calostr.c fexdef.c calo.c ring.c
+	portable.c zstt.c calostr.c \
+	fexdef.c calo.c ring.c \
+	uniform.c
 SRCS = $(FILES:%.c=./src/%.c)
 OBJS = $(SRCS:.c=.o)
 DOC_DIR = ./doc
@@ -30,14 +32,14 @@ MKDEPFLAGS = -f $(MKDEPFILE)
 
 ### The rules
 
-.PHONY: clean depend
+.PHONY: clean depend clean_test
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 all: libcalo.a
 
-test: libcalo.a test_portable
+test: libcalo.a test_portable test_ring
 
 test_%: src/test_%.o complements libcalo.a
 	$(CC) $(CFLAGS) $< ../../src/data.o ../../src/util.o $(LDFLAGS) -o $@
@@ -51,19 +53,22 @@ libcalo.a: $(OBJS)
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
 
-depend:
+dep:
 	@if [ ! -e $(MKDEPFILE) ]; then touch $(MKDEPFILE); fi
 	$(MKDEP) $(MKDEPFLAGS) $(INCLUDE) $(SRCS) src/test_*.c
 
-clean: 
-	$(RM) $(OBJS) libcalo.a src/*~ include/*~ *~  test_*
+clean: clean_test clean_emacs
+	$(RM) $(OBJS) libcalo.a
 	$(RM) $(MKDEPFILE) $(MKDEPFILE:%=%.bak)
-	$(RM) src/test_portable.o
+
+clean_test:
+	$(RM) src/test_*.o 
+	$(RM) test_*
+
+clean_emacs:
+	$(RM) src/*~ include/*~ src/*~ mk/*~ *~
 
 # The dependencies (not obligatory)
 # =================================
 
 sinclude $(MKDEPFILE)
-
-
-
