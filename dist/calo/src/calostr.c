@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: calostr.c,v 1.4 2000/06/16 21:26:55 rabello Exp $ */
+/* $Id: calostr.c,v 1.5 2000/07/07 18:42:20 rabello Exp $ */
 
 #include "calostr.h"
 
@@ -14,22 +14,22 @@ ErrorCode SplitCells(const ROI* roi, CaloStringRoI* stringroi)
   stringroi->layer = NULL;
 
   /* copies correlated variables */
-  stringroi->region.UpperRight.Phi = roi->header.PhiMax;
-  stringroi->region.UpperRight.Eta = roi->header.EtaMax;
-  stringroi->region.LowerLeft.Phi = roi->header.PhiMin;
-  stringroi->region.LowerLeft.Eta = roi->header.EtaMin;
+  stringroi->region.UpperRight.phi = roi->header.PhiMax;
+  stringroi->region.UpperRight.eta = roi->header.EtaMax;
+  stringroi->region.LowerLeft.phi = roi->header.PhiMin;
+  stringroi->region.LowerLeft.eta = roi->header.EtaMin;
 
   /* provisional trick to use dumped files with wrong RoI window */
-  if( (stringroi->region.LowerLeft.Phi -= 0.1) < 0. )   
-    stringroi->region.LowerLeft.Phi += 2 * PI;   
-  if( (stringroi->region.UpperRight.Phi += 0.1) > 2 * PI )   
-    stringroi->region.UpperRight.Phi -= 2 * PI;  
-  stringroi->region.LowerLeft.Eta -= 0.1;  
-  stringroi->region.UpperRight.Eta += 0.1;
+  if( (stringroi->region.LowerLeft.phi -= 0.1) < 0. )   
+    stringroi->region.LowerLeft.phi += 2 * PI;   
+  if( (stringroi->region.UpperRight.phi += 0.1) > 2 * PI )   
+    stringroi->region.UpperRight.phi -= 2 * PI;  
+  stringroi->region.LowerLeft.eta -= 0.1;  
+  stringroi->region.UpperRight.eta += 0.1;
 
   /* check whether we are talking about the phi wrap around area */
-  stringroi->PhiWrap = PhiWrap(&(stringroi->region.UpperRight.Phi),
-			 &(stringroi->region.LowerLeft.Phi));
+  stringroi->PhiWrap = PhiWrap(&(stringroi->region.UpperRight.phi),
+			 &(stringroi->region.LowerLeft.phi));
 
   
   for(counter = 0; counter < roi->calDigi.nEmDigi; counter++) {
@@ -95,8 +95,8 @@ void CopyCellToString(StringLayer* s, const double energy, const CellInfo*
 		      info) 
 {
   s->cell[s->NoOfCells-1].energy = energy;
-  s->cell[s->NoOfCells-1].EtaCenter = info->center.Eta;
-  s->cell[s->NoOfCells-1].PhiCenter = info->center.Phi;
+  s->cell[s->NoOfCells-1].EtaCenter = info->center.eta;
+  s->cell[s->NoOfCells-1].PhiCenter = info->center.phi;
   return;
 }
 
@@ -112,23 +112,24 @@ int BackTranslateEMCoord(const double pos, const double min)
   return(-1);
 }
 
-void LayerGravity(const StringLayer* s, const bool_t wrap, Point* p)
+void LayerGravity(const StringLayer* s, const bool_t wrap, point_t* p)
 {
   int i;
   double EnergySum = 0.;
   double phiadj;
   
-  p->Eta = 0.;
-  p->Phi = 0.;
+  p->eta = 0.;
+  p->phi = 0.;
   
   for(i = 0; i < s->NoOfCells; i++) {
-    p->Eta += s->cell[i].energy * s->cell[i].EtaCenter;
+    p->eta += s->cell[i].energy * s->cell[i].EtaCenter;
 
     /* watch out, phi may wrap ! */
-    if(wrap == TRUE && s->cell[i].PhiCenter < 2.0) phiadj = s->cell[i].PhiCenter
+    if(wrap == TRUE && s->cell[i].PhiCenter < 2.0) phiadj =
+						     s->cell[i].PhiCenter 
 						   + 2 * PI;
     else phiadj = s->cell[i].PhiCenter;
-    p->Phi += s->cell[i].energy * phiadj;
+    p->phi += s->cell[i].energy * phiadj;
     EnergySum += s->cell[i].energy;
   }
   
@@ -138,21 +139,21 @@ void LayerGravity(const StringLayer* s, const bool_t wrap, Point* p)
   }
   
   /* readjust phi, if necessary */
-  p->Eta /= EnergySum;
-  if ( (p->Phi /= EnergySum) > (2 * PI) ) p->Phi -= 2 * PI;
+  p->eta /= EnergySum;
+  if ( (p->phi /= EnergySum) > (2 * PI) ) p->phi -= 2 * PI;
   
   return;
 }
 
 
-void MakeWindow(const Point* p, const double etasz, const double phisz,
+void MakeWindow(const point_t* p, const double etasz, const double phisz,
 		Window* w)
 {
-  w->EtaMin = p->Eta - etasz / 2.0;
-  w->EtaMax = p->Eta + etasz / 2.0;
+  w->EtaMin = p->eta - etasz / 2.0;
+  w->EtaMax = p->eta + etasz / 2.0;
   
-  w->PhiMin = p->Phi - phisz / 2.0;
-  w->PhiMax = p->Phi + phisz / 2.0;
+  w->PhiMin = p->phi - phisz / 2.0;
+  w->PhiMax = p->phi + phisz / 2.0;
 
   w->PhiWrap = WindowPhiCorrect(&w->PhiMax, &w->PhiMin);
 
