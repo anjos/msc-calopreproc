@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.h,v 1.7 2000/09/06 14:52:09 andre Exp $ */
+/* $Id: uniform.h,v 1.8 2000/09/06 21:13:44 rabello Exp $ */
 
 #ifndef _UNIFORM_H
 #define _UNIFORM_H
@@ -49,7 +49,7 @@ typedef struct uniform_roi_t
    string2normalization() function that can correctly set the bits. It shall
    work like string2layer(), also checking for ambiguities. */
 uniform_roi_t* uniformize (const tt_roi_t*, uniform_roi_t*,
-			   const unsigned short, const unsigned short);
+			   const unsigned short* , const unsigned short*);
 
 /* Converts the const string on the second argument in a short to be used by
    uniformize(). The string will be scanned from left to right looking for
@@ -90,16 +90,16 @@ bool_t free_uniform_roi (uniform_roi_t*);
    granularity. So, for instance, if the layer is 16x16 (phixeta), there will
    be 16 lines with 16 numbers each, separated by spaces. If the layer is 10x5,
    there will be 10 lines with 5 numbers in each one */
-char* get_uniform_roi (const uniform_roi_t*, const unsigned short);
+char* get_uniform_roi (const uniform_roi_t*, const unsigned short*);
 
 /* Returns TRUE if the flags contain a description for inclusion of layer on
    the current processing and FALSE otherwise. */
-bool_t flag_contains_layer(const unsigned short, const CaloLayer*);
+bool_t flag_contains_layer(const unsigned short*, const CaloLayer*);
 
 /* Counts the number of layers that should be printed. This is useful for
    functions that have to preallocate space based on the number of layers that
    should be processed. */
-short flag_contains_nlayers(const unsigned short flags);
+short flag_contains_nlayers(const unsigned short*);
 
 #endif /* _UNIFORM_H */
 

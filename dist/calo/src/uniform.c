@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.9 2000/09/06 14:51:17 andre Exp $ */
+/* $Id: uniform.c,v 1.10 2000/09/06 21:13:25 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -54,7 +54,7 @@ CaloLayer* copy_layer (CaloLayer*, const CaloLayer*, const size_t);
 bool_t gather_tilecal_layers(hadtt_t);
 bool_t add_equal_layers(CaloLayer*, CaloLayer*);
 
-char* get_uniform_roi (const uniform_roi_t* rp, const unsigned short flags)
+char* get_uniform_roi (const uniform_roi_t* rp, const unsigned short* flags)
 {
   int i;
   char* info; /* the output string */
@@ -62,7 +62,7 @@ char* get_uniform_roi (const uniform_roi_t* rp, const unsigned short flags)
   char* temp2; /* another temporary handler */
   
   for (i=0; i< rp->nlayer; ++i)
-    if ( flag_contains_layer(flags, &rp->layer[i]) ) {
+    if ( flag_contains_layer( flags, &rp->layer[i]) ) {
       temp2 = get_uniform_layer(&rp->layer[i]);
       asprintf(&info, "%s%s", temp, temp2);
       free(temp);
@@ -105,8 +105,8 @@ char* get_uniform_layer (const CaloLayer* lp)
 }
 
 uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur, 
-			   const unsigned short flags, 
-			   const unsigned short norm_flags)
+			   const unsigned short* flags, 
+			   const unsigned short* norm_flags)
 {
   uni_layerinfo_t info;
 
@@ -117,7 +117,7 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur,
   /***************/
   /* PRESAMPLER  */
   /***************/
-  if ( (flags & FLAG_PS) != 0 ) {
+  if ( ((*flags) & FLAG_PS) != 0 ) {
     /* Uniformizes the layer 1 of EM on r -> results to ur.  The order is eta
     and phi granulairity, nphi_per_tt, calo and level */
     info.granularity.eta = 16;
@@ -137,7 +137,7 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur,
   /***************/
   /* EM - FRONT  */
   /***************/
-  if ( (flags & FLAG_EM1) != 0 ) {
+  if ( ((*flags) & FLAG_EM1) != 0 ) {
     /* Uniformizes the layer 1 of EM on r -> results to ur. */
     info.granularity.eta = 128;
     info.granularity.phi = 4;
@@ -156,7 +156,7 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur,
   /***************/
   /* EM - MIDDLE */
   /***************/
-  if ( (flags & FLAG_EM2) != 0 ) {
+  if ( ((*flags) & FLAG_EM2) != 0 ) {
     /* Uniformizes the layer 2 of EM on r -> results to ur. */
     info.granularity.eta = 16;
     info.granularity.phi = 16;
@@ -175,7 +175,7 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur,
   /*************/
   /* EM - BACK */
   /*************/
-  if ( (flags & FLAG_EM3) != 0 ) {
+  if ( ((*flags) & FLAG_EM3) != 0 ) {
     /* Uniformizes the layer 1 of EM on r -> results to ur. */
     info.granularity.eta = 8;  
     info.granularity.phi = 16;  
@@ -194,7 +194,7 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur,
   /***************/
   /* HAD - FRONT */
   /***************/
-  if ( (flags & FLAG_HAD1) != 0 ) {
+  if ( ((*flags) & FLAG_HAD1) != 0 ) {
     /* Uniformizes the layer 1 of HAD on r -> results to ur. */
     info.granularity.eta = 4;  
     info.granularity.phi = 4;  
@@ -213,7 +213,7 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur,
   /****************/
   /* HAD - MIDDLE */
   /****************/
-  if ( (flags & FLAG_HAD2) != 0 ) {
+  if ( ((*flags) & FLAG_HAD2) != 0 ) {
     /* Uniformizes the layer 1 of HAD on r -> results to ur. */
     info.granularity.eta = 4;  
     info.granularity.phi = 4;  
@@ -232,7 +232,7 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur,
   /**************/
   /* HAD - BACK */
   /**************/
-  if ( (flags & FLAG_HAD3) != 0 ) {
+  if ( ((*flags) & FLAG_HAD3) != 0 ) {
     /* Uniformizes the layer 1 of HAD on r -> results to ur. */
     info.granularity.eta = 4;
     info.granularity.phi = 4;  
@@ -254,43 +254,43 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur,
   return(ur);
 }
 
-bool_t flag_contains_layer(const unsigned short flags, const CaloLayer* lp)
+bool_t flag_contains_layer(const unsigned short* flags, const CaloLayer* lp)
 {
   /* If all flags are set do not check a thing */
-  if ( flags == FLAG_ALL ) return TRUE;
+  if ( (*flags) == FLAG_ALL ) return TRUE;
 
-  if ( ((flags & FLAG_PS) != 0) && lp->calo == PS) return TRUE;
-  if ( ((flags & FLAG_EM1) != 0) && lp->calo == EM && lp->level == 1 )
+  if ( (((*flags) & FLAG_PS) != 0) && lp->calo == PS) return TRUE;
+  if ( (((*flags) & FLAG_EM1) != 0) && lp->calo == EM && lp->level == 1 )
     return TRUE;
-  if ( ((flags & FLAG_EM2) != 0) && lp->calo == EM && lp->level == 2 )
+  if ( (((*flags) & FLAG_EM2) != 0) && lp->calo == EM && lp->level == 2 )
     return TRUE;
-  if ( ((flags & FLAG_EM3) != 0) && lp->calo == EM && lp->level == 3 )
+  if ( (((*flags) & FLAG_EM3) != 0) && lp->calo == EM && lp->level == 3 )
     return TRUE;
-  if ( ((flags & FLAG_HAD1) != 0) && lp->calo == HAD && lp->level == 1 )
+  if ( (((*flags) & FLAG_HAD1) != 0) && lp->calo == HAD && lp->level == 1 )
     return TRUE;
-  if ( ((flags & FLAG_HAD2) != 0) && lp->calo == HAD && lp->level == 2 )
+  if ( (((*flags) & FLAG_HAD2) != 0) && lp->calo == HAD && lp->level == 2 )
     return TRUE;
-  if ( ((flags & FLAG_HAD3) != 0) && lp->calo == HAD && lp->level == 3 )
+  if ( (((*flags) & FLAG_HAD3) != 0) && lp->calo == HAD && lp->level == 3 )
     return TRUE;
 
   /* well my friend, if you can't get a match, you're in serious trouble. */
   return FALSE;
 }
 
-short flag_contains_nlayers(const unsigned short flags)
+short flag_contains_nlayers(const unsigned short* flags)
 {
   short retval = 0;
 
   /* If all flags are set do not check a thing */
-  if ( flags == FLAG_ALL ) return (short)7;
+  if ( (*flags) == FLAG_ALL ) return (short)7;
 
-  if ((flags & FLAG_PS)!=0) ++retval;
-  if ((flags & FLAG_EM1)!=0) ++retval;
-  if ((flags & FLAG_EM2)!=0) ++retval;
-  if ((flags & FLAG_EM3)!=0) ++retval;
-  if ((flags & FLAG_HAD1)!=0) ++retval;
-  if ((flags & FLAG_HAD2)!=0) ++retval;
-  if ((flags & FLAG_HAD3)!=0) ++retval;
+  if (((*flags) & FLAG_PS)!=0) ++retval;
+  if (((*flags) & FLAG_EM1)!=0) ++retval;
+  if (((*flags) & FLAG_EM2)!=0) ++retval;
+  if (((*flags) & FLAG_EM3)!=0) ++retval;
+  if (((*flags) & FLAG_HAD1)!=0) ++retval;
+  if (((*flags) & FLAG_HAD2)!=0) ++retval;
+  if (((*flags) & FLAG_HAD3)!=0) ++retval;
 
   return retval;
 }
