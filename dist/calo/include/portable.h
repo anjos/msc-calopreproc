@@ -1,31 +1,23 @@
 #ifndef PORTABLE_H
 #define PORTABLE_H
 
-#include <math.h>
 #include "common.h"
 #include "error.h"
 
-#define DETA 0.003125
-#define DPHI (2 * PI / 256)
-#define E_137 1.375
-#define E_14 1.4
-#define E_15 1.5
-#define E_16 1.6
-#define E_18 1.8
-#define E_20 2.0
-#define E_24 2.4
-#define E_25 2.5
-#define E_27 2.7
-#define E_29 2.9
-#define E_31 3.1
-#define E_32 3.2
-#define RND_PREC 15 /* required precision on the nth. decimal house */
-#define MAX_ABS_ERROR 1e-10
-#define DONT_ROUND_OUTPUT
-#define DETAIL 0 /* corrects region of EM EndCap between eta 1.8 and 2.0 */
-#define SIZE_OF_UCN_STRING 30
+/* This define will change the way the EMEndCap has its calorimeter regions
+   corrected. Such correction have to exist because the regions of EmEndCap
+   cannot be fully specified by the m bits and auxiliar information has to be
+   taken from the cell eta position. The old DICE routines use one calorimeter
+   configuration and the new DICE another one. This define makes the program
+   switch between the correction types for each case. Choose 1 for the old DICE
+   geometry and 0 for the new one. HINT: If you have doubts, choose 1 since
+   most files follow such system. */
+#define DICEOLD 1
 
-typedef double out_type;
+/* This defines the size of strings that will host a Universal Cell Enconding
+   Number (UCN). They have to be 30 chars big because UCN has 25 bits plus 4
+   dots and a (char)NULL at the end to mark the end of the string. */
+#define SIZE_OF_UCN_STRING 30 
 
 typedef struct CellInfo{
   int calo;
@@ -35,19 +27,30 @@ typedef struct CellInfo{
   double dphi;
 }CellInfo;
 
-/* Get a cell id and converts into eta, phi, calo and region information */
-/* the answer is recorded at the 3rd. argument. */
-extern ErrorCode GetCellInfo(const int, const Flag, const double, CellInfo*);
+/* Get a cell id at the 1st. argument and converts into eta, phi, calo and
+   region information the answer is recorded at the 2nd. argument. The third
+   argument is there to provide a simple solution to the phi wrapping
+   problem. The problem consists in having an RoI that is placed over the
+   region 2*pi <-> 0 at the calorimeter. Over these regions phimin may be
+   greater then phimax, depending the first level trigger classification. One
+   should correct this problem or just point out it's happening so other
+   programs can take this in consideration. Here the second argument indicates
+   whether one should correct the Phiwraping (ON) or not (OFF). If yes,
+   correction is applied by shifting cell's center->Phi to center->Phi + 2*pi
+   IF the center of such cell is place between 0 and the PI. */
+ErrorCode GetCellInfo(const int, CellInfo*, const Flag);
 
-double rint(double x);
-double pow(double x, double y);
+/* Converts a UCN integer into string format. This format is given by Stefan
+   Simion and is basically CCCC.mmm.s.eeeeeeeee.pppppppp where each bit codes
+   values for the (C)alorimeter, (m)odule, (s)side, (e)ta and (p)hi of the cell
+*/ 
+void i2ucn(const unsigned int, char*);
 
-extern void i2ucn(unsigned int, char*);
-
-/* Compares, given an maximum error diference at the third argument the two
+/* Compares, given an maximum error diference at the third argument, the two
    floats of the first and second arguments. */
 ErrorCode fcomp(const double, const double, const double); 
 
-#define DICEOLD /* Make minor changes in EMEndCap correction routines */
-
 #endif
+
+
+
