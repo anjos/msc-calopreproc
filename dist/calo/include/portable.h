@@ -1,4 +1,4 @@
-/* $Id: portable.h,v 1.5 2000/05/31 13:39:52 rabello Exp $ */
+/* $Id: portable.h,v 1.6 2000/07/07 18:25:47 rabello Exp $ */
 
 #ifndef PORTABLE_H
 #define PORTABLE_H
@@ -24,7 +24,7 @@
 typedef struct CellInfo{
   int calo;
   int region;
-  Point center;
+  point_t center;
   double deta;
   double dphi;
 }CellInfo;
