@@ -1,7 +1,7 @@
 This file is part of CaloASCII-tester package
 by André Rabello dos Anjos
 
-$Id: README,v 1.2 2000/04/05 21:51:05 rabello Exp $
+$Id: README,v 1.3 2000/04/05 21:57:20 rabello Exp $
 
 Introduction
 ------------
@@ -59,16 +59,21 @@ cd CaloASCII-tester; vi Makefile
 make all
 
 This should be enough to compile the spec and calo libraries and build a small
-application that can do some nice tricks with the ascii files. Such application
-is called 'wrdata'. You can do 
+application that can do some nice tricks with the ascii files. Basically, it
+can show you how many events the file has or how many RoI's an event has. If
+you select an event and an RoI, it can extract the Calo digis, pre-process and
+give you a flatten version of this RoI, just ready for L2 processing. Such
+application is called 'wrdata'. You can do
 
 ./wrdata -h
 
 In order to get some processing options.
 
-You can build another application as well, called 'test'. Just do:
+You can build another application as well, called 'test'. This application can
+test an specific RoI for errors at the digis fields. This job may be important
+if you're not sure of the reliability of you file. Just do:
 
-make test
+make testfile
 
 You can do
 
