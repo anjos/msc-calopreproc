@@ -1,0 +1,242 @@
+** $Id: displayroi.kumac,v 1.1 2000/12/04 00:47:00 andre Exp $
+
+**************************************************************************
+** This PAW script shall be useful for displaying RoI's dumped by wrdata *
+** into ASCII files. If you want to use this kumac, dump your data using *
+** the -d rois option on preproc. You have to select to dump all event   *
+** layers for this kumac is not smart enough to find out if some is      *
+** missing.                                                              *
+**									 *
+** André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>		         *
+**************************************************************************
+
+**********************************
+** The main MACRO for this file **
+**********************************
+MACRO _main
+  global/create nroi 1 'The current plotted RoI'
+  global/create repeat 1 'The number of RoIs after nroi to print'
+  global/create file 'log' 'The filename'
+
+  exec displayroi#_getfile
+
+  exec displayroi#_getnumber
+  
+  global/create printing 0 'If one is printing or not'
+  exec displayroi#_plotroi
+
+  printing = 1
+  exec displayroi#_printroi
+RETURN
+
+
+***********************************
+** Plots the event on the screen **
+***********************************
+MACRO _plotroi
+  zone
+
+  global/import nroi
+  global/import repeat
+  global/import file
+  global/import printing
+
+  tts = [nroi] + [repeat] - 1
+  vec/cre em(1008,[tts]) R
+  
+  vec/read em [file]
+	
+  ** Text sizes
+  set VSIZ 0.1
+  set TSIZ 0.2
+  set ASIZ 0.1
+
+  ** Give the user an option to see multiple plots per
+  **IF [repeat] > 1 THEN
+  **  xzone = 1
+  **  yzone = 1
+  **  READ xzone 'How many plots in x?'
+  **  READ yzone 'How many plots in y?'
+  **  zone [xzone] [yzone]
+  **  set ASIZ 0.1
+  **  set TSIZ 0.2
+  **  set VSIZ 0.1
+  **ENDIF
+
+  ** The number of colors in lego plot
+  numbercol = 50
+  READ numbercol 'Number of colors per plot (min=1, max=50)'
+
+  set NCOL [numbercol]
+  palette 1
+  set HCOL 1501
+  set XCOL 1
+  set YCOL 1
+
+  ** How to draw without colors
+  IF [numbercol] > 1 THEN
+  legoopt = 2
+  ELSE
+  legoopt = 1
+  ENDIF
+
+** Title definition
+  DO loop = [nroi], [nroi]+[repeat]-1
+    figuret1 = Event [loop] (PreSampler)
+    figuret2 = Event [loop] (Front EM layer)
+    figuret3 = Event [loop] (Middle EM layer)
+    figuret4 = Event [loop] (Back EM layer)
+    figuret5 = Event [loop] (Front Hadronic layer)
+    figuret6 = Event [loop] (Middle Hadronic layer)
+    figuret7 = Event [loop] (Back Hadronic layer)
+    hi/cre/2d 1001 [figuret1] 16 0 16 4 0 4
+    hist/put_ve/cont 1001 em(1:64,[loop])
+    hi/cre/2d 1002 [figuret2] 128 0 128 4 0 4
+    hist/put_ve/cont 1002 em(65:576,[loop])
+    hi/cre/2d 1003 [figuret3] 16 0 16 16 0 16
+    hist/put_ve/cont 1003 em(577:832,[loop])
+    hi/cre/2d 1004 [figuret4] 8 0 8 16 0 16
+    hist/put_ve/cont 1004 em(833:960,[loop])
+    hi/cre/2d 1005 [figuret5] 4 0 4 4 0 4
+    hist/put_ve/cont 1005 em(961:976,[loop])
+    hi/cre/2d 1006 [figuret6] 4 0 4 4 0 4
+    hist/put_ve/cont 1006 em(977:992,[loop])
+    hi/cre/2d 1007 [figuret7] 4 0 4 4 0 4
+    hist/put_ve/cont 1007 em(993:1008,[loop])
+
+    zone 2 4 1
+    lego 1001 35 35 [legoopt]
+    atitle '[c] (0.025 grains)' '[F] (0.1 grains)' 'Energy' 132
+    zone 2 4 3 'S'
+    lego 1002 35 35 [legoopt]
+    atitle '[c] (0.003125 grains)' '[F] (0.1 grains)' 'Energy' 132
+    zone 2 4 5 'S'
+    lego 1003 35 35 [legoopt]
+    atitle '[c] (0.025 grains)' '[F] (0.025 grains)' 'Energy' 132
+    zone 2 4 7 'S'
+    lego 1004 35 35 [legoopt]
+    atitle '[c] (0.050 grains)' '[F] (0.025 grains)' 'Energy' 132
+    zone 2 4 2 'S'
+    lego 1005 35 35 [legoopt]
+    atitle '[c] (0.1 grains)' '[F] (0.1 grains)' 'Energy' 132
+    zone 2 4 4 'S'
+    lego 1006 35 35 [legoopt]
+    atitle '[c] (0.1 grains)' '[F] (0.1 grains)' 'Energy' 132
+    zone 2 4 6 'S'
+    lego 1007 35 35 [legoopt]
+    atitle '[c] (0.1 grains)' '[F] (0.1 grains)' 'Energy' 132
+
+    hist/del 1001
+    hist/del 1002
+    hist/del 1003
+    hist/del 1004
+    hist/del 1005
+    hist/del 1006
+    hist/del 1007
+
+    * print the energy summary for this event
+    kuip/mess '** Energy Summary **'
+    exec displayroi#sum_energy 1 64 [loop]
+    kuip/mess 'Event energy on PS layer is '//[@]
+    exec displayroi#sum_energy 65 576 [loop]
+    kuip/mess 'Event energy on EM front layer is '//[@]
+    exec displayroi#sum_energy 577 832 [loop]
+    kuip/mess 'Event energy on EM middle layer is '//[@]
+    exec displayroi#sum_energy 833 960 [loop]
+    kuip/mess 'Event energy on EM back layer is '//[@]
+    exec displayroi#sum_energy 961 976 [loop]
+    kuip/mess 'Event energy on HAD front layer is '//[@]
+    exec displayroi#sum_energy 977 992 [loop]
+    kuip/mess 'Event energy on HAD middle layer is '//[@]
+    exec displayroi#sum_energy 993 1008 [loop]
+    kuip/mess 'Event energy on HAD back layer is '//[@]
+    exec displayroi#sum_energy 1 1008 [loop]
+    kuip/mess 'Event energy (sum of cells) is '//[@]
+
+    IF [printing] = 0 THEN
+      kuip/wait 'Press <CR> to go on'	
+    ENDIF
+
+  ENDDO
+
+  ** Restore old settings
+  set HCOL 1101
+  set NCOL 8
+  palette 1
+
+  *vec/del em
+
+RETURN
+
+*************************
+** Print RoI if needed **
+*************************
+MACRO _printroi
+
+  zone 
+
+  global/import nroi
+  global/import file
+  wishsave = n
+  READ wishsave 'Do you wish to save what you saw: (y)es or (n)o?'
+
+  IF [wishsave] = n THEN
+    EXITM
+  ENDIF
+
+  otype = 1
+  READ otype 'Do you prefer (1)PS or (2)EPS output?'
+
+  ** Defaults for A4, zone (11) and paper orientation 3 is EPS, 1/4 is portrait
+  ** and 2/5 is landscape with small or large bottom margins respectively.
+
+  IF [otype] = 1 THEN
+    optstring = 0114
+    ofile = output.ps
+  ELSE
+    optstring = 0113
+    ofile = output.eps
+  ENDIF
+
+  READ ofile 'Please, type the output file name or press <RETURN>'
+  for/file 66 [ofile]
+  metafile 66 -[optstring]
+
+  exec displayroi#_plotroi
+
+  for/close 66
+
+RETURN
+
+***********************************
+** Gets the file to read in RoIs **
+***********************************
+MACRO _getfile
+  global/import file
+  READ file 'Please, type the input file name or press <ENTER>'
+  RETURN
+
+  ** Gets the number of the RoI to plot
+  MACRO _getnumber
+  global/import nroi
+  global/import repeat
+  READ nroi 'Please, type the event you want to plot first'
+  READ repeat 'How many TTs do you want to see in total'
+RETURN
+
+****************************************************
+** Sum the energy from em using the given indexes **
+****************************************************
+MACRO sum_energy start=1 end=1008 event=1
+  etot = 0
+  DO eloop=[start],[end]
+    etot = [etot] + em([eloop],[event])
+  ENDDO
+  
+RETURN [etot]
+
+
+
+
+
+
