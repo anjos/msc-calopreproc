@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.1 2000/07/07 18:50:32 rabello Exp $ */
+/* $Id: uniform.c,v 1.2 2000/07/12 04:46:02 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -122,18 +122,18 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur)
   /* EM - FRONT  */
   /***************/
   /* Uniformizes the layer 1 of EM on r -> results to ur. */
-  info.granularity.eta = 128;
-  info.granularity.phi = 4;
-  info.nphi_per_tt = 1;
-  info.calorimeter = EM;
-  info.level = 1;
+/*    info.granularity.eta = 128; */
+/*    info.granularity.phi = 4; */
+/*    info.nphi_per_tt = 1; */
+/*    info.calorimeter = EM; */
+/*    info.level = 1; */
   
   /* If I can't uniformize this RoI, them I have to count 1 more contour
      error and will return 0. */
-  if (!uniformize_layer(r,ur,&info)) {
-    ++uniform_contour_err;
-    return(ur=NULL);
-  }
+/*    if (!uniformize_layer(r,ur,&info)) { */
+/*      ++uniform_contour_err; */
+/*      return(ur=NULL); */
+/*    } */
 
   /***************/
   /* EM - MIDDLE */
@@ -156,18 +156,18 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur)
   /* EM - BACK */
   /*************/
   /* Uniformizes the layer 1 of EM on r -> results to ur. */
-  info.granularity.eta = 8;  
-  info.granularity.phi = 16;  
-  info.nphi_per_tt = 4;
-  info.calorimeter = EM;  
-  info.level = 3;
+/*    info.granularity.eta = 8;   */
+/*    info.granularity.phi = 16;   */
+/*    info.nphi_per_tt = 4; */
+/*    info.calorimeter = EM;   */
+/*    info.level = 3; */
 
   /* If I can't uniformize this RoI, them I have to count 1 more contour
      error and will return 0. */
-  if (!uniformize_layer(r,ur,&info)) {
-    ++uniform_contour_err;
-    return(ur=NULL);
-  }
+/*    if (!uniformize_layer(r,ur,&info)) { */
+/*      ++uniform_contour_err; */
+/*      return(ur=NULL); */
+/*    } */
 
   /***************/
   /* HAD - FRONT */
@@ -312,7 +312,7 @@ bool_t uniformize_em_tt(const emtt_t tt, CaloLayer* layer)
 	/* fprintf(stderr, "(uniform.c)ERROR: Can't find layer in TT\n"); */
 	return (FALSE); /* No such layer */       
       }
-	  
+      
       /* 2) If it is, then I can process each cell */
       for(cell_phi = 0; cell_phi < maxcell_phi; ++cell_phi)
 	for(cell_eta = 0; cell_eta < maxcell_eta; ++cell_eta) {
@@ -380,7 +380,7 @@ bool_t uniformize_had_tt(const hadtt_t tt, CaloLayer* layer)
 	/* fprintf(stderr, "(uniform.c)ERROR: Can't find layer in TT\n"); */
 	return (FALSE); /* No such layer */       
       }
-	  
+
       /* 2) If it is, then I can process each cell */
       for(cell_phi = 0; cell_phi < maxcell_phi; ++cell_phi)
 	for(cell_eta = 0; cell_eta < maxcell_eta; ++cell_eta) {
@@ -438,7 +438,7 @@ int search_layer(const CaloTriggerTower* tt, const mycalo_t calo, const
       layer_idx = i;
       break;
     }
-      
+
   return (layer_idx);
   
 } /* end fo search_layer() */
