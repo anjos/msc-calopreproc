@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.9 2000/06/28 15:44:11 rabello Exp $
+# $Id: Makefile,v 1.10 2000/07/07 18:22:01 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -22,10 +22,11 @@ MKDEPFILE = .depend
 MKDEPFLAGS = -f $(MKDEPFILE)
 
 # 2) for proper C compilation and linking
-CC = gcc
+CC = gcc 
+#CPPFLAGS = -DTRACE_DEBUG
 INCLUDE = -I./include -I./dist/spec/include -I./dist/calo/include
 CFLAGS = -g $(INCLUDE)
-LDFLAGS = -L./lib -L./dist/spec/src -L./dist/calo -lcalo -lspec -lm
+LDFLAGS = -L./lib -L./dist/spec/src -L./dist/calo -lcalo -lspec -lm #-lefence
 SRCDIR = ./src
 SRCFILES = util.c main.c
 SRCS = $(SRCFILES:%=$(SRCDIR)/%)
@@ -120,7 +121,7 @@ $(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.9 $$' of '$$Date: 2000/06/28 15:44:11 $$'
+	@echo \* -- current version is '$$Revision: 1.10 $$' of '$$Date: 2000/07/07 18:22:01 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
