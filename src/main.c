@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.12 2000/08/18 03:10:38 andre Exp $ */
+/* $Id: main.c,v 1.13 2000/08/20 04:37:50 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -616,6 +616,8 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t   roi_ethad- The total energy on the HAD sections\n");
   fprintf(fp, "\t              calculated using the selected layers of the\n");
   fprintf(fp, "\t               uniform RoI\n");
+  fprintf(fp, "\t   roi_digis- The total energy found summing all digis\n");
+  fprintf(fp, "\t              on a RoI without any preprocessing\n");
   fprintf(fp, "\t   all      - Print all information described above.\n");
   fprintf(fp, "\t              this is the default behaviour\n");
 
@@ -888,7 +890,7 @@ int dump_rings (const uniform_roi_t* ur, const parameter_t* p)
 void dump_config(FILE* fp, const parameter_t* par) 
 {
   time_t current_time = time(NULL); /* just a dummy variable for timing */
-  char temp[60]; /* for temporary strings */
+  char temp[100]; /* for temporary strings */
 
   fprintf(fp, "-+- CONFIGURATION PARAMETERS\n");
   fprintf(fp, " +- Date: %s", ctime(&current_time));
