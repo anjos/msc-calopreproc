@@ -10,9 +10,9 @@
 extern ErrorCode CreateZSCaloLayer(CaloTriggerTower*, const CellInfo*);
 extern ErrorCode InitZSCaloLayer(CaloLayer*, const CellInfo*);
 
-extern ErrorCode PlaceZSCell(const Energy, const CellInfo*, const Point*,
+extern ErrorCode PlaceZSCell(const Energy, const CellInfo*, const point_t*,
 			     CaloLayer*); 
 
-extern Index GetZSIndex(const CellInfo*, const int, const int, const Point*);
+extern index_t GetZSIndex(const CellInfo*, const int, const int, const point_t*);
 
 #endif
