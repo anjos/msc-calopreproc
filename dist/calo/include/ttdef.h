@@ -1,5 +1,9 @@
-#ifndef TTDEF_H
-#define TTDEF_H
+/* Hello emacs, this is -*- c -*- */
+
+/* $Id: ttdef.h,v 1.2 2000/05/31 12:01:13 rabello Exp $ */
+
+#ifndef _TTDEF_H
+#define _TTDEF_H
 
 #include "common.h"
 
@@ -28,10 +32,10 @@ typedef struct CaloTriggerTower {
 typedef struct CaloTTEMRoI {
   CaloTriggerTower tt[EMROIGRAN][EMROIGRAN];
   Area Region;
-  Flag PhiWrap;
-  Flag fixed;
+  bool_t PhiWrap;
+  bool_t fixed;
 }CaloTTEMRoI;
 
-#endif
+#endif /* _TTDEF_H */
 
 

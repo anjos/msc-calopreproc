@@ -3,7 +3,7 @@
 ErrorCode FreeCaloFeatures(CaloFeatures* feat)
 {
   free(feat->feature);
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 void PrintCaloFeatures(FILE* log, const CaloFeatures* feat) 

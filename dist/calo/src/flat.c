@@ -51,32 +51,32 @@ ErrorCode Flatten(const CaloTTEMRoI* roi, FlatEM em, FlatHad had)
 	  
 	default:
 	  fprintf(stderr, "ERROR(flat.c): No such calorimeter\n");
-	  return(ERROR);
+	  return(CALO_ERROR);
 	  
 	} /* end layer switch */
 
 	/* now do the work */
 	switch (section) {
 	case ELECTROMAGNETIC:
-	  if( AddEMCells(lay, eta, phi, em, nzsupfun, zsupfun) == ERROR) {
+	  if( AddEMCells(lay, eta, phi, em, nzsupfun, zsupfun) == CALO_ERROR) {
 	    fprintf(stderr, "ERROR(flat.c): ");
-	    fprintf(stderr, "Can't place EM cells on Flat TT\n"); 
-	    return(ERROR);
+	    fprintf(stderr, "Can't place EM cells TRUE Flat TT\n"); 
+	    return(CALO_ERROR);
 	}
 	  break;
 
 	case HADRONIC: /* map 1 to 1 always */
-	  if ( AddHadCells(lay, eta, phi, had) == ERROR) { 
+	  if ( AddHadCells(lay, eta, phi, had) == CALO_ERROR) { 
 	    fprintf(stderr, "ERROR(flat.c): ");
-	    fprintf(stderr, "Can't place Had cells on Flat TT\n"); 
-	    return(ERROR);
+	    fprintf(stderr, "Can't place Had cells TRUE Flat TT\n"); 
+	    return(CALO_ERROR);
 	  }
 	  break;
 	}
 	
       } /* for all layers in TT */
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 } /* end Flatten */
 
 ErrorCode AddEMLayer(FlatEM em, const int tteidx, const int ttpidx, CaloLayer*
@@ -99,7 +99,7 @@ ErrorCode AddEMLayer(FlatEM em, const int tteidx, const int ttpidx, CaloLayer*
   if( div < 1 ) {
     if( (aux = l = CreateProvStripLayer(inlay)) == NULL) {
       fprintf(stderr, "ERROR(flat.c): Couldn't create provisory layer\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
   }
   else l = inlay;
@@ -121,7 +121,7 @@ ErrorCode AddEMLayer(FlatEM em, const int tteidx, const int ttpidx, CaloLayer*
   /* frees, if used */
   if ( aux != NULL ) free(aux->cell), free(aux);
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 
 } /* end AddEMLayer */
 
@@ -192,7 +192,7 @@ ErrorCode AddPSNZS(const CaloLayer* layer, const int TTEtaIndex, const int
       for(phi = 4 * TTPhiIndex; phi < 4 * TTPhiIndex + TTGran; phi++)
 	em[phi][eta] += sum;
     }
-    return(SUCCESS);
+    return(CALO_SUCCESS);
 }
 
 ErrorCode AddPSZS(const CaloLayer* layer, const int TTEtaIndex, const int
@@ -208,7 +208,7 @@ ErrorCode AddPSZS(const CaloLayer* layer, const int TTEtaIndex, const int
       for(phi = 4 * TTPhiIndex; phi < 4 * TTPhiIndex + TTGran; phi++)
 	em[phi][eta] += sum;
     }
-    return(SUCCESS);
+    return(CALO_SUCCESS);
 }
 
 ErrorCode AddEMBarrelNZS(const CaloLayer* layer, const int TTEtaIndex, const
@@ -219,9 +219,9 @@ ErrorCode AddEMBarrelNZS(const CaloLayer* layer, const int TTEtaIndex, const
   const int TTGran = 4;
   double sum; 
 
-  switch(layer->level) { /* trigger on layer deepness */
+  switch(layer->level) { /* trigger TRUE layer deepness */
       
-  case 1: /* Front (or Strip) Layer */
+  case 1: /* Fmont (or Strip) Layer */
     for(eta = 4 * TTEtaIndex, x = 0; eta < 4 * TTEtaIndex + TTGran; eta++,
 	  x++) 
       { 
@@ -253,10 +253,10 @@ ErrorCode AddEMBarrelNZS(const CaloLayer* layer, const int TTEtaIndex, const
     
   default: /* Oops! */
     fprintf(stderr, "ERROR(calolib.c): No such layer in EM Barrel\n");
-    return(ERROR);
+    return(CALO_ERROR);
     
   } /* switch */
-  return(SUCCESS);
+  return(CALO_SUCCESS);
   
 }
 
@@ -268,9 +268,9 @@ ErrorCode AddEMBarrelZS(const CaloLayer* layer, const int TTEtaIndex, const
   const int TTGran = 4;
   double sum;
 
-  switch(layer->level) { /* trigger on layer deepness */
+  switch(layer->level) { /* trigger TRUE layer deepness */
       
-    case 1: /* Front (or Strip) Layer */
+    case 1: /* Fmont (or Strip) Layer */
       for(x = 0; x < layer->NoOfCells; x++) {
 	EtaDrop = (int)rint((double)layer->EtaGran / (double)TTGran);
 	eta = (int)rint((double)layer->cell[x].index.Eta / (double) EtaDrop);
@@ -300,11 +300,11 @@ ErrorCode AddEMBarrelZS(const CaloLayer* layer, const int TTEtaIndex, const
     
     default: /* Oops! */
       fprintf(stderr, "ERROR(calolib.c): No such layer in EM Barrel\n");
-      return(ERROR);
+      return(CALO_ERROR);
     
     } /* switch */
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 ErrorCode AddEMEndcapNZS(const CaloLayer* layer, const int TTEtaIndex, const
@@ -317,7 +317,7 @@ ErrorCode AddEMEndcapNZS(const CaloLayer* layer, const int TTEtaIndex, const
   
   switch(layer->level) {
     
-  case 1: /* Front (or Strip) Layer */
+  case 1: /* Fmont (or Strip) Layer */
     switch (layer->EtaGran) {
     case 32:
     case 24:
@@ -348,7 +348,7 @@ ErrorCode AddEMEndcapNZS(const CaloLayer* layer, const int TTEtaIndex, const
     default: /* Oops ! */
       fprintf(stderr, "ERROR(flat.c): ");
       fprintf(stderr, "No such eta granularity in EM Endcap (Layer 1)\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
     break;
     
@@ -372,7 +372,7 @@ ErrorCode AddEMEndcapNZS(const CaloLayer* layer, const int TTEtaIndex, const
     default:
       fprintf(stderr, "ERROR(flat.c): ");
       fprintf(stderr, "No such eta granularity in EM Endcap (Layer 2)\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
     break;
 
@@ -387,10 +387,10 @@ ErrorCode AddEMEndcapNZS(const CaloLayer* layer, const int TTEtaIndex, const
   default:
     fprintf(stderr, "ERROR(flat.c): ");
     fprintf(stderr, "No such layer in EM Endcap >> %d\n", layer->level);
-    return(ERROR);
-  } /* switch on layer */
+    return(CALO_ERROR);
+  } /* switch TRUE layer */
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
   
 }
 
@@ -404,7 +404,7 @@ ErrorCode AddEMEndcapZS(const CaloLayer* layer, const int TTEtaIndex, const
   
   switch(layer->level) {
     
-  case 1: /* Front (or Strip) Layer */
+  case 1: /* Fmont (or Strip) Layer */
     switch (layer->EtaGran) {
     case 32:
     case 24:
@@ -431,7 +431,7 @@ ErrorCode AddEMEndcapZS(const CaloLayer* layer, const int TTEtaIndex, const
     default: /* Oops ! */
       fprintf(stderr, "ERROR(calolib.c): ");
       fprintf(stderr, "No such eta granularity in EM Endcap (Layer 1)\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
     break;
     
@@ -455,7 +455,7 @@ ErrorCode AddEMEndcapZS(const CaloLayer* layer, const int TTEtaIndex, const
     default:
       fprintf(stderr, "ERROR(calolib.c): ");
       fprintf(stderr, "No such eta granularity in EM Endcap (Layer 2)\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
     break;
 
@@ -471,10 +471,10 @@ ErrorCode AddEMEndcapZS(const CaloLayer* layer, const int TTEtaIndex, const
   default:
     fprintf(stderr, "ERROR(calolib.c): ");
     fprintf(stderr, "No such layer in EM Endcap\n");
-    return(ERROR);
-  } /* switch on layer */
+    return(CALO_ERROR);
+  } /* switch TRUE layer */
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 ErrorCode AddHadCells(const CaloLayer* layer, const int TTEtaIndex, const int
@@ -482,7 +482,7 @@ ErrorCode AddHadCells(const CaloLayer* layer, const int TTEtaIndex, const int
 {
   /* easy, 1 to 1 mapping */
   had[TTPhiIndex][TTEtaIndex] = layer->cell[0].energy;
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 Energy ExtractEMAreaEnergy(const FlatEM em, const int etast, const int phist,

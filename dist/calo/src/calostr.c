@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: calostr.c,v 1.2 2000/04/07 19:31:34 rabello Exp $ */
+/* $Id: calostr.c,v 1.3 2000/05/31 12:01:24 rabello Exp $ */
 
 #include "calostr.h"
 
@@ -38,9 +38,9 @@ ErrorCode SplitCells(const ROI* roi, CaloStringRoI* stringroi)
     int i;
 
     if (GetCellInfo(roi->calDigi.emDigi[counter].id, &cellinfo, 
-		    stringroi->PhiWrap) == ERROR) {
+		    stringroi->PhiWrap) == CALO_ERROR) {
       fprintf(stderr, "ERROR(calostr.c): Couldn't get cell info\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
 
     for (i = 0; i < stringroi->NoOfLayers; i++)
@@ -64,7 +64,7 @@ ErrorCode SplitCells(const ROI* roi, CaloStringRoI* stringroi)
     CopyCellToString(current, roi->calDigi.emDigi[counter].Et, &cellinfo);
   }
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 void StringLayerAlloc(CaloStringRoI* roi)
@@ -112,7 +112,7 @@ int BackTranslateEMCoord(const double pos, const double min)
   return(-1);
 }
 
-void LayerGravity(const StringLayer* s, const Flag wrap, Point* p)
+void LayerGravity(const StringLayer* s, const bool_t wrap, Point* p)
 {
   int i;
   double EnergySum = 0.;
@@ -125,7 +125,7 @@ void LayerGravity(const StringLayer* s, const Flag wrap, Point* p)
     p->Eta += s->cell[i].energy * s->cell[i].EtaCenter;
 
     /* watch out, phi may wrap ! */
-    if(wrap == ON && s->cell[i].PhiCenter < 2.0) phiadj = s->cell[i].PhiCenter
+    if(wrap == TRUE && s->cell[i].PhiCenter < 2.0) phiadj = s->cell[i].PhiCenter
 						   + 2 * PI;
     else phiadj = s->cell[i].PhiCenter;
     p->Phi += s->cell[i].energy * phiadj;
@@ -172,7 +172,7 @@ Energy AddCellsInWindow(const StringLayer* s, const Window* w)
   Energy energy = 0.;
   
   for(i = 0; i < s->NoOfCells; i++) {
-    if(w->PhiWrap == ON) {
+    if(w->PhiWrap == TRUE) {
       adjphi = s->cell[i].PhiCenter;
       if (adjphi < 2.0) adjphi += 2. * PI;
     }
@@ -199,16 +199,16 @@ Energy AddCells(const StringLayer* s)
   return(energy);
 }
 
-Flag WindowPhiCorrect(double *PhiMax, double*PhiMin)
+bool_t WindowPhiCorrect(double *PhiMax, double*PhiMin)
 {
     if (*PhiMin < 0.) 
       {
 	*PhiMin += 2. * PI;
 	*PhiMax += 2. * PI;
-	return(ON);
+	return(TRUE);
       }
 
-    if (*PhiMax > 2. * PI) return(ON);
+    if (*PhiMax > 2. * PI) return(TRUE);
     
     if (*PhiMax - *PhiMin > 2.0) /* Oulala, this is wrong */
       {
@@ -216,10 +216,10 @@ Flag WindowPhiCorrect(double *PhiMax, double*PhiMin)
 	aux = *PhiMin;
 	*PhiMin = *PhiMax;
 	*PhiMax = aux + 2. * PI;
-	return(ON);
+	return(TRUE);
       }
 
-  return(OFF);
+  return(FALSE);
 }
 
 extern void FreeCaloStrings(CaloStringRoI* roi)

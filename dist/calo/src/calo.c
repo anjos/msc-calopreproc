@@ -19,7 +19,7 @@ Energy commonfex(const ROI* roi)
   int it;
 
   /* just separate each sublayer of the RoI */
-  if ( SplitCells(roi, &sroi) == ERROR ) {  
+  if ( SplitCells(roi, &sroi) == CALO_ERROR ) {  
     fprintf(log_err, "ERROR(calo.c): Couldn't split EM Cells\n");
     return(0.);
   }
