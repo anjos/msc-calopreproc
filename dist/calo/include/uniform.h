@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.h,v 1.3 2000/08/11 16:13:34 rabello Exp $ */
+/* $Id: uniform.h,v 1.4 2000/08/11 20:29:57 rabello Exp $ */
 
 #ifndef _UNIFORM_H
 #define _UNIFORM_H
@@ -14,6 +14,11 @@
    simply not count the events, but I have to have an estimate of how many
    RoIs per file do not go into the specification for some processing. */
 extern int uniform_contour_err;
+
+/* For layer specification and selection */
+typedef enum flag_t {FLAG_PS=0x40, FLAG_EM1=0x20, FLAG_EM2=0x10, FLAG_EM3=0x8, 
+		     FLAG_HAD1=0x4, FLAG_HAD2=0x2, FLAG_HAD3=0x1, 
+		     FLAG_ALL=0x7F} flag_t;
 
 typedef struct uniform_roi_t
 {
@@ -98,6 +103,15 @@ bool_t flag_contains_layer(const unsigned short, const CaloLayer*);
    functions that have to preallocate space based on the number of layers that
    should be processed. */
 short flag_contains_nlayers(const unsigned short flags);
+
+/* The next functions extract the energy sum of all cells of the collected
+   RoI. The RoI cells available are selected at run time by the appropriate
+   layer_flags on main.c. The EM and HAD versions of it return only the EM and
+   hadronic sections energies. */
+Energy uniform_roi_energy (const uniform_roi_t*);
+Energy uniform_roi_EM_energy (const uniform_roi_t*);
+Energy uniform_roi_HAD_energy (const uniform_roi_t*);
+
 
 #endif /* _UNIFORM_H */
 
