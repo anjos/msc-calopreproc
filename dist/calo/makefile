@@ -1,7 +1,7 @@
 ## hello emacs, this is a -*- makefile -*- 
 ## Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
 
-## $Id: makefile,v 1.10 2000/09/06 14:50:43 andre Exp $
+## $Id: makefile,v 1.11 2000/10/23 02:25:51 andre Exp $
 
 ### Calorimeter Library compilation
 
@@ -12,6 +12,7 @@ CC = gcc
 RANLIB = ranlib
 ARFLAGS = -rvu
 CDEFS = -D_BSD_SOURCE -D_GNU_SOURCE
+###CFLAGS = -O2 -ansi -pedantic -Wall $(CDEFS)
 CFLAGS = -g -ansi -pedantic -Wall $(CDEFS)
 LDFLAGS = -L. -L../spec/src -lm -lcalo -lspec
 MAKE = gmake

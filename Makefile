@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.22 2000/09/19 00:35:52 andre Exp $
+# $Id: Makefile,v 1.23 2000/10/23 02:26:58 andre Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -38,6 +38,7 @@ MKDEPFLAGS = -f $(MKDEPFILE)
 
 # 2) for proper C compilation and linking
 CC = gcc 
+### CFLAGS =  -ansi -pedantic -Wall -O2 $(INCLUDE)
 CFLAGS =  -ansi -pedantic -Wall -g $(INCLUDE)
 #CPPFLAGS = -DTRACE_DEBUG
 CPPFLAGS = -D_GNU_SOURCE
@@ -135,7 +136,7 @@ docs:
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.22 $$' of '$$Date: 2000/09/19 00:35:52 $$'
+	@echo \* -- current version is '$$Revision: 1.23 $$' of '$$Date: 2000/10/23 02:26:58 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
