@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.8 2000/05/31 11:38:37 rabello Exp $
+# $Id: Makefile,v 1.9 2000/06/28 15:44:11 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -34,7 +34,7 @@ OBJS = $(SRCS:%.c=%.o)
 # Configuring the data file sources
 # =================================
 
-all: wrdata
+all: dumpdata
 
 depend: version spec $(DATASPEC:%=./src/%.c)
 	@echo -------------------------
@@ -57,7 +57,7 @@ testfile: version spec $(DATASPEC:%=./src/%.o) ./src/test.o ./src/util.o calo
 	@echo In case of doubts\, don\'t push it too far\, e-mail me\:
 	@echo Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 
-wrdata: version spec $(DATASPEC:%=./src/%.o) $(OBJS) calo
+dumpdata: version spec $(DATASPEC:%=./src/%.o) $(OBJS) calo
 	@echo -----------------------
 	@echo Building executables...
 	@echo -----------------------
@@ -120,7 +120,7 @@ $(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.8 $$' of '$$Date: 2000/05/31 11:38:37 $$'
+	@echo \* -- current version is '$$Revision: 1.9 $$' of '$$Date: 2000/06/28 15:44:11 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
@@ -140,7 +140,7 @@ clean: cleanlib cleanfig
 	rm -f ./src/*~ ./src/*.o $(DATASPEC:%=./src/%.[co])
 	rm -f ./include/*~ $(DATASPEC:%=./include/%.h) ./*~
 	rm -f $(MKDEPFILE) $(MKDEPFILE:%=%.bak)
-	rm -f wrdata testfile
+	rm -f dumpdata testfile TAGS
 
 dist: clean
 	@echo \* Creating distribution...
@@ -149,6 +149,10 @@ dist: clean
 sdist: clean
 	@echo \* Creating small name distribution...
 	@cd ..; tar cvf - ufrj | gzip > ufrj.tar.gz
+
+tags:
+	@echo \* Creating TAGS file...
+	@find . -name '*.[ch]' | etags -
 
 # The dependencies (not obligatory)
 # =================================
