@@ -1,7 +1,7 @@
 /* hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: common.h,v 1.7 2000/06/28 16:07:28 rabello Exp $ */
+/* $Id: common.h,v 1.8 2000/07/07 18:25:18 rabello Exp $ */
 
 #ifndef COMMON_H
 #define COMMON_H
@@ -24,24 +24,19 @@ typedef enum CaloType {ELECTROMAGNETIC = 0, HADRONIC = 1} CaloType;
 
 typedef double Energy;
 
-typedef struct Index {
-  int Eta;
-  int Phi;
-} Index;
+typedef struct index_t {
+  int eta;
+  int phi;
+} index_t;
 
-typedef struct Point {
-  double Eta;
-  double Phi;
-}Point;
-
-typedef struct Location {
-  Index index;
-  Point point;
-} Location;
+typedef struct point_t {
+  double eta;
+  double phi;
+} point_t;
 
 typedef struct Area {
-  Point LowerLeft;
-  Point UpperRight;
+  point_t LowerLeft;
+  point_t UpperRight;
 } Area;
 
 /* END OF TYPE DEFINITIONS */
