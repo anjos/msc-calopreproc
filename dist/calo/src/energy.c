@@ -8,14 +8,18 @@
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.2 2000/08/16 11:21:34 andre Exp $ */
+/* $Id: energy.c,v 1.3 2000/08/20 04:38:10 andre Exp $ */
+
+/* Some prototypes used here on */
+Energy* energy_from_all_digis(const ROI*, Energy*);
 
 /* These are the shorts that define what we'll dump. Each of those is explained
    above. */
 typedef enum edump_flag_t {EDUMP_DB_ET=0x1, EDUMP_DB_ETHAD=0x2,
 			   EDUMP_DB_T1ET=0x4, EDUMP_ROI_ET=0x8,
 			   EDUMP_ROI_ETEM=0x10, EDUMP_ROI_ETHAD=0x20, 
-                           EDUMP_ALL=0x3F, EDUMP_NONE=0x0} edump_flag_t;
+			   EDUMP_ROI_DIGIS=0x40, EDUMP_ALL=0x7F,
+			   EDUMP_NONE=0x0} edump_flag_t;
 
 /* 
    This simple procedure just catches a string given by the user and transforms
@@ -50,6 +54,7 @@ unsigned short* string2edump(unsigned short* to, const char* from)
     else if ( strcasecmp(token,"roi_et") == 0 ) (*to) |= EDUMP_ROI_ET;
     else if ( strcasecmp(token,"roi_etem") == 0 ) (*to) |= EDUMP_ROI_ETEM;
     else if ( strcasecmp(token,"roi_ethad") == 0 ) (*to) |= EDUMP_ROI_ETHAD;
+    else if ( strcasecmp(token,"roi_digis") == 0 ) (*to) |= EDUMP_ROI_DIGIS;
     else if ( strcasecmp(token,"all") == 0 ) {
       (*to) = EDUMP_ALL;
       break;
@@ -70,17 +75,19 @@ unsigned short* string2edump(unsigned short* to, const char* from)
    should not be concerned with the implementation from here down if you only
    want to use this code. 
    The order of printing is:
-   1) DB_ET
-   2) DB_ETHAD
-   3) DB_T1ET
-   4) ROI_ET
-   5) ROI_ETEM
-   6) ROI_ETHAD. */
-char* get_energy(const ROI* r, const uniform_roi_t* ur, 
-		 const unsigned short flags, const char* initstring) 
+   1) DB_ET - The transverse energy forseen to be found by L2
+   2) DB_ETHAD - The Et to be found on the HAD section by L2
+   3) DB_T1ET - The L1 Threshold
+   4) ROI_ET - The Et found by uniform.[ch] processing, with layer elimination
+   5) ROI_ETEM - The EM part of ROI_ET
+   6) ROI_ETHAD. - The HAD part of ROI_ET
+   7) ROI_DIGIS - The total amount of energy summing all digis with no
+   preprocessing */
+char* get_energy(const ROI* r, const uniform_roi_t* ur,
+		 const unsigned short flags, const char* initstring)
 {
   char* retval = NULL;
-  double temp; /* a temporary space for holding some values */
+  Energy temp; /* a temporary space for holding some values */
 
   /* First of all see if we have to print something */
   if (flags == EDUMP_NONE) return 0;
@@ -116,6 +123,11 @@ char* get_energy(const ROI* r, const uniform_roi_t* ur,
     ascat_double(&retval, &temp);
   }
 
+  if (flags & EDUMP_ROI_DIGIS) {
+    energy_from_all_digis(r,&temp);
+    ascat_double(&retval, &temp);
+  }
+
   /* Now we can return the final stuff */
   return retval;
 }
@@ -143,11 +155,12 @@ char* edump2string (const unsigned short* from, char* to)
   if (*from & EDUMP_ROI_ET) ascat(&retval,"ROI_ET");
   if (*from & EDUMP_ROI_ETEM) ascat(&retval,"ROI_ETEM");
   if (*from & EDUMP_ROI_ETHAD) ascat(&retval,"ROI_ETHAD");
+  if (*from & EDUMP_ROI_DIGIS) ascat(&retval,"ROI_DIGIS");
 
   /* final delimiter */
   ascat(&retval,")");
 
-  strncpy(to,retval,59);
+  strncpy(to,retval,99);
   free(retval);
   return to;
 }
@@ -191,4 +204,28 @@ bool_t validate_energy_selection(const unsigned short* layer_flags,
   return TRUE;
 
 }
-	
+
+/* This function will sum the energy values of all digis found on an ROI and
+   return a pointer to the place where it stored the sum of all those values
+   found on digis. This is different from uniform_roi_energy() since it does
+   not preprocess the digis or eliminate not used layers from the RoI. The
+   energy memory space should be pre-allocated and should contain room for at
+   least 1 Energy (double nowadays). I suggest using static allocation for that
+   and passing a reference, but that is up to you. */
+Energy* energy_from_all_digis(const ROI* r, Energy* ep)
+{
+  int i; /* iterator */
+
+  /* start over */
+  *ep = 0;
+
+  for(i=0; i<r->calDigi.nEmDigi; ++i)
+    *ep += r->calDigi.emDigi[i].Et;
+
+  for(i=0; i<r->calDigi.nhadDigi; ++i)
+    *ep += r->calDigi.hadDigi[i].Et;
+
+  return ep;
+}
+
+
