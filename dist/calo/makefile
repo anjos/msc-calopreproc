@@ -1,7 +1,7 @@
 ## hello emacs, this is a -*- makefile -*- 
 ## Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
 
-## $Id: makefile,v 1.3 2000/05/26 15:52:15 rabello Exp $
+## $Id: makefile,v 1.4 2000/05/31 11:55:11 rabello Exp $
 
 ### Calorimeter Library compilation
 
@@ -52,10 +52,17 @@ libcalo.a: $(OBJS)
 
 depend:
 	@if [ ! -e $(MKDEPFILE) ]; then touch $(MKDEPFILE); fi
-	$(MKDEP) $(MKDEPFLAGS) $(INCLUDE) $(SRCS)
+	$(MKDEP) $(MKDEPFLAGS) $(INCLUDE) $(SRCS) src/test_*.c
 
 clean: 
 	$(RM) $(OBJS) libcalo.a src/*~ include/*~ *~  test_*
 	$(RM) $(MKDEPFILE) $(MKDEPFILE:%=%.bak)
 	$(RM) src/test_portable.o
+
+# The dependencies (not obligatory)
+# =================================
+
+sinclude $(MKDEPFILE)
+
+
 
