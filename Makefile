@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.13 2000/08/11 16:11:18 rabello Exp $
+# $Id: Makefile,v 1.14 2000/08/18 12:42:17 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -85,8 +85,8 @@ spec:
 	@echo Compiling the spec library...
 	@echo -----------------------------
 	@echo " "
-	@cd ./dist/spec; $(MAKE)
-	@cd ./dist/spec/src; chmod 755 parser
+	@cd $(WORKDIR)/dist/spec; $(MAKE)
+	@cd $(WORKDIR)/dist/spec/src; chmod 755 parser
 	@echo DONE\!
 	@echo " "
 
@@ -108,6 +108,11 @@ $(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
 	@echo Building specification files...
 	@echo -------------------------------
 	@echo " "
+	@echo -n Checking genspec permissions...
+	@if [ ! -x $(WORKDIR)/dist/spec/src/genspec ]; then \
+          chmod 755 $(WORKDIR)/dist/spec/src/genspec; \
+	 fi
+	@echo done.
 	$(GEN) $< $(DATASPEC) $(LANG) $(WORKDIR)/dist/spec/src/parser
 	@mv $(DATASPEC:%=%.h) ./include
 	@mv $(DATASPEC:%=%.c) ./src
@@ -122,7 +127,7 @@ $(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.13 $$' of '$$Date: 2000/08/11 16:11:18 $$'
+	@echo \* -- current version is '$$Revision: 1.14 $$' of '$$Date: 2000/08/18 12:42:17 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
