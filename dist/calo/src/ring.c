@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.c,v 1.8 2000/09/06 21:13:15 rabello Exp $ */
+/* $Id: ring.c,v 1.9 2000/09/19 00:32:41 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,7 +88,7 @@ int asprintf_ring (char** sp, const ring_t* rp)
 
 int ring_sum (const uniform_roi_t* ur, ringroi_t* ringroi,
 	      const unsigned short* print_flags,
-	      const unsigned short* norm_flags)
+	      const unsigned short* norm_flags, const Energy* radiusp)
 {
   int max;
   int i; /* iterator */
@@ -128,7 +128,7 @@ int ring_sum (const uniform_roi_t* ur, ringroi_t* ringroi,
   }
 
   /* Normalize if needed */
-  ring_normalize(ringroi, norm_flags);
+  ring_normalize(ringroi, norm_flags, radiusp);
 
   return (flag_contains_nlayers(print_flags));
 }
