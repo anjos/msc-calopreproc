@@ -1,7 +1,7 @@
 ## hello emacs, this is a -*- makefile -*- 
 ## Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
 
-## $Id: makefile,v 1.9 2000/08/31 23:51:47 andre Exp $
+## $Id: makefile,v 1.10 2000/09/06 14:50:43 andre Exp $
 
 ### Calorimeter Library compilation
 
@@ -22,7 +22,7 @@ SED = sed
 ### GENERAL MACROS
 
 INCLUDE = -I../../include -I../spec/include -I./include
-FILES = trigtowr.c common.c portable.c ring.c uniform.c energy.c
+FILES = trigtowr.c common.c portable.c ring.c uniform.c energy.c normal.c
 SRCS = $(FILES:%.c=./src/%.c)
 OBJS = $(SRCS:.c=.o)
 DOC_DIR = ./doc
