@@ -1,7 +1,7 @@
 /* hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: common.h,v 1.9 2000/08/16 11:22:06 andre Exp $ */
+/* $Id: common.h,v 1.10 2000/09/06 14:51:54 andre Exp $ */
 
 #ifndef COMMON_H
 #define COMMON_H
@@ -15,12 +15,14 @@ typedef enum bool_t {TRUE = 1, FALSE = 0} bool_t;
 typedef enum Calorimeter {PSBARRREL = 1, EMBARREL = 2, EMENDCAP = 3, TILECAL =
 			  4, HADENDCAP = 5, PSENDCAP = 11} Calorimeter;
 
+/* In order to make things simpler, I should enumerate a new type that holds
+   only 3 sub-types of calorimeters, or sections. */
+typedef enum section_t {PS=PSBARRREL, EM=EMBARREL, HAD=TILECAL} section_t;
+
 /* typedef enum LayerLevel { SCINTILLATOR = 0, FRONT = 1, MIDDLE = 2, BACK = 3}
   LayerLevel; */
 
 typedef int LayerLevel;
-
-typedef enum CaloType {ELECTROMAGNETIC = 0, HADRONIC = 1} CaloType;
 
 typedef double Energy;
 
