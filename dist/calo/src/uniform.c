@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.10 2000/09/06 21:13:25 rabello Exp $ */
+/* $Id: uniform.c,v 1.11 2000/11/28 21:05:17 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -884,4 +884,50 @@ bool_t add_equal_layers(CaloLayer* dest, CaloLayer* src)
   
   return (TRUE);
 }
+
+/* This function will find the peak of energy on the current layer (1st
+   argument). When found, the function will return (2nd to 4th. parameters),
+   the peak index, its real eta and real phi values (relative to the RoI lower
+   left corner). */
+void peak_find(const CaloLayer* layer, int* idx, double* eta, double* phi)
+{
+  /* This is a dummy algorithm */
+  int i; /* iterator */
+  Energy temp = 0.;
+
+  for (i=0; i<layer->NoOfCells; ++i) {
+    if (layer->cell[i].energy > temp) {
+      (*idx) = i;
+      temp = layer->cell[i].energy;
+    }
+  }
+
+  /* Now I have to translate the cell info */
+  vector2point(&layer->EtaGran, &layer->PhiGran, idx, eta, phi);
+  return;
+}
+
+/* This function will just calculate the relative point of the cell into the
+   RoI. The EM RoI is 0.4 by 0.4 in eta x phi and using the granularity of eta
+   and phi it's not difficult to calculate where the cell is. The RoI scanning
+   is defined on <root>/doc/fig/roi-scanning.fig. */
+void vector2point(const int* eg, const int* pg, const int* idx, double* eta,
+		  double*phi)
+{
+  div_t R;
+  R = div((*idx), (*eg)); /* This guarantees that division will be rounded
+			     towards zero. Using '/' won't for some compilers
+			  */ 
+  (*eta) = (R.rem + 0.5) * (0.4/(*eg));
+  (*phi) = (R.quot + 0.5) * (0.4/(*pg));
+  return;
+}
+
+
+
+
+
+
+
+
 
