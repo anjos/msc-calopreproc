@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.2 2000/08/27 16:22:55 andre Exp $ */
+/* $Id: parameter.c,v 1.3 2000/08/29 20:47:48 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +25,7 @@
 #include "energy.h"
 #include "uniform.h"
 #include "util.h"
+#include "common.h"
 
 /* The definition of obstack initialization and destruction */
 #define obstack_chunk_alloc malloc 
@@ -46,6 +47,10 @@ int grow_obstring(struct obstack*, const char*);
    actively. This function will return the final obstack address. */
 char* close_obstring(struct obstack*);
 
+/* This function opens the correct output files, and possibly initializes the
+   correct obstacks and pointers to output data in general */
+void open_output (parameter_t*);
+
 /* This function will test the conditions of program execution and see if one
    has a coherent set of flags activated */
 void test_flags (parameter_t*);
@@ -65,9 +70,14 @@ long to_valid_long(const char*);
    implemenatation of atol(), but with the verification of strtol(). */
 double to_valid_double(const char*);
 
-
-parameter_t* init_parameters (parameter_t* p)
-{
+/* Some variables from the only argument are not initialized here, since they
+   have to be static variables for the getopt_long() procedure. The solution
+   addopted was to make them appear not initialized inside process_flags(),
+   create local static equivalents, operate on them with getopt_long() and
+   after that, attribute these processed parameters to the equivalent ones on
+   the parameter_t struct. This is why some variables are not initialized
+   here. */
+parameter_t* init_parameters (parameter_t* p) {
 
   /* The input file and associated buffer */
   p->ifp = 0;
@@ -78,7 +88,7 @@ parameter_t* init_parameters (parameter_t* p)
   p->ofbuf = 0;
 
   /* by default dump configuration to screen */
-  p->cfp = stdout; 
+  p->cfp = stdout;
 
   /* the energy file will be stdout by default */
   p->efp = stdout; 
@@ -91,11 +101,10 @@ parameter_t* init_parameters (parameter_t* p)
 
   /* the event number file will be stdout by default */
   p->evfp = stdout;
+
+  /* specific event selection */
   p->event_no = 0;
   p->roi_no = 0;
-
-  /* do not dump event numbers by default */
-  p->dump_eventno = FALSE; 
 
   /* by default, nothing is to be printed before the event numbers */
   strcpy(p->event_comment_str, ""); 
@@ -121,9 +130,6 @@ parameter_t* init_parameters (parameter_t* p)
   /* SNNS formating for output */
   p->format_snns = FALSE;
 
-  /* verbose output? */
-  p->verbose = FALSE;
-
   /* The input file hint will be "default" */
   strncpy(p->ofhint, "default", MAX_FILENAME);
 
@@ -136,9 +142,6 @@ parameter_t* init_parameters (parameter_t* p)
   /* Don't normalize by default */
   string2normalization(&p->normalization, "none");
 
-  /* by, default, run using local file deposition instead of memory (slower)*/
-  p->run_fast = FALSE;
-
   return p;
 }
 
@@ -149,38 +152,62 @@ void process_flags (parameter_t* p, const int argc, char** argv)
   int c;
   int option_index;
 
+  /* The next variables have to be static since getopt_long() has to able to
+     determine their addresses at compilation time (see info libc ->
+     getopt_long()). */
+
+  /* dump everything to the same place as ofp */
+  static int energy_file = FALSE;
+
+  /* do not dump event numbers by default */
+  static int dump_eventno = FALSE;
+
+  /* dump everything to stdout */
+  static int config_file = FALSE;
+
+  /* dump everything to the same place as ofp */
+  static int eventno_file = FALSE;
+
+  /* by, default, run using local file deposition instead of memory (slower)*/
+  static int run_fast = FALSE;
+
+  /* verbose output? */
+  static int verbose = FALSE;
+
   /* This global defines the options to take */
-  static struct option long_options[] = 
-  { 
-    /* These options set a flag. */ 
-    {"energy-file", 0, 0, 'a'},
-    {"dump-eventno", 0, 0, 'b'},
-    {"config-file", 0, 0, 'c'},
+  static struct option long_options[] =
+  {
+    /* These options set a flag. */
+    {"energy-file",  0, &energy_file,  1},
+    {"dump-eventno", 0, &dump_eventno, 1},
+    {"config-file",  0, &config_file,  1},
+    {"eventno-file", 0, &eventno_file, 1},
+    {"fast-output",  0, &run_fast,     1},
+    {"verbose",      0, &verbose,      1},
+
+    /* These options have arguments */
     {"dump", 1, 0, 'd'},
     {"event-number", 1, 0, 'e'},
     {"format", 1, 0, 'f'},
     {"dump-energy", 1, 0, 'g'},
     {"help", 0, 0, 'h'},
     {"input-file", 1, 0, 'i'},
-    {"eventno-file", 0, 0, 'j'},
     {"eventno-comment", 1, 0, 'k'},
     {"layer", 1, 0, 'l'},
     {"normalization", 1, 0, 'n'},
-    {"output-file", 1, 0, 'o'},
+    {"file-prefix", 1, 0, 'o'},
     {"particle", 1, 0, 'p'},
     {"roi-number", 1, 0, 'r'},
     {"select", 1, 0, 's'},
     {"energy-comment", 1, 0, 't'},
-    {"fast-output", 0, 0, 'u'},
-    {"verbose", 0, 0, 'v'},
     {0, 0, 0, 0}
   };
   
-  while (EOF != (c=getopt_long(argc, argv, "i:o:bcajk:g:he:r:d:f:p:l:s:n:t:uv",
+  while (EOF != (c=getopt_long(argc, argv, "i:o:k:g:he:r:d:f:p:l:s:n:t:",
 			       long_options, &option_index) ) ) {
     switch (c) {
 
-    case 0: /* Got a flagged option */
+    case 0: /* Got a nil-flagged option */
       break;
       
     case 'i': { /* input from file 'infile' */
@@ -276,14 +303,6 @@ void process_flags (parameter_t* p, const int argc, char** argv)
       string2normalization(&p->normalization,optarg);
       break;
 
-    case 'v': /* dumps information on screen? v == verbose */
-      p->verbose = TRUE;
-      break;
-
-    case 'b': /* dump event numbers? */
-      p->dump_eventno = TRUE;
-      break;
-
     case 'e': /* dump only event 'number' */
       p->event_no = to_valid_long(optarg);
       p->process_all_events = FALSE;
@@ -296,66 +315,11 @@ void process_flags (parameter_t* p, const int argc, char** argv)
       break;
 
     case 'o': { /* output to file 'outfile' */
-      struct stat buf;
-      char* temp;
       strncpy(p->ofhint, optarg, MAX_FILENAME);
-      fprintf(stderr,"(param)WARN: will use hint -> %s\n", p->ofhint);
-      asprintf(&temp, "%s.data", p->ofhint);
-
-      if (NULL==(p->ofp=fopen(temp,"w"))) {
-	fprintf(stderr, "(param) Can\'t open output file %s\n", temp);
-	exit(EXIT_FAILURE);
-      }
-      
-      /* get file status, includding optimal buffer block size */
-      stat(temp, &buf);
-      /* set the output file buffer to be optimal, or we'll take longer to 
-	 process the output */
-      p->ofbuf = (char*)malloc(buf.st_blksize);
-      if (setvbuf(p->ofp, p->ofbuf, _IOFBF, buf.st_blksize) != 0) {
-	fprintf(stderr, "(param) Can't create output file buffer\n");
-	exit(EXIT_FAILURE);
-      }
-
-      /* Set the energy file to be the same as me */
-      if (p->efp != stdout) {
-	fprintf(stderr, "(param)WARN: had to close energy file. It was not\n");
-	fprintf(stderr, "            coherent with the output file. If you\n");
-	fprintf(stderr, "            want to place energy in a different \n");
-	fprintf(stderr, "            file, put the -a option after the -o\n");
-	fprintf(stderr, "            The energy output will be placed at\n");
-	fprintf(stderr, "            the default output file: %s\n", temp);
-	fclose(p->efp);
-      }
-      p->efp = p->ofp;
-
-      /* Set the event numbers file to be the same as me */
-      if (p->evfp != stdout) {
-	fprintf(stderr, "(param)WARN: had to close events file. It was not\n");
-	fprintf(stderr, "            coherent with the output file. If you\n");
-	fprintf(stderr, "            want to place events in a different \n");
-	fprintf(stderr, "            file, put the -j option after the -o\n");
-	fprintf(stderr, "            The event output will be placed at\n");
-	fprintf(stderr, "            the default output file: %s\n", temp);
-	fclose(p->efp);
-      }
-      p->evfp = p->ofp;
-
-      /* set the config file to be stdout if not coherent */
-      if (p->cfp != stdout) {
-	fprintf(stderr, "(param)WARN: had to close config file. It was not\n");
-	fprintf(stderr, "            coherent with the output file. If you\n");
-	fprintf(stderr, "            want to place config in a different \n");
-	fprintf(stderr, "            file, put the -c option after the -o\n");
-	fprintf(stderr, "            The config output will be placed at\n");
-	fprintf(stderr, "            the standart output: stdout\n");
-	fclose(p->cfp);
-	p->cfp = stdout;
-      }
-
-      free(temp);
+      fprintf(stderr,"(param)WARN: Using file prefix -> %s\n", p->ofhint);
+      p->output_file = TRUE;
       break;
-    }
+    }      
 
     case 't': { /* the string to be used when dumping the RoI energy values */
       strncpy(p->edump_comment_str, optarg, 4);
@@ -365,49 +329,6 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     case 'k': { /* the string to be used when dumping the event numbers */
       strncpy(p->event_comment_str, optarg, 4);
       break;
-    }
-
-    case 'a': { /* output energy parameters to file 'energy-file' */
-      char* temp;
-      asprintf(&temp, "%s.energy",p->ofhint);
-      if (NULL==(p->efp=fopen(temp,"w"))) {
-	fprintf(stderr, "(param) Can\'t open energy file %s\n", temp);
-	exit(EXIT_FAILURE);
-      }
-      free(temp);
-      break;
-    }
-
-    case 'j': { /* output event numbers to file 'eventno-file' */
-      char* temp;
-      asprintf(&temp, "%s.eventno",p->ofhint);
-      if (NULL==(p->evfp=fopen(temp,"w"))) {
-	fprintf(stderr, "(param) Can\'t open event number file %s\n", temp);
-	exit(EXIT_FAILURE);
-      }
-      free(temp);
-      break;
-    }
-
-    case 'c': { /* output configuration parameters to file 'config-file' */
-      char* temp;
-      asprintf(&temp, "%s.config",p->ofhint);
-      if (NULL==(p->cfp=fopen(temp,"w"))) {
-	fprintf(stderr, "(param) Can\'t open config file %s\n", temp);
-	exit(EXIT_FAILURE);
-      }
-      free(temp);
-      break;
-    }
-
-    /* The runner whats fast output. This means obstacks for all outputs and
-       their initialization, and of course lots of memory */
-    case 'u': { 
-     obstack_init(&p->eventno_obs);
-     obstack_init(&p->output_obs);
-     obstack_init(&p->energy_obs);
-     p->run_fast = TRUE;
-     break;
     }
 
     case 'h': /* give help */
@@ -420,7 +341,18 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     } /* end of switch on (c) */
   } /* end of while on (getopt) */
 
-  /* Now we test the coherency of flags */
+  /* Set the corresponding variables on parameter_t */
+  p->energy_file = energy_file;
+  p->dump_eventno = dump_eventno;
+  p->config_file = config_file;
+  p->eventno_file = eventno_file;
+  p->run_fast = run_fast;
+  p->verbose = verbose;
+
+  /* Now we initialize the output environment which may be files or obstacks */
+  open_output(p);
+
+  /* Now we test the coherency of some flags */
   test_flags(p);
 
   /* dump configuration. It shall close the config file automatically. Do *NOT*
@@ -428,6 +360,100 @@ void process_flags (parameter_t* p, const int argc, char** argv)
   dump_config(p->cfp, p);
 
 } /* end of process flags */
+
+/* This function opens the correct output files, and possibly initializes the
+   correct obstacks and pointers to output data in general */
+void open_output (parameter_t* p)
+{
+  if (p->output_file) {
+    struct stat buf;
+    char* temp;
+
+    /* 1) Open the output file using the best buffering scheme */
+    asprintf(&temp, "%s.data", p->ofhint);
+
+    if (NULL==(p->ofp=fopen(temp,"w"))) {
+      fprintf(stderr, "(param) Can\'t open output file %s\n", temp);
+      exit(EXIT_FAILURE);
+    }
+      
+    /* get file status, includding optimal buffer block size */
+    stat(temp, &buf);
+
+    /* set the output file buffer to be optimal, or we'll take longer to 
+       process the output */
+    p->ofbuf = (char*)malloc(buf.st_blksize);
+    if (setvbuf(p->ofp, p->ofbuf, _IOFBF, buf.st_blksize) != 0) {
+      fprintf(stderr, "(param) Can't create output file buffer\n");
+      exit(EXIT_FAILURE);
+    }
+
+    /* Put (almost) everyone to point to this output */
+    p->efp = p->ofp; /* energies */
+    p->evfp = p->ofp; /* event numbers */
+
+    /* Now, setup the exceptions */
+    if (p->energy_file) { /* output energy parameters to file 'energy-file' */
+      char* temp;
+      asprintf(&temp, "%s.energy",p->ofhint);
+      if (NULL==(p->efp=fopen(temp,"w"))) {
+	fprintf(stderr, "(param) Can\'t open energy file %s\n", temp);
+	exit(EXIT_FAILURE);
+      }
+      free(temp);
+    }
+
+    if (p->eventno_file) { /* output event numbers to file 'eventno-file' */
+      char* temp;
+      asprintf(&temp, "%s.eventno",p->ofhint);
+      if (NULL==(p->evfp=fopen(temp,"w"))) {
+	fprintf(stderr, "(param) Can\'t open event number file %s\n", temp);
+	exit(EXIT_FAILURE);
+      }
+      free(temp);
+    }
+
+    if (p->config_file) { /* output config parameters into 'config-file' */
+      char* temp;
+      asprintf(&temp, "%s.config",p->ofhint);
+      if (NULL==(p->cfp=fopen(temp,"w"))) {
+	fprintf(stderr, "(param) Can\'t open config file %s\n", temp);
+	exit(EXIT_FAILURE);
+      }
+      free(temp);
+    }
+
+  } /* if (p->output_file) */
+
+  else /* in case we gave no output prefix, no need to use files... */
+    if (p->energy_file || p->eventno_file || p->config_file ) {
+      fprintf(stderr, "(param)ERROR: You forgot the file prefix...\n");
+      exit(EXIT_FAILURE);
+    }
+
+  /* Now the obstacks, if fast processing was selected */
+  if (p->run_fast) {
+    p->output_obsp = (struct obstack*)malloc(sizeof(struct obstack));
+    obstack_init(p->output_obsp);
+
+    /* by default, all obstacks point to this one */
+    p->energy_obsp = p->output_obsp;
+    p->eventno_obsp = p->output_obsp;
+
+    /* If we need separate output for energy or event numbers, then... */
+    if (p->energy_file) {
+      p->energy_obsp = (struct obstack*)malloc(sizeof(struct obstack));
+      obstack_init(p->energy_obsp);
+    }
+
+    if (p->eventno_file) {
+      p->eventno_obsp = (struct obstack*)malloc(sizeof(struct obstack));
+      obstack_init(p->eventno_obsp);
+    }
+  }
+
+  return;
+}
 
 void test_flags (parameter_t* p)
 {
@@ -438,7 +464,7 @@ void test_flags (parameter_t* p)
 
   /* Will process a specific roi for all events */
   if (p->process_all_events && !p->process_all_rois) {
-    fprintf(stderr,"(param)ERROR: No sense in not setting the event number.\n");
+    fprintf(stderr,"(param)ERROR: No sense in not setting the event number\n");
     exit(EXIT_FAILURE);
   }
 
@@ -494,24 +520,22 @@ void test_flags (parameter_t* p)
 
 void print_help_msg(FILE* fp, const char* prog)
 {
-  fprintf(fp, "Calorimeter ASCII Data Preprocessor version 0.2\n");
-  fprintf(fp, "author: André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>\n");
-  fprintf(fp, "usage: %s -i file [-d what] [-f format] [-v]", prog);
-  fprintf(fp, " [-n normalization] [-l layer] [-p particle]");
-  fprintf(fp, " [-o file] [-abcj] [-e # -r #] [-g energies] [-t en-string]\n");
-  fprintf(fp, "       %s -h or --help prints this help message.\n", prog);
-  fprintf(fp, "[OPTIONS SUMMARY]\n");
+  fprintf(fp, "Calorimeter ASCII Data Preprocessor version 0.3\n");
+  fprintf(fp, "author: André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>\n\n");
+
+  fprintf(fp, "usage: %s [short options] [long options]\n", prog);
+  fprintf(fp, "       %s -h or --help prints this help message.\n\n", prog);
+
+  fprintf(fp, "[SHORT OPTIONS SUMMARY]\n");
 
   fprintf(fp, "-i file | --input-file=file\n");
   fprintf(fp, "\t sets the input file name\n");
 
-  fprintf(fp, "-v | --verbose\n");
-  fprintf(fp, "\t prints more output than be default\n");
-
   fprintf(fp, "-o hint | --output-file=hint\n");
   fprintf(fp, "\t sets the output file name (default is stdout) to\n");
   fprintf(fp, "\t 'hint.data'. This file will be created if doesn't exist\n");
-  fprintf(fp, "or truncated if it does.\n");
+  fprintf(fp, "\t or truncated if it does. This option also indicates that\n");
+  fprintf(fp, "the output \n");
 
   fprintf(fp, "-c | --config-file\n");
   fprintf(fp, "\t Will place the configuration on a file given by the hint\n");
@@ -644,15 +668,18 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t consume huges amounts of memory, so be warned.\n");
   fprintf(fp, "\t At the end, the memory banks are dumped into files.\n");
 
+  fprintf(fp, "--verbose\n");
+  fprintf(fp, "\t prints more output than be default\n");
+
 }
 
 void terminate_parameters (parameter_t* p)
 {
   /* Dump, if fast-executing, the obstacks into files */
   if (p->run_fast) {
-    fprintf ( p->efp, "%s", close_obstring ( &p->energy_obs ) );
-    fprintf ( p->evfp, "%s", close_obstring ( &p->eventno_obs ) );
-    fprintf ( p->ofp, "%s", close_obstring ( &p->output_obs ) );
+    fprintf ( p->efp, "%s", close_obstring ( p->energy_obsp ) );
+    fprintf ( p->evfp, "%s", close_obstring ( p->eventno_obsp ) );
+    fprintf ( p->ofp, "%s", close_obstring ( p->output_obsp ) );
   }
 
   /* close the files we may open: event-number and energy */
@@ -686,7 +713,8 @@ void dump_config(FILE* fp, const parameter_t* par)
   fprintf(fp, "-+- CONFIGURATION PARAMETERS\n");
   fprintf(fp, " +- Date: %s", ctime(&current_time));
   fprintf(fp, " +- Input File: %s\n", par->ifname);
-  if (par->ofp != stdout) 
+
+  if (par->output_file) 
     fprintf(fp, " +- Output File: %s.data \n", par->ofhint);
   else
     fprintf(fp, " +- Output File: [redirected to standard output]\n");
@@ -699,12 +727,12 @@ void dump_config(FILE* fp, const parameter_t* par)
 
   /* The type of dumped information */
   if (! par->dump_digis ) {
-    fprintf(fp, " +- Uniformizing Selection: %s\n", 
+    fprintf(fp, " +- Uniformizing Selection: %s\n",
 	    layer2string(&par->layer_flags,temp));
     if (! par->dump_uniform_digis ) {
-      fprintf(fp, " +- Printing Selection: %s\n", 
+      fprintf(fp, " +- Printing Selection: %s\n",
 	      layer2string(&par->print_flags,temp));
-      fprintf(fp, " +- Normalization: %s\n", 
+      fprintf(fp, " +- Normalization: %s\n",
 	      normalization2string(&par->normalization,temp));
     }
   }
@@ -714,7 +742,7 @@ void dump_config(FILE* fp, const parameter_t* par)
 	  (par->dump_eventno)?"Yes":"No" );
 
   /* The event number filename */
-  if (par->evfp != stdout && par->dump_eventno) {
+  if (par->eventno_file && par->dump_eventno) {
     if (par->evfp != par->ofp)
       fprintf(fp, " +- Event-number File: %s.eventno \n", par->ofhint); 
     else
@@ -731,7 +759,7 @@ void dump_config(FILE* fp, const parameter_t* par)
 	  edump2string(&par->dump_energy,temp));
 
   /* The energy filename */
-  if (par->efp != stdout && par->dump_energy) {
+  if (par->energy_file && par->dump_energy) {
     if (par->efp != par->ofp)
       fprintf(fp, " +- Energy File: %s.energy \n", par->ofhint); 
     else 
@@ -757,12 +785,17 @@ void dump_config(FILE* fp, const parameter_t* par)
     fprintf(fp, " +- Processing: Event %ld, RoI %ld\n", 
 	    par->event_no, par->roi_no);
 
+  if (par->run_fast)
+    fprintf(fp, " +- Fast Processing: YES (using obstacks)\n");
+  else
+    fprintf(fp, " +- Fast Processing: NO (using common files)\n");
+
   fprintf(fp, "==========================================\n");
 
   /* close the configuration file pointer, so, no need to do it
      afterwards. This can only be done *IF* the pointer is *NOT* a pointer to
-     stdout! */
-  if (fp != stdout) fclose(fp);
+     stdout or to a common output file! */
+  if (fp != stdout || fp != par->ofp) fclose(fp);
   
 }
 
