@@ -1,17 +1,24 @@
-This file is part of CaloASCII-tester package
-by André Rabello dos Anjos
+This file is part of calo-preproc package
+Author: André Rabello dos Anjos <Andre.Rabello@ufrj.br>
 
-$Id: README,v 1.5 2000/05/31 11:43:06 rabello Exp $
+$Id: README,v 1.6 2000/08/21 18:57:52 andre Exp $
 
 Introduction
 ------------
 
 The aim of this package is to provide the user with tools (ANSI-C functions)
-for analysing dumps of calorimeter digis in ASCII format. Such format is
-defined in C by another library, called spec. This last library demands a
-description file, not too complex, that is located in the 'src' subdir. Such a
-description is the standard description available at CERN by J.Baines. You can
-browse his page on datafiles and formats from:
+for analysing dumps of calorimeter digis in ASCII format, as defined by ATLAS
+Level 2 Trigger at CERN. This formatting is used to store, digitized data
+(found on ROBs) and probable L2 features found after L2 processing that could
+be used as a debugging parameters.
+
+The ASCII format is defined in C by a library called 'spec'. This library
+demands a description file, not too complex, that is located in the 'src'
+subdir named 'data.spec'. Such a description is the standard description
+available at CERN by J.Baines. You're *not* advised to change it unless you
+know exactly what you're doing. It resumes all trigger variables one can find
+necessary for Level 1/2 processing. You can browse Baine's page on datafiles
+and formats from:
 
 http://hepunx.rl.ac.uk/atlasuk/simulation/level2/doc/ctrig/dumpfiles.html
 
@@ -20,20 +27,51 @@ All programs using the spec library must be compiled against the file
 
 Besides that, I've create the calorimeter library, which is composed of simple
 functions that perform simple things like arranging the digis into trigger
-towers and so. Some processing methods like flattening and Et evaluation are
-also included as functions with simple calls. For that library I had to create
-some special types as well. They are mostly for internal library use, with
-exceptions, and you shouldn't have to bore a lot with those.  If you intend to
-use such functions you will have to compile your programs against 'libcalo.a'
-as well.
+towers and summing energies. Some processing methods like Uniformization and Et
+evaluation are also included as functions with simple calls. For that library I
+had to create some special types as well. They are mostly for internal library
+use, with exceptions, and you shouldn't have to bore a lot with those.  If you
+intend to use such functions you will have to compile your programs against
+'libcalo.a' as well.
 
 You can find the latest version of this library at my web site. For now, I only
 have CVS access through the web for viewing, but a solution may be thought of
-and package availability should be ok some weeks from today. Till there you can
-request me the latest version of the package at Andre.dos.Anjos@cern.ch. In
+and package availability should be ok sometime in a near future. Till there you
+can request me the latest version of the package at Andre.Rabello@ufrj.br. In
 order to access the web repository, you can point your browser to:
 
 http://www.lps.ufrj.br/~rabello/cgi-bin/cvsweb
+
+To make it easy for you, I've built an application that fully utilizes all
+aspects of those 2 libraries ('calo' and 'spec') and can preprocess ASCII Data
+Files in order to dump preprocessed RoIs for later analysis. Normalization,
+checking, arranging and output formatting are provided automatically by using
+run time options.
+
+Directory Tree
+--------------
+
+The directory tree is composed of (<root> is the directory where you installed
+the distribution):
+
+<root>/doc - figures that explain some characteristics of libcalo or the main
+             routine
+
+<root>/src - source files for the main application
+
+<root>/include - the headers for the sources on <root>/src
+
+<root>/dist/calo - the files for the calorimeter library. This tree is divided
+                   into:
+
+<root>/dist/calo/src - source files for the calorimeter library
+<root>/dist/calo/include - header files for the calorimeter library
+<root>/dist/calo/mk - configuration options for the calorimeter library
+
+<root>/dist/spec - the files for the specification library. This tree is 
+	           divided into:
+<root>/dist/spec/include - headers for the spec library
+<root>/dist/spec/src - source code for the spec library
 
 Building and installing
 -----------------------
@@ -42,7 +80,7 @@ Very easy:
 
 1) Unpack the distribution
 
-gzip -c CaloASCII-tester.tar.gz | tar xvf -
+gzip -c calo-preproc-X.X.tar.gz | tar xvf -
 
 or
 
@@ -52,20 +90,17 @@ tar xvfz CaloASCII-tester.tar.gz (if your tar executable suports this
 2) Edit the central Makefile. Change the WORKDIR variable to point to your
 current distribution directory.
 
-cd CaloASCII-tester; vi Makefile
+cd calo-preproc; vi Makefile
 
 3) Build
 
 make all
 
 This should be enough to compile the spec and calo libraries and build a small
-application that can do some nice tricks with the ascii files. Basically, it
-can show you how many events the file has or how many RoI's an event has. If
-you select an event and an RoI, it can extract the Calo digis, pre-process and
-give you a flatten version of this RoI, just ready for L2 processing. Such
-application is called 'wrdata'. You can do
+application that can do some nice tricks with the ascii files, as I explained
+before. Such application is called 'preproc'. You can do
 
-./wrdata -h
+./preproc -h
 
 In order to get some processing options.
 
@@ -96,15 +131,13 @@ Ok, I think that's it for installation.
 Data Files repository
 ---------------------
 
-Currently the files are being extracted from hbooks containing all the
-simulation data. There are repositories at CERN, but I've mirrored them to my
-lab (www.lps.ufrj.br). For now, there's no automatic way to get those, like
+Currently the files are being extracted from hbooks (CW Ntuples) containing all
+the simulation data. There are repositories at CERN, but I've mirrored them to
+my lab (www.lps.ufrj.br). For now, there's no automatic way to get those, like
 through the web. Anyhow you can e-mail me if you need those.
 
 You can get a listing of what I have from:
 
-http://www-wisconsin.cern.ch/~atsaul/egamma/data/atrig
-http://www-wisconsin.cern.ch/~atsaul/his/atrig-4.04
 http://www-wisconsin.cern.ch/~atsaul/egamma/data/refsw
 
 As a matter of fact you can get the files through this web interface. But if
@@ -112,5 +145,5 @@ you're closer to me (in Brazil or else), perhaps it's quicker mailling me.
 
 That's it for now. Have fun, if you can.
 
-André Rabello dos Anjos.
+AR.
 
