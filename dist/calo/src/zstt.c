@@ -1,4 +1,11 @@
+/* Hello emacs, this is -*- c -*- */
+
+/* $Id: zstt.c,v 1.2 2000/05/31 13:53:43 rabello Exp $ */
+
 #include "zstt.h"
+
+#include <math.h>
+extern double rint(double x);
 
 extern ErrorCode CreateZSCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
 {
@@ -7,7 +14,7 @@ extern ErrorCode CreateZSCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
     fprintf(stderr, "ERROR(trigtowr.c): ");
     fprintf(stderr, "Max no of layers (%d) exceeded\n",
 	    MaxNumberOfLayers);
-    return(ERROR);
+    return(CALO_ERROR);
   }
   
   /* alloc space */
@@ -15,17 +22,17 @@ extern ErrorCode CreateZSCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
        == NULL ) 
     {
       fprintf(stderr, "ERROR(trigtowr.c): No space for layer\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
 
   /* init */
-  if ( InitZSCaloLayer(&tt->layer[tt->NoOfLayers-1], cell) == ERROR )
+  if ( InitZSCaloLayer(&tt->layer[tt->NoOfLayers-1], cell) == CALO_ERROR )
     {
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't init layer\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
  
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 
 }
 
@@ -41,7 +48,7 @@ extern ErrorCode InitZSCaloLayer(CaloLayer* layer, const CellInfo* cell)
   layer->cell = NULL;
   layer->NoOfCells = 0; /* updated after PlaceCell() call */
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 extern ErrorCode PlaceZSCell(const Energy energy, const CellInfo* cell, const
@@ -53,7 +60,7 @@ extern ErrorCode PlaceZSCell(const Energy energy, const CellInfo* cell, const
 				 sizeof(CaloCell))) == NULL ) 
     {  
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't alloc cells\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
 
 
@@ -64,11 +71,11 @@ extern ErrorCode PlaceZSCell(const Energy energy, const CellInfo* cell, const
   
   if ( layer->cell[layer->NoOfCells-1].index.Eta < 0 ) {
     fprintf(stderr, "ERROR(trigtowr.c): No index for cell\n");
-    return(ERROR);
+    return(CALO_ERROR);
   }
 
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 extern Index GetZSIndex(const CellInfo* cell, const int etagran, const int
