@@ -8,7 +8,7 @@
    strings into doubles or longs. 
 */
 
-/* $Id: util.h,v 1.2 2000/05/26 17:34:24 rabello Exp $ */
+/* $Id: util.h,v 1.3 2000/07/12 04:49:38 rabello Exp $ */
 
 #ifndef __UTIL_H
 #define __UTIL_H
@@ -46,9 +46,11 @@ long to_valid_long(const char*);
    implemenatation of atol(), but with the verification of strtol(). */
 double to_valid_double(const char*);
 
-/* This function just reads and wastes the VERSION tag of the file pointed by
-   the first argument */
-void waste_VERSION(FILE*);
+/* Waste all initial crap */
+void waste_initial_info(FILE*);
+
+/* Dumps all the digis in an RoI in human readable format */
+void dump_DIGIS(FILE* fp,const ROI* roi);
 
 #endif /* __UTIL_H */
 
