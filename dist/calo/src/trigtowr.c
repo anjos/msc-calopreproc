@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* copyleft Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: trigtowr.c,v 1.4 2000/06/16 21:29:50 rabello Exp $ */
+/* $Id: trigtowr.c,v 1.5 2000/06/16 23:10:58 rabello Exp $ */
 
 #include "trigtowr.h"
 
@@ -39,7 +39,7 @@ CellInfo DecodeDigi (const emCalDigiType*, const bool_t);
   =========================
 */
 
-/* Build RoI from layers into trigger towers (3-D) */
+/* Build RoI from layers into trigger towers of type CaloTTEMRoI (3-D) */
 ErrorCode BuildCaloTTS(const ROI* roi, const bool_t zsup, CaloTTEMRoI* caloroi) 
 {
   int x,y;
@@ -236,7 +236,7 @@ CellInfo DecodeDigi (const emCalDigiType* d, const bool_t pw)
   /* End of magic trick */
 
   return cell;
-}  
+}
 	     
 bool_t PointIsInRegion(const Point* p, const Area* a)
 {
@@ -248,6 +248,16 @@ bool_t PointIsInRegion(const Point* p, const Area* a)
 
 }
 
+/* Given the left lower corner of the RoI p (the last argument), this functions
+   returns the linear index of the cell, taking into account the granularity of
+   this layer, given by the second and the third arguments. The index of a cell
+   is extracted by finding the position of this particular cell on the TT and
+   transforming this 2-D coordinate into 1-D info by counting forward from the
+   botom left cell till the top right going from left to right, beginning at
+   zero.  
+
+   Note here, that I consider phi to be in the x direction (horizontal) while,
+   eta to be in the y direction (vertical). */
 int GetIndex(const CellInfo* cell, const int etagran, const int phigran, const
 	     Point* p)
 {
@@ -256,20 +266,23 @@ int GetIndex(const CellInfo* cell, const int etagran, const int phigran, const
   int x, y;
 
   for(x = 0; x < phigran; x++)
-    for(y = 0; y < etagran; y++) { /* loops over positions */
-      if( cell->center.Phi > (p->Phi + x * phistep ) && cell->center.Phi <
-	  (p->Phi + (x+1) * phistep ) && cell->center.Eta >
-	  (p->Eta + y * etastep ) && cell->center.Eta < (p->Eta
-						 + (y+1) * etastep) )   
-	{ /* fits in this cell */
-	  return( y + etagran * x );
-	}
-    } /* end loop */
+    for(y = 0; y < etagran; y++) { 
+
+      /* loops over positions */
+
+      if( cell->center.Phi > (p->Phi + x * phistep ) && 
+	  cell->center.Phi < (p->Phi + (x+1) * phistep ) && 
+	  cell->center.Eta > (p->Eta + y * etastep ) &&
+	  cell->center.Eta < (p->Eta + (y+1) * etastep) )   
+
+	  return( x + phigran * y );
+
+    }
 
   /* Oops! */
   return(-1);
 
-} 
+}
 
 /* Create Non-zero suppressed calo layers */
 ErrorCode CreateCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
@@ -300,6 +313,7 @@ ErrorCode CreateCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
 
 ErrorCode InitCaloLayer(CaloLayer* layer, const CellInfo* cell) 
 {
+  int x,y;
   const int etagran = (int)rint(EtaTTSize/cell->deta);
   const int phigran = (int)rint(PhiTTSize/cell->dphi);
 
@@ -314,7 +328,15 @@ ErrorCode InitCaloLayer(CaloLayer* layer, const CellInfo* cell)
     fprintf(stderr, "ERROR(trigtowr.c): Couldn't initialize cells\n");
     return(CALO_ERROR);
   }
-  
+
+  /* Now I should put numbers into cell Indexes. This is easier to use later,
+     and for the time being I'm not concerned with time of execution. */
+  for (y=0; y<etagran; ++y)
+    for (x=0; x<phigran; ++x) {
+      layer->cell[x + phigran * y].index.Eta = y;
+      layer->cell[x + phigran * y].index.Phi = x;
+    }
+
   return(CALO_SUCCESS);
 }
 
