@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.19 2000/09/11 21:53:51 andre Exp $
+# $Id: Makefile,v 1.20 2000/09/11 23:08:09 andre Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -7,8 +7,24 @@
 # def'ing important macros
 # ========================
 
+#############################################
+# These are the variables you can configure #
+#############################################
+
+# The base name where you decompressed the main archive
+WORKBASEDIR = $(HOME)/work
+
+# The name of the distribution root directory
+MODULE = ufrj
+
+
+###########################################################################
+# From now on you shouldn't change the Makefile, unless you know what you #
+# are doing.								  #
+###########################################################################
+
 # 1) for generation the specification files
-WORKDIR = $(HOME)/work/ufrj
+WORKDIR = $(WORKBASEDIR)/$(MODULE)
 GEN = ./dist/spec/src/genspec # the .c/cc .h file generator (invokes parser)
 DATASPEC = data # the filename to generate the .h and .c/cc for
 LANG = c # the language that was chosen for the output files
@@ -119,7 +135,7 @@ docs:
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.19 $$' of '$$Date: 2000/09/11 21:53:51 $$'
+	@echo \* -- current version is '$$Revision: 1.20 $$' of '$$Date: 2000/09/11 23:08:09 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
@@ -141,17 +157,18 @@ clean: cleanlib cleandoc
 	rm -f preproc TAGS
 
 dist: clean
-	@echo \* Creating distribution (date will be written on DATE)...
+	@echo \* Creating distribution. Current date will be written on DATE...
 	@echo \* Today is `date +%A,\ %d\ of\ %B\ of\ %Y`
 	@echo `date` > DATE
-	@cd ..; tar cvf - ufrj | gzip > calo-preproc-`cat ufrj/VERSION`.tar.gz
+	@cd ..;
+	 tar cvf - $(MODULE) | gzip > $(MODULE)-`cat $(WORKDIR)/VERSION`.tar.gz
 
 shot: clean
 	@echo \* Creating a snapshot of today\'s source...
-	@echo \* The date will be written at DATE.
+	@echo \* The date will be written on DATE.
 	@echo \* Today is `date +%A,\ %d\ of\ %B\ of\ %Y`
 	@echo `date` > DATE
-	@cd ..; tar cvf - ufrj | gzip > ufrj-`date +%Y.%m.%d`.tar.gz
+	@cd ..; tar cvf - $(MODULE) | gzip > $(MODULE)-`date +%Y.%m.%d`.tar.gz
 
 tags:
 	@echo \* Creating TAGS file...
