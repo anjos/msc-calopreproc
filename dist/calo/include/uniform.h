@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.h,v 1.8 2000/09/06 21:13:44 rabello Exp $ */
+/* $Id: uniform.h,v 1.9 2000/11/28 21:00:39 rabello Exp $ */
 
 #ifndef _UNIFORM_H
 #define _UNIFORM_H
@@ -100,6 +100,20 @@ bool_t flag_contains_layer(const unsigned short*, const CaloLayer*);
    functions that have to preallocate space based on the number of layers that
    should be processed. */
 short flag_contains_nlayers(const unsigned short*);
+
+/* This function will find the peak of energy on the current layer. When found,
+   the function will return (2nd to 4th. parameters), the peak index, its real
+   eta and real phi values (relative to the RoI lower left corner). */
+void peak_find(const CaloLayer*, int*, double*, double*);
+
+/* This function will just calculate the relative point of the cell into the
+   RoI. The EM RoI is 0.4 by 0.4 in eta x phi and using the granularity of eta
+   and phi it's not difficult to calculate where the cell is. The RoI scanning
+   is defined on <root>/doc/fig/roi-scanning.fig. The first two arguments
+   define eta and phi granularity. The third is the index inside the layer
+   vector of the cell. The fourth and fifth are used to return the actual
+   values eta and phi. */
+void vector2point(const int*, const int*, const int*, double*, double*);
 
 #endif /* _UNIFORM_H */
 
