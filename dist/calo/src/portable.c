@@ -1,5 +1,5 @@
 /***************************************************************************
- * Decodification from Universal Cell Number to integers, more info on 
+ * Decodification from Universal Cell Number to integers, more info TRUE 
  * http://wwwcn.cern.ch/~simions/Lyon/atlas/pileup/P02
  * for reference, one can use the bit description bellow:
  *
@@ -8,9 +8,10 @@
  *
  * 0 - zero; K - calo; m - module; S - side or signal; e - eta and p is phi.
  *                        (region)
- * $Id: portable.c,v 1.3 2000/05/26 17:46:05 rabello Exp $
  *
- * ************************************************************************* */
+ * $Id: portable.c,v 1.4 2000/05/31 13:50:44 rabello Exp $
+ *
+ ****************************************************************************/
  
 #include "portable.h"
 #include <math.h>
@@ -33,7 +34,7 @@ ErrorCode CorrectPSEndCap(const unsigned int id, CellInfo*);
 
 double round(double, int precision);
 
-#define DONT_ROUND_OUTPUT
+#define DTRUET_ROUND_OUTPUT
 #define DETAIL 0 /* corrects region of EM EndCap between eta 1.8 and 2.0 */
 #define DETA 0.003125
 #define DPHI (2 * PI / 256)
@@ -96,21 +97,21 @@ ErrorCode DecodeId(const unsigned int id, CellInfo* cell)
     CorrectParam = &CorrectHadEndCap;
     break;
     
-  case 11: /* PreSampler on the EndCap */
+  case 11: /* PreSampler TRUE the EndCap */
     CorrectParam = &CorrectPSEndCap;
     break;
 
   default:
     /* Oops! */
     fprintf(stderr, "ERROR(portable.c): No such calorimeter in ATLAS\n");
-    return(ERROR);
+    return(CALO_ERROR);
 
   } /* switch(calo) */
 
-  if ( CorrectParam(id, cell) == ERROR ){
+  if ( CorrectParam(id, cell) == CALO_ERROR ){
     /* Oops! */
     fprintf(stderr, "ERROR(portable.c): Couldn't correct cell\n");
-    return(ERROR);
+    return(CALO_ERROR);
   }
 
   /* correction for cell coordinates (center) */
@@ -128,7 +129,7 @@ ErrorCode DecodeId(const unsigned int id, CellInfo* cell)
   cell->deta = round(cell->deta, RND_PREC);
 #endif
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 
 }/* end decoding */
 
@@ -137,18 +138,18 @@ ErrorCode CorrectPSBarrel(const unsigned int id, CellInfo* c)
   c->region = 1;
   c->deta = DETA*8;
   c->dphi = DPHI*4;
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 ErrorCode CorrectEMBarrel(const unsigned int id, CellInfo* c)
 {
-  const double etamax = 1.4;
-
   /* In the end of the barrel, 1st layer disappears and 2nd takes
-     its place. 3rd layer replaces second */
+     its place. 3rd layer replaces semond. This way, there is a change of
+     granularity inside the layer. */
   switch(c->region) {
+
   case 1: /* 1st layer */
-    if(c->center.Eta < etamax) {
+    if(c->center.Eta < 1.4) {
       c->dphi = DPHI*4;
       c->deta = DETA;
     }
@@ -157,12 +158,13 @@ ErrorCode CorrectEMBarrel(const unsigned int id, CellInfo* c)
       c->deta = DETA*8;
     }
     break;
+
   case 2: /* 2nd layer */
-    if(c->center.Eta < etamax) {
+    if(c->center.Eta < 1.4) {
       c->deta = DETA*8;
     }
     else {
-      c->deta = DETA*16;
+      c->deta = DETA*8;
     }
     c->dphi = DPHI;
     break;
@@ -175,10 +177,10 @@ ErrorCode CorrectEMBarrel(const unsigned int id, CellInfo* c)
   default:
     /* Oops! */
     fprintf(stderr, "ERROR(portable.c): No such region in EMBarrel\n");
-    return(ERROR);
+    return(CALO_ERROR);
   }
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
@@ -212,7 +214,7 @@ ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
 	 c->center.Eta - E_15 < maxerr) { 
 	c->region = 7;
 	c->deta = DETA*8;
-	if (c->center.Eta < 1.42) c->center.Eta -= 0.025; /* correct a problem
+	/*if (c->center.Eta < 1.42) c->center.Eta -= 0.025;  correct a problem
 							     I can't describe.
 							     This was fixed in
 							     29.02.2000 */
@@ -314,57 +316,87 @@ ErrorCode CorrectEMEndCap(const unsigned int id, CellInfo* c)
   default:
     /* Oops! */
     fprintf(stderr, "ERROR(portable.c): No such region in EM EndCap\n");
-    return(ERROR);
+    return(CALO_ERROR);
 
   } /* region for BarEnd */
  
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
+/* Calo == 4 */
 ErrorCode CorrectTileCal(const unsigned int id, CellInfo* c)
 {
+  /* Defaults for this calorimeter */
+  c->deta = DETA*32;
+  c->dphi = DPHI*4;
+
+  /* Corrects misusage of codification patterns */
+  if ( ( (id >> 8) & 0x1f ) > 0xf) /* rounds */
+    c->center.Eta += DETA;
+
   switch(c->region) {
-  case 0: /* scintillator (9, 10, 11) */
-    c->region = ((id >> 14) & 0x7) + 4;
-    c->deta = DETA*32;
+  case 0: 
+    /* This region has 3 possibilities and all those lie in the scintillator
+       sheet. To correctly decode the region number one has to do it regarding
+       the values of the 3 MSB bits of eta for each cell. Just add 4 to that
+       value and hopefully you'll have the decoded region. It's not hard to see
+       that there are only 3 valid integers in this case: 
+             101 -> leads to region 9, 
+             110 -> leads to region 10,
+             111 -> leads to region 11. ??? Is that so?
+    */
+    c->region = ((id >> 14) & 0x7) + 4; 
     break;
-      
+
   case 1:
-    c->deta = DETA*32;
     break;
       
   case 2:
-    if(((id >> 8) & 0x1ff) == 9) c->region = 7;
-    c->deta = DETA*32;
-    break;
+    /* This region has 2 possibilities:
+       1) This cell belongs to sample 2 of barrel, in such case everything
+          is alright;
+       2) This cell belongs to the Tile plugin, in this case the region number
+       is wrong and I have to change to 7 instead of 2 
+    */
+    
+    /* The plugin (ITC) extends roughly from 0.7 till 1.0, while the barrel
+       from 0 till 1.0. I can make a assumption that after 0.7 no more third
+       layer is present in the Barrel, so I can say that if the region is 3 and
+       eta > 0.7, the corrected region is 8. In analogy, I can say that IF
+       region is 2 and eta is greater than 0.9, then, the corrected region
+       number is 7.  */
+
+    if(((id >> 13) & 0xf) > 7) c->region = 7;
+    break; 
 
   case 3:
-    if(((id >> 8) & 0x1ff) == 8) c->region = 8;
+    /* Same comments as above, for region 2. only change is that deta is
+       different to this layer. */
+    if(((id >> 13) & 0xf) > 7) c->region = 8;
     c->deta = DETA*64;
+    c->center.Eta -= DETA*16; /* Dont't know really what this is for... */
     break;
 
 
   case 5: /* ExtBar */
   case 6:
     c->region -= 1;
-    c->deta = DETA*32;
     break;
       
   case 7:
     c->region -= 1;
     c->deta = DETA*64; /* approximative */
+    c->center.Eta -= DETA*16; /* Don't know really what this is for... */
     break;
 
   default:
     /* Oops! */
     fprintf(stderr, "ERROR(portable.c): No such region in TileCal\n");
-    return(ERROR);
+    return(CALO_ERROR);
 
   }/* end of TileCal */
 
-  c->dphi = DPHI*4;
-
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 ErrorCode CorrectHadEndCap(const unsigned int id, CellInfo* c)
@@ -401,7 +433,7 @@ ErrorCode CorrectHadEndCap(const unsigned int id, CellInfo* c)
     c->deta = DETA*32;
   }
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 ErrorCode CorrectPSEndCap(const unsigned int id, CellInfo* c)
@@ -412,7 +444,7 @@ ErrorCode CorrectPSEndCap(const unsigned int id, CellInfo* c)
   c->deta = DETA*8;
   c->dphi = DPHI*4;
   
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 /* rounds the double with precision */
@@ -422,7 +454,7 @@ double round(double d, int precision)
   return(d / pow(10, precision));
 }
 
-/* converts integer to UCN */
+/* monverts integer to UCN */
 void i2ucn(unsigned int i, char *s) 
 {
   int a;
@@ -445,21 +477,21 @@ void i2ucn(unsigned int i, char *s)
   *(s+29) = (char)NULL; /* for string like printing */
 }
 
-ErrorCode GetCellInfo(const int id, CellInfo* cell, const Flag wrap)
+ErrorCode GetCellInfo(const int id, CellInfo* cell, const bool_t wrap)
 {
-  if(DecodeId(id, cell) == ERROR) {
+  if(DecodeId(id, cell) == CALO_ERROR) {
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't decode cell\n");
-      return(ERROR);
+      return(CALO_ERROR);
   }
 
-  if (wrap == ON && cell->center.Phi < PI) CorrectCell(cell);
+  if (wrap == TRUE && cell->center.Phi < PI) CorrectCell(cell);
   
-  if(ResolveLayer(cell) == ERROR) {/* loose some region info */
+  if(ResolveLayer(cell) == CALO_ERROR) {/* loose some region info */
     fprintf(stderr, "ERROR(trigtowr.c): Couldn't find region for digi\n"); 
-    return(ERROR);
+    return(CALO_ERROR);
   }
   
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 ErrorCode ResolveLayer(CellInfo* cell) 
@@ -494,7 +526,7 @@ ErrorCode ResolveLayer(CellInfo* cell)
     default:
       /* Oops! */
       fprintf(stderr, "ERROR(portable.c): No such layer exists for a cell\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
     break;
 
@@ -520,7 +552,7 @@ ErrorCode ResolveLayer(CellInfo* cell)
     default:
       /* Oops! */
       fprintf(stderr, "ERROR(portable.c): No such layer exists for a cell\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
     break;
 
@@ -545,13 +577,13 @@ ErrorCode ResolveLayer(CellInfo* cell)
     default:
       /* Oops! */
       fprintf(stderr, "ERROR(calolib.c): No such layer exists for a cell\n");
-      return(ERROR);
+      return(CALO_ERROR);
 
     }
     
   }
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
   
 } /* end ResolveLayer */
 
@@ -563,7 +595,7 @@ void CorrectCell(CellInfo* cell)
 
 ErrorCode fcomp(const double x, const double y, const double maxerr)
 {
-  if (fabs(x-y) <= maxerr) return SUCCESS;
-  else return ERROR;
+  if (fabs(x-y) <= maxerr) return CALO_SUCCESS;
+  else return CALO_ERROR;
 }
 
