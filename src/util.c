@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.13 2001/01/24 20:57:59 andre Exp $ */
+/* $Id: util.c,v 1.14 2001/01/30 17:02:21 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -193,7 +193,7 @@ void waste_SCTGEOM(FILE* fp)
   return;
 }
 
-char* get_DIGIS(const ROI* roi)
+char* get_DIGIS(const ROI* roi, const bool_t control_only)
 {
   int i; /* iterator */
   char* info; /* another temp buffer */
@@ -209,28 +209,34 @@ char* get_DIGIS(const ROI* roi)
 
   ascat_int(&temp, &roi->calDigi.nEmDigi);
   ascat(&temp, "\n");
-  for(i=0; i<roi->calDigi.nEmDigi; ++i) {
-    int   cr = roi->calDigi.emDigi[i].CaloRegion;
-    float en = roi->calDigi.emDigi[i].Et;
-    float e  = roi->calDigi.emDigi[i].eta;
-    float p  = roi->calDigi.emDigi[i].phi;
-    int   id = roi->calDigi.emDigi[i].id;
-    asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
-    free(temp);
-    temp = info; 
+
+  if (!control_only) {
+    for(i=0; i<roi->calDigi.nEmDigi; ++i) {
+      int   cr = roi->calDigi.emDigi[i].CaloRegion;
+      float en = roi->calDigi.emDigi[i].Et;
+      float e  = roi->calDigi.emDigi[i].eta;
+      float p  = roi->calDigi.emDigi[i].phi;
+      int   id = roi->calDigi.emDigi[i].id;
+      asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
+      free(temp);
+      temp = info; 
+    }
   }
 
   ascat_int(&temp, &roi->calDigi.nhadDigi);
   ascat(&temp, "\n");
-  for(i=0; i<roi->calDigi.nhadDigi; ++i) {
-    int   cr = roi->calDigi.hadDigi[i].CaloRegion;
-    float en = roi->calDigi.hadDigi[i].Et;
-    float e  = roi->calDigi.hadDigi[i].eta;
-    float p  = roi->calDigi.hadDigi[i].phi;
-    int   id = roi->calDigi.hadDigi[i].id;
-    asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
-    free(temp);
-    temp = info; 
+
+  if (!control_only) {
+    for(i=0; i<roi->calDigi.nhadDigi; ++i) {
+      int   cr = roi->calDigi.hadDigi[i].CaloRegion;
+      float en = roi->calDigi.hadDigi[i].Et;
+      float e  = roi->calDigi.hadDigi[i].eta;
+      float p  = roi->calDigi.hadDigi[i].phi;
+      int   id = roi->calDigi.hadDigi[i].id;
+      asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
+      free(temp);
+      temp = info; 
+    }
   }
 
   ascat(&temp, "\n");

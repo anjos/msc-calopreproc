@@ -5,7 +5,7 @@
    CaloDigi's that may be present in the file. The building of this file is
    accomplished by make (1).  */
 
-/* $Id: main.c,v 1.22 2001/01/24 20:34:06 andre Exp $ */
+/* $Id: main.c,v 1.23 2001/01/30 17:02:21 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -205,7 +205,7 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
 
   if (p->dump_digis) {
     /* get the digis into string format */
-    info = get_DIGIS(roi);
+    info = get_DIGIS(roi, p->control_only);
 
     /* Put the string into memory pool or file */
     output_string(p->ofp, p->output_obsp, p->run_fast, info);
@@ -241,7 +241,7 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
 
       if (p->dump_uniform_digis) {
 	/* get the digis into string format */
-	info = get_DIGIS(roi);
+	info = get_DIGIS(roi, p->control_only);
 
 	/* Put the string into memory pool or file */
 	output_string(p->ofp, p->output_obsp, p->run_fast, info);

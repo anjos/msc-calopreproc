@@ -8,7 +8,7 @@
    strings into doubles or longs. 
 */
 
-/* $Id: util.h,v 1.6 2000/08/27 16:24:43 andre Exp $ */
+/* $Id: util.h,v 1.7 2001/01/30 17:01:28 andre Exp $ */
 
 #ifndef __UTIL_H
 #define __UTIL_H
@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include "data.h"
 #include "error.h" /* This is from calo library... */
+#include "common.h"
 
 /* This function simply reads de data file in parameter 0 and tries to locate a
    VERSION tag. In case of success, it writes it to the file in parameter
@@ -43,8 +44,10 @@ void waste_initial_info(FILE*);
 
 /* Dumps all the digis in an RoI into a string in human readable format. The
    string is allocated within this procedure and its space must be freed
-   afterwards. */
-char* get_DIGIS(const ROI* roi);
+   afterwards. The first parameters represents the RoI while second orders the
+   procedure _not_ to dump the digis themselves, but only the control
+   variables, i.e., the RoI window and the number of cells (EM and HAD). */ 
+char* get_DIGIS(const ROI* roi, const bool_t);
 
 /* Dumps the SNNS file header into a string that is allocated internally and
    returned by the function (the user must free it afterwards). The three

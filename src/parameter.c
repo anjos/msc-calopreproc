@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.10 2000/12/08 15:20:27 rabello Exp $ */
+/* $Id: parameter.c,v 1.11 2001/01/30 17:02:21 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -132,6 +132,9 @@ parameter_t* init_parameters (parameter_t* p) {
   /* digis are a specific case */
   p->dump_digis = FALSE; 
 
+  /* control only data is false by default when dumping digis */
+  p->control_only = FALSE;
+
   /* uniform_digis are a specific case */
   p->dump_uniform_digis = FALSE; 
 
@@ -193,10 +196,14 @@ void process_flags (parameter_t* p, const int argc, char** argv)
   /* verbose output? */
   static int verbose = FALSE;
 
+  /* When dumping digis, do you want to dump only control? */
+  static int ctrl = FALSE;
+
   /* This global defines the options to take */
   static struct option long_options[] =
   {
     /* These options set a flag. */
+    {"control-only", 0, &ctrl, 1},
     {"energy-file",  0, &energy_file,  1},
     {"dump-eventno", 0, &dump_eventno, 1},
     {"config-file",  0, &config_file,  1},
@@ -381,6 +388,7 @@ void process_flags (parameter_t* p, const int argc, char** argv)
   p->eventno_file = eventno_file;
   p->run_fast = run_fast;
   p->verbose = verbose;
+  p->control_only = ctrl;
 
   /* Now we initialize the output environment which may be files or obstacks */
   open_output(p);
@@ -607,11 +615,19 @@ void test_flags (parameter_t* p)
     fprintf(stderr, "(parameter)WARN: Will ignore the -c parameter since ");
     fprintf(stderr, "weighted normalization is _not_ selected\n");
   }
+
+  /* If you are dumping digis, you can have the control_only flag, but _not_
+     otherwise. */
+  if ( p->control_only && !(p->dump_digis || p->dump_uniform_digis)) {
+    fprintf(stderr, "(parameter)ERROR: Can't use control_only with out ");
+    fprintf(stderr, "dumping digis or uniform digis. Finishing...\n");
+    exit(EXIT_FAILURE);
+  }
 }
 
 void print_help_msg(FILE* fp, const char* prog)
 {
-  fprintf(fp, "Calorimeter ASCII Data Preprocessor version 0.31\n");
+  fprintf(fp, "Calorimeter ASCII Data Preprocessor version 0.4\n");
   fprintf(fp, "author: André Rabello dos Anjos <Andre.Rabello@ufrj.br>\n\n");
 
   fprintf(fp, "usage: %s [short options] [long options]\n", prog);
