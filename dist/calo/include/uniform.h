@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.h,v 1.4 2000/08/11 20:29:57 rabello Exp $ */
+/* $Id: uniform.h,v 1.5 2000/08/16 11:22:17 andre Exp $ */
 
 #ifndef _UNIFORM_H
 #define _UNIFORM_H
@@ -63,6 +63,11 @@ uniform_roi_t* uniformize (const tt_roi_t*, uniform_roi_t*,
    'all' is found in any position or by itself, all layers are enabled. */
 unsigned short* string2layer(unsigned short*, const char*);
 
+/* Converts the packed information on the flags of the first argument onto the
+   string pointed (pre-allocated) by the second argument. It does the inverted
+   function of the function layer2string(); */
+char* layer2string(const unsigned short*, char*);
+
 /* This function checks returning TRUE/FALSE if there's a coherency between
    what is required to be present on event and what should be printed on output
    in terms of layers. Note that it's NOT possible to print something that is
@@ -80,6 +85,11 @@ bool_t validate_print_selection(const unsigned short*, unsigned short*);
    more than one type of normalization. In the last case, a warning shall be
    issued. */
 unsigned short* string2normalization(unsigned short*, const char*);
+
+/* Commits the inverse processing of string2normalization(). The char* must
+   have its space pre-allocated since it won't be inside the function. The
+   minimum space requirement is 60 bytes */
+char* normalization2string(const unsigned short*, char*);
 
 /* This functions frees the contents of a uniform_roi_t pointer. The pointed
    variable is *not* freed in here. If you created it, you must free it as
