@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: normal.c,v 1.4 2000/09/19 00:32:58 andre Exp $ */
+/* $Id: normal.c,v 1.5 2000/10/23 02:24:58 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,10 +13,13 @@
 #include "energy.h"
 #include "ring.h"
 
-/* For normalization specification */
+/* For normalization specification. Attention: when adding a new value,
+   consider analysing the whole program, since normalization flags _are_ set
+   inside a short, which, generally, is an 8-bit word. */
 typedef enum normal_t {NORMAL_NONE=0x0, NORMAL_ALL=0x1, NORMAL_SECTION=0x2, 
-		       NORMAL_LAYER=0x4, NORMAL_UNITY=0x10,
-                       NORMAL_UNITYX=0x20} normal_t;
+		       NORMAL_LAYER=0x4, NORMAL_UNITY=0x8,
+                       NORMAL_UNITYX=0x10, NORMAL_WEIGHTED_SEG=0x20,
+                       NORMAL_WEIGHTED_ALL=0x40} normal_t;
 
 /***************/
 /* Prototyping */
@@ -63,6 +66,26 @@ void ring_unity_normalize (ringroi_t*);
    normal modulus normalization using ring_unity_normalize(). */
 void ring_unityx_normalize (ringroi_t*, const Energy*);
 
+/* This function will take each segment with no other normalization applied
+   previously and will divide the first feature by all energy on the current
+   segment, the second by all energy minus the first feature and will continue
+   till it reaches the last segment _or_ till reach lastring th. segment. In
+   the case it reaches lastring first, the remaining features will be
+   normalized by the same value of the lastring feature. Note that maximum
+   number for each layer (or segment) is the number of rings on that layer.*/
+void ring_weighted_seg_normalize(ringroi_t*, const config_weighted_t*);
+
+/* Do the same as the function above, but use the total RoI energy as its
+   starting point for normalization instead of the layer energy */
+void ring_weighted_all_normalize(ringroi_t*, const config_weighted_t*);
+
+/* This function actually normalizes the ringlayer information. It takes
+   exactly three arguments describing, the ring to normalize (1), the energy
+   that will be used as the basis of normalization (2) and in which ring to
+   stop using the variable normalization scheme, starting to use a constant to
+   normalize each feature. */
+void ringlayer_weighted_normalize(ring_t*, const Energy*, 
+				  const unsigned short*);
 
 /******************/
 /* Implementation */
@@ -170,6 +193,19 @@ unsigned short* string2normalization(unsigned short* to, const char* from)
     (*to) = NORMAL_ALL | NORMAL_UNITYX;
   }
 
+  /* The next two types of are for weighted normalization, where the central
+     ring (or cell) is divided by the segment or all RoI energy (depending on
+     your choice) and the following rings are divided by the segment (or total
+     RoI) energy minus the preceeding ring energies. This assures the the
+     neighbor cells would be boosted compared to the central cell. */
+  else if ( strcasecmp(token,"weighted_segment") == 0 ) {
+    (*to) = NORMAL_WEIGHTED_SEG;
+  }
+
+  else if ( strcasecmp(token,"weighted_all") == 0 ) {
+    (*to) = NORMAL_WEIGHTED_ALL;
+  }
+
   else if ( strcasecmp(token,"none") == 0 ) (*to) = NORMAL_NONE;
   else {
     fprintf(stderr, "(uniform)WARN: valid token? -> %s\n", token);
@@ -200,6 +236,10 @@ char* normalization2string(const unsigned short* from, char* to)
   if (*from & NORMAL_UNITY) ascat(&retval,"Unity modulus ");
   if (*from & NORMAL_UNITYX) 
     ascat(&retval,"Unity modulus (w/ extra variable) ");
+  if (*from & NORMAL_WEIGHTED_SEG) 
+    ascat(&retval,"Weigthed normalization considering segment energy");
+  if (*from & NORMAL_WEIGHTED_ALL)
+    ascat(&retval,"Weigthed normalization considering all RoI energy");
 
   strncpy(to,retval,59);
   free(retval);
@@ -222,13 +262,115 @@ bool_t normal_is_unityx(const unsigned short* flags)
   return FALSE;
 }
 
+/* These next 2 functions test whether we have one of the normalizations
+   described. */
+bool_t normal_is_weighted_seg(const unsigned short* flags)
+{
+  if ( (*flags) & NORMAL_WEIGHTED_SEG ) return TRUE;
+  return FALSE;
+}
+
+bool_t normal_is_weighted_all(const unsigned short* flags)
+{
+  if ( (*flags) & NORMAL_WEIGHTED_ALL ) return TRUE;
+  return FALSE;
+}
+
 /* This function is the frontend to ringroi_t normalization. It will select the
-   correct function call to apply in each occasion or dunno if asked so. */
+   correct function call to apply in each occasion or dunno if asked so. Note
+   that the first argument is mandatory in all situations since the process
+   requires the rings to be there, also the normalization type. The third and
+   fourth parameters are there for some specific methods: 
+   3rd parameter -> UNITY+ normalization, indicating the normalization radius
+   4th parameter -> WEIGTHED normalization, indicating the maximum ring to
+   normalize with changing parameters, meaning the next rings will be
+   normalized according a constant principle. */
 void ring_normalize(ringroi_t* rrp, const unsigned short* flags,
-		    const Energy* radiusp)
+		    const Energy* radiusp, const config_weighted_t* lastfeats)
 {
   if (normal_is_unity(flags)) ring_unity_normalize(rrp);
   else if (normal_is_unityx(flags)) ring_unityx_normalize(rrp, radiusp);
+  else if (normal_is_weighted_seg(flags)) 
+    ring_weighted_seg_normalize(rrp, lastfeats);
+  else if (normal_is_weighted_all(flags))
+    ring_weighted_all_normalize(rrp, lastfeats);
+
+  return;
+}
+
+/* This function will take each segment with no other normalization applied
+   previously and will divide the first feature by all energy on the current
+   segment, the second by all energy minus the first feature and will continue
+   till it reaches the last segment _or_ till reach lastring th. segment. In
+   the case it reaches lastring first, the remaining features will be
+   normalized by the same value of the lastring feature. Note that maximum
+   number for each layer (or segment) is the number of rings on that layer.*/
+void ring_weighted_seg_normalize(ringroi_t* rrp, const config_weighted_t* cw) 
+{
+  int layer; /* iterators */
+  Energy e; /* energy accumulator */
+
+  /* No need to verify cw, since it was verified on startup */
+
+  for (layer=0; layer<rrp->nring; ++layer) {
+    ringlayer_energy(&rrp->ring[layer], &e);
+    ringlayer_weighted_normalize(&rrp->ring[layer], &e, &cw->last2norm[layer]);
+  }
+
+  return;
+}
+
+/* Do the same as the function above, but use the total RoI energy as its
+   starting point for normalization instead of the layer energy */
+void ring_weighted_all_normalize(ringroi_t* rrp, const config_weighted_t* cw) 
+{
+  int layer; /* iterators */
+  Energy e; /* energy accumulator */
+
+  /* No need to verify cw->nlayers , since it was verified on startup */
+  ringroi_energy(rrp, &e);
+
+  for (layer=0; layer<rrp->nring; ++layer) {
+    ringlayer_weighted_normalize(&rrp->ring[layer], &e, &cw->last2norm[layer]);
+  }
+
+  return;
+}
+
+/* This function actually normalizes the ringlayer information. It takes
+   exactly three arguments describing, the ring to normalize (1), the energy
+   that will be used as the basis of normalization (2) and in which ring to
+   stop using the variable normalization scheme, starting to use a constant to
+   normalize each feature. */
+void ringlayer_weighted_normalize(ring_t* rp, const Energy* e, 
+				  const unsigned short* last)
+{
+  int feature; /* iterator */
+  Energy current_norm_factor = *e; /* The value that will be used for the
+				      current feature normalization */
+  Energy new_norm_factor; /* The value to be used to the next feature
+			     normalization */
+  unsigned short last_to_use = *last;
+
+  /* 1. Verify the consistency of *last */
+  if ( last_to_use > rp->nfeat) {
+    /* truncate to the last */
+    last_to_use = rp->nfeat;
+  }
+
+  if ( last_to_use < 1) {
+    fprintf(stderr, "[ringlayer_weighted_normalize] Detected last ring to be less than 1, this I can't do\n");
+    fprintf(stderr,"[ringlayer_weighted_normalize] Review your entries\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* 2. Now do the calculations */
+  for (feature = 0; feature < rp->nfeat; ++feature) {
+    if (feature <= last_to_use) /* In this case we continue to subtract */
+      new_norm_factor = current_norm_factor - rp->feat[feature];
+    rp->feat[feature] /= current_norm_factor;
+    current_norm_factor = new_norm_factor;
+  }
 
   return;
 }
@@ -299,7 +441,6 @@ void ring_unityx_normalize (ringroi_t* rrp, const Energy* radiusp)
   /* And return gracefully */
   return;
 }
-
 
 /* This function calculates the modulus of a vector composed of all elements of
    a ringroi_t. This is, the square root of the sum of squares of the ring
