@@ -2,10 +2,11 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.6 2000/07/12 04:31:45 rabello Exp $ */
+/* $Id: util.c,v 1.7 2000/07/20 00:43:41 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "data.h"
 #include "util.h"
@@ -31,9 +32,9 @@ int fprint_filespec(FILE* in, FILE* out)
 
   fprintf(out, "(util) Using Calorimeter data.\n");
   fprintf(out, "(util) Major version number for Calorimenter is ");
-  fprintf(out, "%ld.\n", version.t2caVersion.major);
+  fprintf(out, "%d.\n", version.t2caVersion.major);
   fprintf(out, "(util) Minor version number for Calorimenter is ");
-  fprintf(out, "%ld.\n", version.t2caVersion.minor);
+  fprintf(out, "%d.\n", version.t2caVersion.minor);
 
   free_VERSION(&version);
 
@@ -53,7 +54,7 @@ EVENT search_event(FILE* in, const long evno)
   /* Read in the designated event (evno) */
   for(itor=1; itor<=evno; ++itor) {
     if(read_EVENT(in,&event) != ERR_SUCCESS) {
-      fprintf(stderr,"(util) No event %d in file.\n", evno);
+      fprintf(stderr,"(util) No event %ld in file.\n", evno);
       exit(EXIT_FAILURE);
     }
 
@@ -84,11 +85,11 @@ EVENT search_event(FILE* in, const long evno)
       }
   }
   else {
-    fprintf(stderr,"(util) WARNING: event %d has NO RoIs.\n", evno);
+    fprintf(stderr,"(util) WARNING: event %ld has NO RoIs.\n", evno);
   }
 
   if (! has_info) {
-    fprintf(stderr,"(util) WARNING: event %d has NO valid data.\n",evno);
+    fprintf(stderr,"(util) WARNING: event %ld has NO valid data.\n",evno);
   }
 
   return event;
@@ -235,7 +236,7 @@ void dump_DIGIS(FILE* fp,const ROI* roi)
     float p  = roi->calDigi.emDigi[i].phi;
     int   id = roi->calDigi.emDigi[i].id;
 
-    fprintf(fp, "%d %e %e %e %ld\n", cr, en, e, p, id);
+    fprintf(fp, "%d %e %e %e %d\n", cr, en, e, p, id);
   }
 
   for(i=0; i<roi->calDigi.nhadDigi; ++i) {
@@ -245,9 +246,37 @@ void dump_DIGIS(FILE* fp,const ROI* roi)
     float p  = roi->calDigi.hadDigi[i].phi;
     int   id = roi->calDigi.hadDigi[i].id;
 
-    fprintf(fp, "%d %e %e %e %ld\n", cr, en, e, p, id);
+    fprintf(fp, "%d %e %e %e %d\n", cr, en, e, p, id);
   }
 
   return;
 }
 
+void fprintf_SNNS_header(FILE* fp, const int pats, const int i, const int o)
+{
+  /* The header is it self simple, but tricky. The date, for instance, should
+     follow a predefined format of 3-chars weekday, space, 3-chars month name,
+     space, 2-digis month day with an extra empty space in case the day starts
+     with 0, space, time in 24-hour format with ':' separating the fields,
+     space and year with 4 digits (tip: this is *EXACTLY* what is returnd by
+     time.h::asctime()) . */
+  time_t current;
+   
+  fprintf(fp, "SNNS pattern definition file V3.2\n");
+  fprintf(fp, "generated at ");
+  
+  /* Now the date, output by the system, with a system call, naturally. Pay
+     attention, asctime already includes a "\n" at the end of the string it
+     returns! */
+  current = time(NULL);
+  fprintf(fp, "%s", asctime( localtime(&current) ) );
+  
+  fprintf(fp, "\n\n");
+  
+  fprintf(fp, "No. of patterns : %d\n", pats);
+  fprintf(fp, "No. of input units : %d\n", i);
+  fprintf(fp, "No. of output units : %d\n", o);
+
+  fprintf(fp, "\n");
+  
+}
