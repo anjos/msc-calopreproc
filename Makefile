@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.7 2000/05/26 18:22:55 rabello Exp $
+# $Id: Makefile,v 1.8 2000/05/31 11:38:37 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -15,9 +15,16 @@ DATASPEC = data # the filename to generate the .h and .c/cc for
 LANG = c # the language that was chosen for the output files
 SED = /bin/sed
 
+### DEPENDENCY MACROS
+
+MKDEP = makedepend
+MKDEPFILE = .depend
+MKDEPFLAGS = -f $(MKDEPFILE)
+
 # 2) for proper C compilation and linking
 CC = gcc
-CFLAGS = -g -I./include -I./dist/spec/include -I./dist/calo/include
+INCLUDE = -I./include -I./dist/spec/include -I./dist/calo/include
+CFLAGS = -g $(INCLUDE)
 LDFLAGS = -L./lib -L./dist/spec/src -L./dist/calo -lcalo -lspec -lm
 SRCDIR = ./src
 SRCFILES = util.c main.c
@@ -29,10 +36,20 @@ OBJS = $(SRCS:%.c=%.o)
 
 all: wrdata
 
-testfile: version $(DATASPEC:%=./src/%.o) ./src/test.o ./src/util.o calo
-	@echo --------------------------
-	@echo 5\) Building executables...
-	@echo --------------------------
+depend: version spec $(DATASPEC:%=./src/%.c)
+	@echo -------------------------
+	@echo Creating dependencies ...
+	@echo -------------------------
+	@echo " "
+	@cd dist/calo; $(MAKE) depend
+	@cd dist/spec/src; $(MAKE) depend
+	@if [ ! -e $(MKDEPFILE) ]; then touch $(MKDEPFILE); fi 
+	$(MKDEP) $(MKDEPFLAGS) $(INCLUDE) $(SRCS) ./src/test.c ./src/data.c
+
+testfile: version spec $(DATASPEC:%=./src/%.o) ./src/test.o ./src/util.o calo
+	@echo -----------------------
+	@echo Building executables...
+	@echo -----------------------
 	@echo " "
 	$(CC) ./src/test.o $(DATASPEC:%=./src/%.o) ./src/util.o $(LDFLAGS) -o $@
 	@echo DONE\!
@@ -40,10 +57,10 @@ testfile: version $(DATASPEC:%=./src/%.o) ./src/test.o ./src/util.o calo
 	@echo In case of doubts\, don\'t push it too far\, e-mail me\:
 	@echo Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 
-wrdata: version $(DATASPEC:%=./src/%.o) $(OBJS) calo
-	@echo --------------------------
-	@echo 5\) Building executables...
-	@echo --------------------------
+wrdata: version spec $(DATASPEC:%=./src/%.o) $(OBJS) calo
+	@echo -----------------------
+	@echo Building executables...
+	@echo -----------------------
 	@echo " "
 	$(CC) $(DATASPEC:%=./src/%.o) $(OBJS) $(LDFLAGS) -o $@
 	@echo DONE\!
@@ -54,38 +71,42 @@ wrdata: version $(DATASPEC:%=./src/%.o) $(OBJS) calo
 calo: $(DATASPEC:%=./src/%.c)
 	@echo DONE\!
 	@echo " "
-	@echo --------------------------------
-	@echo 4\) Compiling the calo library...
-	@echo --------------------------------
+	@echo -----------------------------
+	@echo Compiling the calo library...
+	@echo -----------------------------
 	@cd ./dist/calo; $(MAKE)
 	@echo DONE\!
 	@echo " "
 
 spec:
-	@echo --------------------------------
-	@echo 1\) Compiling the spec library...
-	@echo --------------------------------
+	@echo -----------------------------
+	@echo Compiling the spec library...
+	@echo -----------------------------
 	@echo " "
 	@cd ./dist/spec; $(MAKE)
 	@cd ./dist/spec/src; chmod 755 parser
 	@echo DONE\!
 	@echo " "
 
+# Doing:
+# ./src/data.o: ./src/data.c
 $(DATASPEC:%=./src/%.o): $(DATASPEC:%=./src/%.c)
-	@echo -----------------------------------
-	@echo 3\) Compiling specification files...
-	@echo -----------------------------------
+	@echo --------------------------------
+	@echo Compiling specification files...
+	@echo --------------------------------
 	@echo " "
 	$(CC) $(CFLAGS) -c $< -o $@
 	@echo DONE\!
 	@echo " "
 
-$(DATASPEC:%=./src/%.c): spec $(DATASPEC:%=./src/%.spec)
-	@echo ----------------------------------
-	@echo 2\) Building specification files...
-	@echo ----------------------------------
+# Doing:
+# ./src/data.c: ./src/data.spec
+$(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
+	@echo -------------------------------
+	@echo Building specification files...
+	@echo -------------------------------
 	@echo " "
-	$(GEN) $(DATASPEC:%=./src/%.spec) $(DATASPEC) $(LANG) $(WORKDIR)/dist/spec/src/parser
+	$(GEN) $< $(DATASPEC) $(LANG) $(WORKDIR)/dist/spec/src/parser
 	@mv $(DATASPEC:%=%.h) ./include
 	@mv $(DATASPEC:%=%.c) ./src
 	@echo DONE\!
@@ -94,12 +115,12 @@ $(DATASPEC:%=./src/%.c): spec $(DATASPEC:%=./src/%.spec)
 # The phony targets
 # =================
 
-.PHONY: clean cleanlib cleandoc cleanfig version
+.PHONY: clean cleanlib cleandoc cleanfig version dist sdist
 
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.7 $$' of '$$Date: 2000/05/26 18:22:55 $$'
+	@echo \* -- current version is '$$Revision: 1.8 $$' of '$$Date: 2000/05/31 11:38:37 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
@@ -115,9 +136,10 @@ cleanlib:
 	cd ./dist/calo; $(MAKE) clean
 	cd ./dist/spec; $(MAKE) clean
 
-clean: cleanlib
+clean: cleanlib cleanfig
 	rm -f ./src/*~ ./src/*.o $(DATASPEC:%=./src/%.[co])
 	rm -f ./include/*~ $(DATASPEC:%=./include/%.h) ./*~
+	rm -f $(MKDEPFILE) $(MKDEPFILE:%=%.bak)
 	rm -f wrdata testfile
 
 dist: clean
@@ -128,4 +150,8 @@ sdist: clean
 	@echo \* Creating small name distribution...
 	@cd ..; tar cvf - ufrj | gzip > ufrj.tar.gz
 
+# The dependencies (not obligatory)
+# =================================
+
+sinclude $(MKDEPFILE)
 
