@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2000/04/05 22:14:47 rabello Exp $
+# $Id: Makefile,v 1.4 2000/04/05 22:42:05 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -84,13 +84,12 @@ $(DATASPEC:%=./src/%.o): $(DATASPEC:%=./src/%.c)
 	@echo ----------------------------
 	@echo " "
 
-
 $(DATASPEC:%=./src/%.c): spec $(DATASPEC:%=./src/%.spec)
 	@echo ----------------------------------
 	@echo 2\) Building specification files...
 	@echo ----------------------------------
 	@echo " "
-	$(GEN) $(DATASPEC:%=./src/%.spec) $(DATASPEC) $(LANG) $(WORKDIR)/dist/spec/src/parser;
+	$(GEN) $(DATASPEC:%=./src/%.spec) $(DATASPEC) $(LANG) $(WORKDIR)/dist/spec/src/parser
 	@mv $(DATASPEC:%=%.h) ./include
 	@mv $(DATASPEC:%=%.c) ./src
 	@echo DONE\!
@@ -104,7 +103,7 @@ $(DATASPEC:%=./src/%.c): spec $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.3 $$' of '$$Date: 2000/04/05 22:14:47 $$'
+	@echo \* -- current version is '$$Revision: 1.4 $$' of '$$Date: 2000/04/05 22:42:05 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
