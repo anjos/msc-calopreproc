@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.9 2000/08/27 16:22:34 andre Exp $ */
+/* $Id: util.c,v 1.10 2000/09/06 15:00:52 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -69,7 +69,7 @@ EVENT search_event(FILE* in, const long evno)
       eliminated = TRUE;
     }
 
-  } 
+  }
 
   if (eliminated) fprintf(stderr,"\n");
   fprintf(stderr,"(util) Using event -> %ld\n", itor-1);
