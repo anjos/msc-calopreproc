@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.10 2000/08/16 11:20:59 andre Exp $ */
+/* $Id: main.c,v 1.11 2000/08/17 00:14:48 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,6 +35,9 @@ FILE * open_obstack_stream (struct obstack*);
 #include <mcheck.h>
 #endif
 
+/* The maximum input file name */
+#define MAX_FILENAME 255
+
 typedef enum particle_t {ELECTRON = 0, JET = 1} particle_t;
 
 /* The following type define the parameters for program execution */
@@ -44,9 +47,15 @@ typedef struct pararamter_t
   char* ifbuf; /* The input file buffer */
   FILE* ofp; /* The output file pointer */
   char* ofbuf; /* The output file buffer */
-  char ofname[256]; /* The output file name will be copied into here */
-  char ifname[256]; /* The input file name will be copied into here */
+
+  /* The output file name hint will be copied into here */
+  char ofhint[MAX_FILENAME+1];
+
+  /* The input file name will be copied into here */
+  char ifname[MAX_FILENAME+1]; 
+
   FILE* cfp; /* The file where the config will be stored */
+  FILE* efp; /* The file where the energy data will be stored if asked */
 
   particle_t particle; /* The type of particle present on file */
   unsigned short layer_flags; /* Which layers to process. See uniform.[ch] */
@@ -79,7 +88,7 @@ void print_help_msg (FILE*, const char*);
 void fprintf_progress (FILE*, const bool_t, const int, const int);
 bool_t process_ROI (const ROI*, const parameter_t*);
 void process_EVENT (const EVENT*, const parameter_t*);
-int dump_rings (const tt_roi_t*, const parameter_t*);
+int dump_rings (const uniform_roi_t*, const parameter_t*);
 void dump_config(FILE*, const parameter_t*);
 
 static int _iunits = 0; /* This shall, during execution, be set to the
@@ -105,6 +114,7 @@ int main (int argc, char* argv[])
   params.ofp = stdout; /* by default, dump to screen */
   params.ofbuf = 0;
   params.cfp = stdout; /* by default dump configuration to screen */
+  params.efp = stdout; /* the energy file will be stdout by default */
   params.particle = ELECTRON; /* by default, use electron */
   params.event_no = 0;
   params.roi_no = 0;
@@ -117,6 +127,9 @@ int main (int argc, char* argv[])
   params.verbose = FALSE; /* verbose output? */
   strcpy(params.edump_comment_str, ""); /* by default, nothing is to be printed
 					   before the energy parameters */
+
+  /* The input file hint will be "default" */
+  strncpy(params.ofhint, "default", MAX_FILENAME);
 
   /* Require all layers by default */
   string2layer(&params.layer_flags, "all");
@@ -182,25 +195,26 @@ void process_flags (parameter_t* p, const int argc, char** argv)
   static struct option long_options[] = 
   { 
     /* These options set a flag. */ 
-    {"input-file", 1, 0, 'i'},
-    {"output-file", 1, 0, 'o'},
-    {"config-file", 1, 0, 'c'},
+    {"energy-file", 0, 0, 'a'},
+    {"config-file", 0, 0, 'c'},
+    {"dump", 1, 0, 'd'},
+    {"event-number", 1, 0, 'e'},
+    {"format", 1, 0, 'f'},
     {"dump-energy", 1, 0, 'g'},
     {"help", 0, 0, 'h'},
-    {"event-number", 1, 0, 'e'},
-    {"roi-number", 1, 0, 'r'},
-    {"dump", 1, 0, 'd'},
-    {"format", 1, 0, 'f'},
-    {"particle", 1, 0, 'p'},
+    {"input-file", 1, 0, 'i'},
     {"layer", 1, 0, 'l'},
-    {"select", 1, 0, 's'},
     {"normalization", 1, 0, 'n'},
+    {"output-file", 1, 0, 'o'},
+    {"particle", 1, 0, 'p'},
+    {"roi-number", 1, 0, 'r'},
+    {"select", 1, 0, 's'},
     {"energy-comment", 1, 0, 't'},
     {"verbose", 0, 0, 'v'},
     {0, 0, 0, 0}
   };
   
-  while (EOF != (c=getopt_long(argc, argv, "i:o:c:g:he:r:d:f:p:l:s:n:v", 
+  while (EOF != (c=getopt_long(argc, argv, "i:o:cag:he:r:d:f:p:l:s:n:v", 
 			       long_options, &option_index) ) ) {
     switch (c) {
 
@@ -218,7 +232,7 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 
       /* If opened the input filename, copy the filename to a safe place, so it
 	 can be re-used latter */
-      strcpy(p->ifname,optarg);
+      strncpy(p->ifname,optarg, MAX_FILENAME);
 
       /* get file status, includding optimal buffer block size */
       stat(optarg, &buf);
@@ -321,17 +335,18 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 
     case 'o': { /* output to file 'outfile' */
       struct stat buf;
-      if (NULL==(p->ofp=fopen(optarg,"w"))) {
-	fprintf(stderr, "(main) Can\'t open output file %s\n", optarg);
+      char* temp;
+      strncpy(p->ofhint, optarg, MAX_FILENAME);
+      fprintf(stderr,"(main)WARN: will use hint -> %s\n", p->ofhint);
+      asprintf(&temp, "%s.data", p->ofhint);
+
+      if (NULL==(p->ofp=fopen(temp,"w"))) {
+	fprintf(stderr, "(main) Can\'t open output file %s\n", temp);
 	exit(EXIT_FAILURE);
       }
       
-      /* If opened the output filename, copy the filename to a safe place, so
-	 it can be re-used latter */
-      strcpy(p->ofname, optarg);
-
       /* get file status, includding optimal buffer block size */
-      stat(optarg, &buf);
+      stat(temp, &buf);
       /* set the output file buffer to be optimal, or we'll take longer to 
 	 process the output */
       p->ofbuf = (char*)malloc(buf.st_blksize);
@@ -339,20 +354,61 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 	fprintf(stderr, "(main) Can't create output file buffer\n");
 	exit(EXIT_FAILURE);
       }
-      
+
+      /* Set the energy file to be the same as me */
+      if (p->efp != stdout) {
+	fprintf(stderr, "(main)WARN: had to close energy file. It was not\n");
+	fprintf(stderr, "            coherent with the output file. If you\n");
+	fprintf(stderr, "            want to place energy in a different \n");
+	fprintf(stderr, "            file, put the -a option after the -o\n");
+	fprintf(stderr, "            The energy output will be placed at\n");
+	fprintf(stderr, "            the default output file: %s\n", temp);
+	fclose(p->efp);
+      }
+      p->efp = p->ofp;
+
+      /* set the config file to be stdout if not coherent */
+      if (p->cfp != stdout) {
+	fprintf(stderr, "(main)WARN: had to close config file. It was not\n");
+	fprintf(stderr, "            coherent with the output file. If you\n");
+	fprintf(stderr, "            want to place config in a different \n");
+	fprintf(stderr, "            file, put the -c option after the -o\n");
+	fprintf(stderr, "            The config output will be placed at\n");
+	fprintf(stderr, "            the standart output: stdout\n");
+	fclose(p->cfp);
+	p->cfp = stdout;
+      }
+
+      free(temp);
       break;
     }
 
     case 't': { /* the string to be used when dumping the RoI energy values */
-      strcpy(p->edump_comment_str, optarg);
+      strncpy(p->edump_comment_str, optarg, 4);
       break;
     }
 
-    case 'c': { /* output configuration parameters to file 'configfile' */
-      if (NULL==(p->cfp=fopen(optarg,"w"))) {
-	fprintf(stderr, "(main) Can\'t open config file %s\n", optarg);
+    case 'c': { /* output configuration parameters to file 'config-file' */
+      char* temp;
+      fprintf(stderr,"(main)WARN: using hint -> %s (an error?)\n", p->ofhint);
+      asprintf(&temp, "%s.config",p->ofhint);
+      if (NULL==(p->cfp=fopen(temp,"w"))) {
+	fprintf(stderr, "(main) Can\'t open config file %s\n", temp);
 	exit(EXIT_FAILURE);
       }
+      free(temp);
+      break;
+    }
+
+    case 'a': { /* output energy parameters to file 'energy-file' */
+      char* temp;
+      fprintf(stderr,"(main)WARN: using hint -> %s (an error?)\n", p->ofhint);
+      asprintf(&temp, "%s.energy",p->ofhint);
+      if (NULL==(p->efp=fopen(temp,"w"))) {
+	fprintf(stderr, "(main) Can\'t open energy file %s\n", temp);
+	exit(EXIT_FAILURE);
+      }
+      free(temp);
       break;
     }
 
@@ -442,7 +498,7 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "author: André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>\n");
   fprintf(fp, "usage: %s -i file [-d what] [-f format] [-v]", prog);
   fprintf(fp, " [-n normalization] [-l layer] [-p particle]");
-  fprintf(fp, " [-o file] [-e # -r #] [-g energies] [-t en-string]\n");
+  fprintf(fp, " [-o file] [-ca] [-e # -r #] [-g energies] [-t en-string]\n");
   fprintf(fp, "       %s -h or --help prints this help message.\n", prog);
   fprintf(fp, "[OPTIONS SUMMARY]\n");
 
@@ -452,15 +508,22 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "-v | --verbose\n");
   fprintf(fp, "\t prints more output than be default\n");
 
-  fprintf(fp, "-o file | --output-file=file\n");
-  fprintf(fp, "\t sets the output file name (default is stdout)\n");
-  fprintf(fp, "\t 'file' will be created if doesn't exist or truncated if");
-  fprintf(fp, " it does\n");
+  fprintf(fp, "-o hint | --output-file=hint\n");
+  fprintf(fp, "\t sets the output file name (default is stdout) to\n");
+  fprintf(fp, "\t 'hint.data'. This file will be created if doesn't exist\n");
+  fprintf(fp, "or truncated if it does.\n");
 
-  fprintf(fp, "-c file | --config-file=file\n");
-  fprintf(fp, "\t sets the config file name (default is stdout)\n");
-  fprintf(fp, "\t 'file' will be created if doesn't exist or truncated if");
-  fprintf(fp, " it does\n");
+  fprintf(fp, "-c | --config-file\n");
+  fprintf(fp, "\t Will place the configuration on a file given by the hint\n");
+  fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
+  fprintf(fp, "\t '.config'. This file (with such filename) will be \n");
+  fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
+
+  fprintf(fp, "-a | --energy-file\n");
+  fprintf(fp, "\t Will place the energy events on a file given by the hint\n");
+  fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
+  fprintf(fp, "\t '.energy'. This file (with such filename) will be \n");
+  fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
 
   fprintf(fp, "-e # | --event-number=#\n");
   fprintf(fp, "\t only preprocess event #\n");
@@ -600,42 +663,49 @@ bool_t process_ROI(const ROI* roi, const parameter_t* p)
   }
 
   else { /* Then I have to put all into TT format */
+    uniform_roi_t ur; /* will need this temporary to hold uniformized RoI */
+
     if ( !build_roi(roi, FALSE, &ttroi) ) {
       fprintf(stderr,"\n");
       fprintf(stderr,"(main)ERROR: ROI can't go in tt format. ");
       return (FALSE);
     }
 
-    if (p->dump_rings) dump_rings(&ttroi, p);
+    /* Uniformize, normalize and check for correction */
+    if ( uniformize (&ttroi,&ur,p->layer_flags,p->normalization) != NULL ) {
 
-    else { /* dump preprocessing into raw format */
-      uniform_roi_t ur;
-      if ( uniformize (&ttroi,&ur,p->layer_flags,p->normalization) != NULL ) {
+      /* Do we have to dump digis? If yes, we can't print anything else */
+      if (p->dump_uniform_digis) dump_DIGIS(p->ofp,roi);
 
-	if (p->dump_uniform_digis) dump_DIGIS(p->ofp,roi);
-
-	else { /* print energy info (if needed)+ RoI info */
-	  if ( !p->dump_energy ) {
-	    char* t=get_energy(roi, &ur, p->dump_energy, p->edump_comment_str);
-	    fprintf(p->ofp, "%s\n", t);
-	    free(t);
-	  }
-	  print_uniform_roi (p->ofp,&ur,p->print_flags);
-	  fprintf(p->ofp, "\n"); /* An extra space between outputs */
+      else {
+	/* Do we have to dump energy information? */
+	if ( p->dump_energy ) {
+	  char* t=get_energy(roi, &ur, p->dump_energy, p->edump_comment_str);
+	  fprintf(p->efp, "%s\n", t);
+	  free(t);
 	}
 
-	free_uniform_roi (&ur);
-      }
+	/* Do we have to dump rings or uniform RoIs? */
+	if (p->dump_rings) dump_rings(&ur, p);
 
+	/* To print the uniform RoIs is what is left for us... */
+	else print_uniform_roi (p->ofp,&ur,p->print_flags);
+      }
+	
+      /* An extra space between outputs */
+      fprintf(p->ofp, "\n"); 
+
+      /* free the required resources */
+      free_uniform_roi (&ur);
     }
 
-    /* free all resources */
+    /* free the required resources */
     free_roi(&ttroi);
   }
 
-  /* well if I didn't return anything, I can return 1 */
   return (TRUE);
 }
+
 
 /* Do all event checkings and process the whole event, return the number of
    fields processed per RoI. If the number of fields per RoI is variable, it
@@ -687,15 +757,14 @@ void process_EVENT (const EVENT* ev, const parameter_t* p)
    do it's job. The obstack is passed as an extra paramater and is used to dump
    the contents produced at each iteration. The obstack must be initialized
    previously. */
-int dump_rings (const tt_roi_t* roi, const parameter_t* p)
+int dump_rings (const uniform_roi_t* ur, const parameter_t* p)
 {
   char* dump;
   char* temp;
   ringroi_t ringroi;
 
   /* I have to change the value pointed by rp */
-  ringroi.nring = ring_sum(roi, &ringroi, p->layer_flags, 
-			   p->print_flags, p->normalization);
+  ringroi.nring = ring_sum(ur, &ringroi, p->print_flags);
 
   if (ringroi.nring > 0) {
       ++_nevents;
@@ -746,7 +815,8 @@ void dump_config(FILE* fp, const parameter_t* par)
   fprintf(fp, "-+- CONFIGURATION PARAMETERS\n");
   fprintf(fp, " +- Date: %s", ctime(&current_time));
   fprintf(fp, " +- Input File: %s\n", par->ifname);
-  fprintf(fp, " +- Output File: %s \n", par->ofname);
+  if (par->ofp != stdout) 
+    fprintf(fp, " +- Output File: %s.data \n", par->ofhint);
 
   fprintf(fp, " +- Output Information: ");
   if (par->dump_rings) fprintf(fp, "Rings\n");
@@ -754,6 +824,7 @@ void dump_config(FILE* fp, const parameter_t* par)
   else if (par->dump_digis) fprintf(fp, "Uniform Digis\n");
   else fprintf(fp, "Uniform Rois\n");
 
+  /* The type of dumped information */
   if (! par->dump_digis ) {
     fprintf(fp, " +- Uniformizing Selection: %s\n", 
 	    layer2string(&par->layer_flags,temp));
@@ -765,9 +836,21 @@ void dump_config(FILE* fp, const parameter_t* par)
     }
   }
 
+  /* The energy filename */
+  if (par->efp != stdout) {
+    if (par->efp != par->ofp)
+      fprintf(fp, " +- Energy File: %s.energy \n", par->ofhint);
+    else 
+      fprintf(fp, " +- Energy File: %s.data \n", par->ofhint);
+  }
+
+  /* What types of energy are going to be printed */
   fprintf(fp, " +- Energy printing: %s\n", 
 	  edump2string(&par->dump_energy,temp));
-  fprintf(fp, " +- Energy comment string: %s\n", par->edump_comment_str);
+
+  /* The energy comment string, if it exists */
+  if (strcmp(par->edump_comment_str, "") != 0 )
+    fprintf(fp, " +- Energy comment string: %s\n", par->edump_comment_str);
 
   fprintf(fp, " +- Output Format: ");
   if (par->format_snns) {
