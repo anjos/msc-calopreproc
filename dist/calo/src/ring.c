@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.c,v 1.6 2000/08/17 00:12:26 andre Exp $ */
+/* $Id: ring.c,v 1.7 2000/09/06 14:59:59 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,13 +14,10 @@
 /* Don't know really why to declare this here */
 int asprintf (char**, const char*, ...);
 
-/* I can only accept this types of calorimeter */
-typedef enum ringcalo_t {PS=PSBARRREL, EM=EMBARREL, HAD=TILECAL} ringcalo_t;
-
 int get_max_idx(const CaloLayer*);
 ring_t* ring_sum_around (const CaloLayer*, ring_t*, const int);
 bool_t put_ring(ring_t*, const Energy, int);
-int number_of_features(const ringcalo_t, const LayerLevel level);
+int number_of_features(const section_t, const LayerLevel level);
 
 int fprintf_ring_vector (FILE* fp, const ring_t* rp, const int nring)
 {
@@ -155,7 +152,7 @@ int get_max_idx(const CaloLayer* l)
    features that would exceed the normal number of features are dumped to the
    last features and that layers that do not fulfill the number of features
    required will have the remaining features set to zero. */
-int number_of_features(const ringcalo_t calo, const LayerLevel level)
+int number_of_features(const section_t calo, const LayerLevel level)
 {
   switch(calo) {
   case PS:
