@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.h,v 1.7 2000/09/06 21:17:06 rabello Exp $ */
+/* $Id: ring.h,v 1.8 2000/09/19 00:33:44 andre Exp $ */
 
 #ifndef _RING_H
 #define _RING_H
@@ -40,9 +40,14 @@ typedef struct ringroi_t
    were applied. The ringroi_t.ring pointer will be directed to some space
    containing the extracted rings. The space should not be preallocated, but
    one must free it after usage. The actual space for ringroi_t SHOULD be
-   preallocated. I suggest using static local allocation. */
+   preallocated. I suggest using static local allocation.
+
+   This function will also apply the normalization (if needed) to the newly
+   formed ring structure of values. For that, the last argument should be
+   passed with the value of the maximum radius value for 'unity+'
+   normalization, as describe by the 'normal' module. */
 int ring_sum (const uniform_roi_t*, ringroi_t*, const unsigned short*,
-	      const unsigned short*);
+	      const unsigned short*, const Energy*);
 
 /* This function just frees a ring_t */
 bool_t free_ring (ring_t*);
