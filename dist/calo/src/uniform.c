@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.2 2000/07/12 04:46:02 rabello Exp $ */
+/* $Id: uniform.c,v 1.3 2000/07/20 00:47:30 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -21,6 +21,15 @@ int uniform_contour_err = 0;
 /* In order to make things simpler, I should enumerate a new type that holds
    only 2 sub-types of calorimeters. */
 typedef enum mycalo_t {PS=PSBARRREL, EM=EMBARREL, HAD=TILECAL} mycalo_t;
+
+/* For flag specification */
+typedef enum flag_t {FLAG_PS=0x40, FLAG_EM1=0x20, FLAG_EM2=0x10, FLAG_EM3=0x8, 
+		     FLAG_HAD1=0x4, FLAG_HAD2=0x2, FLAG_HAD3=0x1, 
+		     FLAG_ALL=0x7F} flag_t;
+
+/* For normalization specification */
+typedef enum normal_t {NORMAL_NONE=0x0, NORMAL_ALL=0x1, NORMAL_SECTION=0x2, 
+		       NORMAL_LAYER=0x4} normal_t;
 
 /* The next types are defined for the sake of simplicity */
 typedef CaloTriggerTower emtt_t[EMROIGRAN][EMROIGRAN];
@@ -47,7 +56,11 @@ bool_t uniformize_had_tt(const hadtt_t, CaloLayer*);
 
 void free_had_tt (hadtt_t);
 
-void print_uniform_layer (FILE*, const CaloLayer*);
+int print_uniform_layer (FILE*, const CaloLayer*);
+Energy uniform_layer_energy (const CaloLayer*);
+Energy uniform_roi_energy (const uniform_roi_t*);
+void uniform_roi_normalize (uniform_roi_t*, const Energy);
+void uniform_layer_normalize (CaloLayer*, const Energy);
 
 int search_layer(const CaloTriggerTower*, const mycalo_t, const LayerLevel);
 bool_t is_layer(const CaloLayer*, const mycalo_t, const LayerLevel);
@@ -57,42 +70,46 @@ CaloLayer* copy_layer (CaloLayer*, const CaloLayer*, const size_t);
 bool_t gather_tilecal_layers(hadtt_t);
 bool_t add_equal_layers(CaloLayer*, CaloLayer*);
 
-void print_uniform_roi (FILE* fp, const uniform_roi_t* rp)
+int print_uniform_roi (FILE* fp, const uniform_roi_t* rp)
 {
+  int counter = 0;
   int i;
   
   for (i=0; i< rp->nlayer; ++i)
-    print_uniform_layer(fp, &rp->layer[i]);
+    counter += print_uniform_layer(fp, &rp->layer[i]);
     
-  return;
+  return (counter);
 }
 
 
 /* This function prints the given layer (2nd. argument). The first argument
-   should be a valid FILE*.
+   should be a valid FILE*. It returns the number of printed cells.
  
    The output organization is done using the layer granularity. So, for
    instance, if the layer is 16x16 (phixeta), there will be 16 lines with 16
    numbers each, separated by spaces. If the layer is 10x5, there will be 10
    lines with 5 numbers in each one */
-void print_uniform_layer (FILE* fp, const CaloLayer* lp)
+int print_uniform_layer (FILE* fp, const CaloLayer* lp)
 {
+  int counter = 0;
   int eta,phi;
   int cell_index;
-  
+
   for(phi=0; phi < lp->PhiGran; ++phi) {
     for(eta=0; eta < lp->EtaGran; ++eta) {
       cell_index = eta + phi* lp->EtaGran;
       fprintf(fp, "%e ", lp->cell[cell_index].energy);
+      ++counter;
     }
     fprintf(fp, "\n");
   }
   
-  return;
+  return (counter);
 }
 
-
-uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur)
+uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur, 
+			   const unsigned short flags, 
+			   const unsigned short norm_flags)
 {
   uni_layerinfo_t info;
 
@@ -103,126 +120,294 @@ uniform_roi_t* uniformize (const tt_roi_t* r, uniform_roi_t* ur)
   /***************/
   /* PRESAMPLER  */
   /***************/
-  /* Uniformizes the layer 1 of EM on r -> results to ur. */
-  /* The order is eta and phi granulairity, nphi_per_tt, calo and level */
-  info.granularity.eta = 16;
-  info.granularity.phi = 4;
-  info.nphi_per_tt = 1;
-  info.calorimeter = PS;
-  info.level = 1;
+  if ( (flags & FLAG_PS) != 0 ) {
+    /* Uniformizes the layer 1 of EM on r -> results to ur.  The order is eta
+    and phi granulairity, nphi_per_tt, calo and level */
+    info.granularity.eta = 16;
+    info.granularity.phi = 4;
+    info.nphi_per_tt = 1;
+    info.calorimeter = PS;
+    info.level = 1;
   
-  /* If I can't uniformize this RoI, them I have to count 1 more contour
+    /* If I can't uniformize this RoI, them I have to count 1 more contour
      error and will return 0. */
-  if (!uniformize_layer(r,ur,&info)) {
-    ++uniform_contour_err;
-    return(ur=NULL);
+    if (!uniformize_layer(r,ur,&info)) {
+      ++uniform_contour_err;
+      return(ur=NULL);
+    }
   }
 
   /***************/
   /* EM - FRONT  */
   /***************/
-  /* Uniformizes the layer 1 of EM on r -> results to ur. */
-/*    info.granularity.eta = 128; */
-/*    info.granularity.phi = 4; */
-/*    info.nphi_per_tt = 1; */
-/*    info.calorimeter = EM; */
-/*    info.level = 1; */
+  if ( (flags & FLAG_EM1) != 0 ) {
+    /* Uniformizes the layer 1 of EM on r -> results to ur. */
+    info.granularity.eta = 128;
+    info.granularity.phi = 4;
+    info.nphi_per_tt = 1;
+    info.calorimeter = EM;
+    info.level = 1;
   
-  /* If I can't uniformize this RoI, them I have to count 1 more contour
+    /* If I can't uniformize this RoI, them I have to count 1 more contour
      error and will return 0. */
-/*    if (!uniformize_layer(r,ur,&info)) { */
-/*      ++uniform_contour_err; */
-/*      return(ur=NULL); */
-/*    } */
+    if (!uniformize_layer(r,ur,&info)) {
+      ++uniform_contour_err;
+      return(ur=NULL);
+    }
+  }
 
   /***************/
   /* EM - MIDDLE */
   /***************/
-  /* Uniformizes the layer 2 of EM on r -> results to ur. */
-  info.granularity.eta = 16;
-  info.granularity.phi = 16;
-  info.nphi_per_tt = 4;
-  info.calorimeter = EM;
-  info.level = 2;
+  if ( (flags & FLAG_EM2) != 0 ) {
+    /* Uniformizes the layer 2 of EM on r -> results to ur. */
+    info.granularity.eta = 16;
+    info.granularity.phi = 16;
+    info.nphi_per_tt = 4;
+    info.calorimeter = EM;
+    info.level = 2;
   
-  /* If I can't uniformize this RoI, them I have to count 1 more contour
+    /* If I can't uniformize this RoI, them I have to count 1 more contour
      error and will return 0. */
-  if (!uniformize_layer(r,ur,&info)) {
-    ++uniform_contour_err;
-    return(ur=NULL);
+    if (!uniformize_layer(r,ur,&info)) {
+      ++uniform_contour_err;
+      return(ur=NULL);
+    }
   }
 
   /*************/
   /* EM - BACK */
   /*************/
-  /* Uniformizes the layer 1 of EM on r -> results to ur. */
-/*    info.granularity.eta = 8;   */
-/*    info.granularity.phi = 16;   */
-/*    info.nphi_per_tt = 4; */
-/*    info.calorimeter = EM;   */
-/*    info.level = 3; */
+  if ( (flags & FLAG_EM3) != 0 ) {
+    /* Uniformizes the layer 1 of EM on r -> results to ur. */
+    info.granularity.eta = 8;  
+    info.granularity.phi = 16;  
+    info.nphi_per_tt = 4;
+    info.calorimeter = EM;  
+    info.level = 3;
 
-  /* If I can't uniformize this RoI, them I have to count 1 more contour
+    /* If I can't uniformize this RoI, them I have to count 1 more contour
      error and will return 0. */
-/*    if (!uniformize_layer(r,ur,&info)) { */
-/*      ++uniform_contour_err; */
-/*      return(ur=NULL); */
-/*    } */
+    if (!uniformize_layer(r,ur,&info)) {
+      ++uniform_contour_err;
+      return(ur=NULL);
+    }
+  }
 
   /***************/
   /* HAD - FRONT */
   /***************/
-  /* Uniformizes the layer 1 of HAD on r -> results to ur. */
-  info.granularity.eta = 4;  
-  info.granularity.phi = 4;  
-  info.nphi_per_tt = 1;
-  info.calorimeter = HAD;  
-  info.level = 1;
+  if ( (flags & FLAG_HAD1) != 0 ) {
+    /* Uniformizes the layer 1 of HAD on r -> results to ur. */
+    info.granularity.eta = 4;  
+    info.granularity.phi = 4;  
+    info.nphi_per_tt = 1;
+    info.calorimeter = HAD;  
+    info.level = 1;
 
-  /* If I can't uniformize this RoI, them I have to count 1 more contour
+    /* If I can't uniformize this RoI, them I have to count 1 more contour
      error and will return 0. */
-  if (!uniformize_layer(r,ur,&info)) {
-    ++uniform_contour_err;
-    return(ur=NULL);
+    if (!uniformize_layer(r,ur,&info)) {
+      ++uniform_contour_err;
+      return(ur=NULL);
+    }
   }
 
   /****************/
   /* HAD - MIDDLE */
   /****************/
-  /* Uniformizes the layer 1 of HAD on r -> results to ur. */
-  info.granularity.eta = 4;  
-  info.granularity.phi = 4;  
-  info.nphi_per_tt = 1;
-  info.calorimeter = HAD;  
-  info.level = 2;
+  if ( (flags & FLAG_HAD2) != 0 ) {
+    /* Uniformizes the layer 1 of HAD on r -> results to ur. */
+    info.granularity.eta = 4;  
+    info.granularity.phi = 4;  
+    info.nphi_per_tt = 1;
+    info.calorimeter = HAD;  
+    info.level = 2;
 
-  /* If I can't uniformize this RoI, them I have to count 1 more contour
+    /* If I can't uniformize this RoI, them I have to count 1 more contour
      error and will return 0. */
-  if (!uniformize_layer(r,ur,&info)) {
-    ++uniform_contour_err;
-    return(ur=NULL);
+    if (!uniformize_layer(r,ur,&info)) {
+      ++uniform_contour_err;
+      return(ur=NULL);
+    }
   }
 
   /**************/
   /* HAD - BACK */
   /**************/
-  /* Uniformizes the layer 1 of HAD on r -> results to ur. */
-  info.granularity.eta = 4;
-  info.granularity.phi = 4;  
-  info.nphi_per_tt = 1;
-  info.calorimeter = HAD;
-  info.level = 3;
+  if ( (flags & FLAG_HAD3) != 0 ) {
+    /* Uniformizes the layer 1 of HAD on r -> results to ur. */
+    info.granularity.eta = 4;
+    info.granularity.phi = 4;  
+    info.nphi_per_tt = 1;
+    info.calorimeter = HAD;
+    info.level = 3;
 
-  /* If I can't uniformize this RoI, them I have to count 1 more contour
+    /* If I can't uniformize this RoI, them I have to count 1 more contour
      error and will return 0. */
-  if (!uniformize_layer(r,ur,&info)) {
-    ++uniform_contour_err;
-    return(ur=NULL);
+    if (!uniformize_layer(r,ur,&info)) {
+      ++uniform_contour_err;
+      return(ur=NULL);
+    }
+  }
+
+  /* Now, if necessary, I normalize */
+  if ( (norm_flags & NORMAL_ALL) != 0 ) {
+    Energy etot = uniform_roi_energy(ur);
+    uniform_roi_normalize(ur,etot);
   }
 
   return(ur);
 }
 
+/* This function shall add all energies on a uniform RoI. It returns the result
+   of that summation. */
+Energy uniform_roi_energy (const uniform_roi_t* rp)
+{
+  Energy counter = 0;
+  int i;
+  
+  for (i=0; i< rp->nlayer; ++i)
+    counter += uniform_layer_energy(&rp->layer[i]);
+    
+  return (counter);
+}
+
+/* This function shall add all energies over a layer. It returns the result of
+   that summation. */
+Energy uniform_layer_energy (const CaloLayer* lp)
+{
+  Energy counter = 0;
+  int eta,phi;
+  int cell_index;
+
+  for(phi=0; phi < lp->PhiGran; ++phi)
+    for(eta=0; eta < lp->EtaGran; ++eta) {
+      cell_index = eta + phi* lp->EtaGran;
+      counter += lp->cell[cell_index].energy;
+  }
+
+  return (counter);
+}
+
+/* Just divides all energy values on the pointer to the uniform RoI by the
+   energy value contained in nfactor. OBS: the uniform RoI is changed during
+   this call. */
+void uniform_roi_normalize (uniform_roi_t* rp, const Energy nfactor)
+{
+  int i;
+  for (i=0; i< rp->nlayer; ++i) 
+    uniform_layer_normalize(&rp->layer[i], nfactor);
+  return;
+}
+
+/* Do the same as uniform_roi_normalize(), but on CaloLayers */
+void uniform_layer_normalize (CaloLayer* lp, const Energy nfactor)
+{
+  int eta,phi;
+  int cell_index;
+
+  for(phi=0; phi < lp->PhiGran; ++phi)
+    for(eta=0; eta < lp->EtaGran; ++eta) {
+      cell_index = eta + phi* lp->EtaGran;
+      lp->cell[cell_index].energy /= nfactor;
+  }
+
+  return;
+}
+
+unsigned short* string2layer(unsigned short* to, const char* from)
+{
+  char* token;
+  const char delimiters [] = " ,";
+
+  /* copies the initial string, not to alter it with a strtok() call */
+  char* temp2 = strdup (from);
+  char* temp = temp2;
+
+  /* Well, if you had something coded on to, say goodbye */
+  (*to) = 0;
+
+  if ( temp == NULL ) {
+    fprintf(stderr, "(uniform)ERROR: Can't copy string on string2layer()\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* Now I can use temp normally */
+  while( (token = strtok(temp,delimiters)) != NULL ) {
+    temp = NULL; /* next calls will continue to process temp */
+
+    if ( strcasecmp(token,"ps") == 0 ) (*to) |= FLAG_PS;
+    else if ( strcasecmp(token,"em1") == 0 ) (*to) |= FLAG_EM1;
+    else if ( strcasecmp(token,"em2") == 0 ) (*to) |= FLAG_EM2;
+    else if ( strcasecmp(token,"em3") == 0 ) (*to) |= FLAG_EM3;
+    else if ( strcasecmp(token,"had1") == 0 ) (*to) |= FLAG_HAD1;
+    else if ( strcasecmp(token,"had2") == 0 ) (*to) |= FLAG_HAD2;
+    else if ( strcasecmp(token,"had3") == 0 ) (*to) |= FLAG_HAD3;
+    else if ( strcasecmp(token,"all") == 0 ) { 
+      (*to) = FLAG_ALL;
+      break;
+    }
+    else fprintf(stderr, "(uniform)WARN: valid token? -> %s\n", token);
+  }
+  
+  /* Can't forget to free the space I've allocated... */
+  free(temp2);
+
+  return (to);
+}
+
+/* Although simple, its hacked for future upgrades. */
+unsigned short* string2normalization(unsigned short* to, const char* from)
+{
+  char* token;
+  char* token2;
+  const char delimiters [] = " ,";
+
+  /* copies the initial string, not to alter it with a strtok() call */
+  char* temp = strdup (from);
+
+  /* Well, if you had something coded on to, say goodbye */
+  (*to) = 0;
+
+  if ( temp == NULL ) {
+    fprintf(stderr, "(uniform)ERROR: Can't copy string on");
+    fprintf(stderr, "string2normalization()\n");
+    exit(EXIT_FAILURE);
+  }
+
+  token = strtok(temp,delimiters);
+
+  if ( strcasecmp(token,"all") == 0 ) (*to) = NORMAL_ALL;
+  else if ( strcasecmp(token,"layer") == 0 ) { /* (*to)=NORMAL_LAYER; */
+    fprintf(stderr, "(uniform)WARN: layer normalization not implemented\n");
+    fprintf(stderr, "(uniform)WARN: switching to all\n");
+    (*to) = NORMAL_ALL;
+  }
+  else if ( strcasecmp(token,"section") == 0 )  { /* (*to)=NORMAL_SECTION; */
+    fprintf(stderr, "(uniform)WARN: section normalization not ");
+    fprintf(stderr, "implemented\n");
+    fprintf(stderr, "(uniform)WARN: switching to all\n");
+    (*to) = NORMAL_ALL;
+  }
+  else if ( strcasecmp(token,"none") == 0 ) (*to) = NORMAL_NONE;
+  else {
+    fprintf(stderr, "(uniform)WARN: valid token? -> %s\n", token);
+    fprintf(stderr, "(uniform)WARN: switching to no normalization\n");
+    (*to) = NORMAL_NONE;
+  }
+  
+  /* Can't forget to free the space I've allocated... */
+  free(temp);
+
+  if ( (token2 = strtok(NULL,delimiters)) != NULL) {
+    fprintf(stderr, "(uniform)WARN: Can't have 2 normalization strategies");
+    fprintf(stderr, "for a single run\n");
+    fprintf(stderr, "(uniform)WARN: I'll use the first (%s)\n", token);
+  }
+
+  return (to);
+}
 
 /* It should check whether the RoI has an uniform granularity over the proposed
    range and them place the cells apropriately. This function should be a
@@ -417,9 +602,12 @@ void free_had_tt (hadtt_t tt)
   int layer;
   
   for (p=0; p<HadRoIGran; ++p)
-    for (e=0; e<HadRoIGran; ++e)
-      for(layer = 0; layer < tt[p][e].NoOfLayers; layer++)
+    for (e=0; e<HadRoIGran; ++e) {
+      for(layer = 0; layer < tt[p][e].NoOfLayers; ++layer)
 	free_layer(&tt[p][e].layer[layer]);
+      free(tt[p][e].layer);
+    }
+  
 }
 
 /* Given some properties, one can find out if there's a layer at one trigger
