@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.h,v 1.9 2000/10/23 02:24:30 andre Exp $ */
+/* $Id: ring.h,v 1.10 2001/01/30 16:34:34 andre Exp $ */
 
 #ifndef _RING_H
 #define _RING_H
@@ -28,8 +28,7 @@ typedef struct ringroi_t
    normalized using a constant factor. As stated by Igor's work. This has to be
    public, so the user can use it for configuration purposes. I had to put this
    thing over here, so both ring.c and normal.h can use it... No other way */
-typedef struct config_weighted_t
-{
+typedef struct config_weighted_t {
   unsigned short nlayers;
   unsigned short* last2norm;
 }config_weighted_t;

@@ -10,11 +10,10 @@
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.11 2000/12/20 08:17:00 andre Exp $ */
+/* $Id: energy.c,v 1.12 2001/01/30 16:34:34 andre Exp $ */
 
 /* Some prototypes used here on */
 Energy* energy_from_all_digis(const ROI*, Energy*);
-Energy* uniform_layer_energy (const CaloLayer*, Energy*);
 void uniform_roi_classics(const ROI*, const uniform_roi_t*, char**);
 
 /* Functions for classical feature extraction */

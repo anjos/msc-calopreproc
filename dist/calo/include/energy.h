@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: energy.h,v 1.5 2000/09/06 21:16:21 rabello Exp $ */
+/* $Id: energy.h,v 1.6 2001/01/30 16:34:34 andre Exp $ */
 
 #ifndef _ENERGY_H
 #define _ENERGY_H
@@ -79,10 +79,13 @@ char* edump2string (const unsigned short*, char*);
    all cells on the RoI with no EM/HAD distinction. Hipothetically, the sum of
    the last two, should be the return value of the first, but you can think the
    implementation of uniform_roi_energy() as a debugging parameter for the sum
-   of the other two. */
+   of the other two. The last function will evaluate only the layer
+   energy. This one is actually used by uniform_roi_energy() to compute the
+   total uniform_roi_t energy. */
 Energy* uniform_roi_energy (const uniform_roi_t*, Energy*);
 Energy* uniform_roi_EM_energy (const uniform_roi_t*, Energy*);
 Energy* uniform_roi_HAD_energy (const uniform_roi_t*, Energy*);
+Energy* uniform_layer_energy (const CaloLayer*, Energy*);
 
 #endif /* _ENERGY_H */
 

@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: normal.c,v 1.5 2000/10/23 02:24:58 andre Exp $ */
+/* $Id: normal.c,v 1.6 2001/01/30 16:34:34 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -96,11 +96,33 @@ void ringlayer_weighted_normalize(ring_t*, const Energy*,
    is demanded. */
 void uniform_roi_normalize (uniform_roi_t* rp, const unsigned short* flags)
 {
+  register int i; /* iterator */
+
   /* If necessary, I normalize using ETOT */
   if ( (*flags) & NORMAL_ALL ) {
     Energy etot;
     uniform_roi_energy(rp, &etot);
     uniform_roi_scale(rp, &etot);
+  }
+
+  if ( (*flags) & NORMAL_LAYER) {
+    Energy elayer;
+    for(i=0; i<rp->nlayer; ++i) {
+      uniform_layer_energy(&rp->layer[i], &elayer);
+      uniform_layer_scale(&rp->layer[i], &elayer);
+    }
+  }
+
+  if ( (*flags) & NORMAL_SECTION) {
+    Energy em, had;
+    uniform_roi_EM_energy(rp, &em);
+    uniform_roi_HAD_energy(rp, &had);
+    for(i=0; i<rp->nlayer; ++i) {
+      if (rp->layer[i].calo == EM || rp->layer[i].calo == PS)
+	uniform_layer_scale(&rp->layer[i], &em);
+      else
+	uniform_layer_scale(&rp->layer[i], &had);
+    }
   }
 
   return;
@@ -157,19 +179,8 @@ unsigned short* string2normalization(unsigned short* to, const char* from)
   token = strtok(temp,delimiters);
 
   if ( strcasecmp(token,"all") == 0 ) (*to) = NORMAL_ALL;
-
-  else if ( strcasecmp(token,"layer") == 0 ) { /* (*to)=NORMAL_LAYER; */
-    fprintf(stderr, "(uniform)WARN: layer normalization not implemented\n");
-    fprintf(stderr, "(uniform)WARN: switching to all\n");
-    (*to) = NORMAL_ALL;
-  }
-
-  else if ( strcasecmp(token,"section") == 0 )  { /* (*to)=NORMAL_SECTION; */
-    fprintf(stderr, "(uniform)WARN: section normalization not ");
-    fprintf(stderr, "implemented\n");
-    fprintf(stderr, "(uniform)WARN: switching to all\n");
-    (*to) = NORMAL_ALL;
-  }
+  else if ( strcasecmp(token,"layer") == 0 ) (*to)=NORMAL_LAYER;
+  else if ( strcasecmp(token,"section") == 0 )  (*to)=NORMAL_SECTION;
 
   /* When normalizing for unity modulus, we have to preprocess using etot
      normalization and after that, proceed to find the modulus and divide all
