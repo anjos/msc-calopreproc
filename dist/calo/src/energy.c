@@ -10,7 +10,7 @@
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.7 2000/11/28 21:03:11 rabello Exp $ */
+/* $Id: energy.c,v 1.8 2000/11/30 10:31:30 rabello Exp $ */
 
 /* Some prototypes used here on */
 Energy* energy_from_all_digis(const ROI*, Energy*);
@@ -233,7 +233,7 @@ bool_t validate_energy_selection(const unsigned short* layer_flags,
     }
 
   if (*energy_flags & EDUMP_CLASSICS)
-    if ( (*layer_flags) & FLAG_ALL) {
+    if ( ~(*layer_flags) & FLAG_ALL) {
       fprintf(stderr, "(energy) You can't demand classical features ");
       fprintf(stderr, "extraction if you did not selected PS, EM1-3, ");
       fprintf(stderr, "HAD1-3\n");
