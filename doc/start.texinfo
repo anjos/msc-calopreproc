@@ -1,7 +1,7 @@
 @node Examplified application
 @chapter The @code{preproc} Program
 
-@c $Id: start.texinfo,v 1.3 2000/11/07 16:29:10 rabello Exp $
+@c $Id: start.texinfo,v 1.4 2000/11/25 19:35:40 andre Exp $
 
 @ifnottex
 
@@ -285,16 +285,17 @@ followed by commas:
 
 @table @code
 @item db_et
-dump the value of transverse energy as it be detected by L2.
+dump the value of transverse energy as was detected by L2. This value is not
+the linear sum of cell energies since some correction is applied.
 
-@item db_et 
-dump the value of transverse energy as it be detected by L2 over the
+@item db_ethad
+dump the value of transverse energy as was detected by L2 over the
 hadronic section.
 
 @item db_t1et 
 L1 energy threshold.
 
-@item roi_et 
+@item roi_et
 The total energy calculated by the point of view the selected layers of
 the uniform RoI.
 
@@ -310,13 +311,22 @@ layers of the uniform RoI.
 The total energy found summing all digis on a RoI without any
 preprocessing.
 
+@item classics
+This will dump the classical quantities for E/Jet separation, as described by
+the @uref{http://www.cern.ch/, Trigger Performance Documentation}. They are
+basically the first 2 quantities described on this listing plus Rcore
+and Rstrip which describe lateral shape containment and the early shower
+development respectively. The cuts are applied according to this
+implicit order. In other words, cuts are applied on the following order:
+Et, Ethad, Rcore and Rstrip.
+
 @item all 
 Print all information described above. This is the default behaviour.
 
 @item none
 Unselect any previous selections, clearing the energy output. If this
 item is selected, nothing should be printed, unless it is overwritten by
-a following option.
+a following description.
 
 @end table
 
