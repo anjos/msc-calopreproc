@@ -2,13 +2,14 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.1.1.1 2000/03/13 21:03:42 rabello Exp $ */
+/* $Id: util.c,v 1.2 2000/05/22 18:46:00 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "data.h"
 #include "util.h"
+#include "common.h"
 #include <math.h> 
 
 double fabs(double x);
@@ -28,10 +29,10 @@ int fprint_filespec(FILE* in, FILE* out)
     exit(EXIT_FAILURE);
   }
 
-  fprintf(out, "(main) Using Calorimeter data.\n");
-  fprintf(out, "(main) Major version number for Calorimenter is ");
+  fprintf(out, "(util) Using Calorimeter data.\n");
+  fprintf(out, "(util) Major version number for Calorimenter is ");
   fprintf(out, "%ld.\n", version.t2caVersion.major);
-  fprintf(out, "(main) Minor version number for Calorimenter is ");
+  fprintf(out, "(util) Minor version number for Calorimenter is ");
   fprintf(out, "%ld.\n", version.t2caVersion.minor);
 
   free_VERSION(&version);
@@ -42,22 +43,41 @@ int fprint_filespec(FILE* in, FILE* out)
 EVENT search_event(FILE* in, const long evno)
 {
   long itor;
+  int has_info;
   EVENT event;
 
   waste_initial_info(in);
 
+  /* Read in the designated event (evno) */
   for(itor=1; itor<=evno; ++itor) {
     if(read_EVENT(in,&event) != ERR_SUCCESS) {
-      fprintf(stderr,"(main) No event %d in file.\n", evno);
+      fprintf(stderr,"(util) No event %d in file.\n", evno);
       exit(EXIT_FAILURE);
     }
     if (itor < evno) free_EVENT(&event); /* I don't need this particular
 					    event, I can clear it then. */
-    else break;
+  }
+
+  /* Look into event and find out if it has or has not valid calo information
+   */ 
+  if(event.nroi > 0) {
+    int i;
+    for(i=0; i<event.nroi; ++i)
+      if(event.roi[i].calDigi.nEmDigi > 0 || \
+	 event.roi[i].calDigi.nhadDigi > 0) {
+	has_info = TRUE;
+      }
+  }
+  else {
+    fprintf(stderr,"(util) WARNING: event %d has NO RoIs.\n", evno);
+  }
+
+  if (! has_info) {
+    fprintf(stderr,"(util) WARNING: event %d has NO valid data.\n",evno);
   }
 
   return event;
-}
+} 
 
 long to_valid_long(const char* str)
 {
@@ -68,7 +88,7 @@ long to_valid_long(const char* str)
 
   number = strtol(str,invalid_number,10);
   if (**invalid_number != '\0') {
-    fprintf(stderr,"(main) -%s- is not a valid integer.\n", str);
+    fprintf(stderr,"(util) -%s- is not a valid integer.\n", str);
     exit(EXIT_FAILURE);
   }
 
@@ -84,7 +104,7 @@ double to_valid_double(const char* str)
 
   number = strtod(str,invalid_number);
   if (**invalid_number != '\0') {
-    fprintf(stderr,"(main) -%s- is not a valid float.\n", str);
+    fprintf(stderr,"(util) -%s- is not a valid float.\n", str);
     exit(EXIT_FAILURE);
   }
 
