@@ -5,7 +5,7 @@
    CaloDigi's that may be present in the file. The building of this file is
    accomplished by make (1).  */
 
-/* $Id: main.c,v 1.15 2000/08/27 16:24:19 andre Exp $ */
+/* $Id: main.c,v 1.16 2000/08/29 20:47:37 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,6 +43,7 @@ static int event_counter = 0;
 
 int main (int argc, char* argv[])
 {
+  /* parameters to the main routine */
   parameter_t params;
 
   EVENT event;
@@ -63,7 +64,7 @@ int main (int argc, char* argv[])
     process_EVENT(&event, &params);
     free_EVENT(&event);
   }
-  
+
   else {
     waste_initial_info(params.ifp);
     fprintf_progress(stderr, params.verbose);
@@ -147,7 +148,7 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
 	     dumped_events);
     
     /* put string to final destination */
-    output_string(p->evfp, &p->eventno_obs, p->run_fast, info);
+    output_string(p->evfp, p->eventno_obsp, p->run_fast, info);
     
     /* clear the output string */
     free(info);
@@ -158,7 +159,7 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
     info = get_DIGIS(roi);
 
     /* Put the string into memory pool or file */
-    output_string(p->ofp, &p->output_obs, p->run_fast, info);
+    output_string(p->ofp, p->output_obsp, p->run_fast, info);
     
     /* Free the allocated space */
     free(info);
@@ -183,7 +184,7 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
 	info = get_energy(roi, &ur, p->dump_energy, p->edump_comment_str);
 
 	/* Put the string into memory pool or file */
-	output_string(p->efp, &p->energy_obs, p->run_fast, info);
+	output_string(p->efp, p->energy_obsp, p->run_fast, info);
     
 	/* Free the allocated space */
 	free(info);
@@ -194,7 +195,7 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
 	info = get_DIGIS(roi);
 
 	/* Put the string into memory pool or file */
-	output_string(p->ofp, &p->output_obs, p->run_fast, info);
+	output_string(p->ofp, p->output_obsp, p->run_fast, info);
     
 	/* Free the allocated space */
 	free(info);
@@ -207,7 +208,7 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
 	/* To print the uniform RoIs is what is left for us... */
 	else {
 	  info = get_uniform_roi (&ur,p->print_flags);
-	  output_string(p->ofp, &p->output_obs, p->run_fast, info);
+	  output_string(p->ofp, p->output_obsp, p->run_fast, info);
 	  free(info);
 	}
       }
@@ -215,7 +216,7 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
       /* An extra space between outputs */
       {
 	char space[] = "\n";
-	output_string(p->ofp, &p->output_obs, p->run_fast, space);
+	output_string(p->ofp, p->output_obsp, p->run_fast, space);
       }
 
       /* free the required resources */
@@ -319,11 +320,11 @@ int dump_rings (const uniform_roi_t* ur, parameter_t* p)
       /* If this is the first print out, include the header */
       if (dumped_events == 1 && p->format_snns) {
 	char* t = get_SNNS_header(1, _iunits, 1);
-	output_string(p->ofp, &p->output_obs, p->run_fast, t);
+	output_string(p->ofp, p->output_obsp, p->run_fast, t);
 	free(t);
       }
 
-      output_string(p->ofp, &p->output_obs, p->run_fast, dump);
+      output_string(p->ofp, p->output_obsp, p->run_fast, dump);
 
       free_ring_vector(ringroi.ring, ringroi.nring);
       free(dump); /* the information to print */
