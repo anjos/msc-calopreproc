@@ -1,3 +1,5 @@
+/* $Id: portable.h,v 1.3 2000/04/06 00:43:58 rabello Exp $ */
+
 #ifndef PORTABLE_H
 #define PORTABLE_H
 
