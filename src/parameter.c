@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.5 2000/09/06 21:15:05 rabello Exp $ */
+/* $Id: parameter.c,v 1.6 2000/09/11 14:28:29 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -519,6 +519,13 @@ void test_flags (parameter_t* p)
     string2layer(&p->layer_flags, "none");
   }
 
+  /* No sense in unity-normalization without ring output */
+  if ( normal_is_unit(&p->normalization) && !p->dump_rings ) {
+    fprintf(stderr, "(param)ERROR: Can't use UNITY normalization and *not* ");
+    fprintf(stderr, "dump rings.\n");
+    exit(EXIT_FAILURE);
+  }
+
   /* No sense in print energy values that are NOT uniformized */
   if ( validate_energy_selection(&p->layer_flags, &p->dump_energy) == FALSE ) {
     fprintf(stderr, "(param)ERROR: Can't continue. Will abort\n");
@@ -553,25 +560,25 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t or truncated if it does. This option also indicates that\n");
   fprintf(fp, "the output \n");
 
-  fprintf(fp, "-c | --config-file\n");
+  fprintf(fp, "--config-file\n");
   fprintf(fp, "\t Will place the configuration on a file given by the hint\n");
   fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
   fprintf(fp, "\t '.config'. This file (with such filename) will be \n");
   fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
 
-  fprintf(fp, "-a | --energy-file\n");
+  fprintf(fp, "--energy-file\n");
   fprintf(fp, "\t Will place the energy events on a file given by the hint\n");
   fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
   fprintf(fp, "\t '.energy'. This file (with such filename) will be \n");
   fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
 
-  fprintf(fp, "-j | --eventno-file\n");
+  fprintf(fp, "--eventno-file\n");
   fprintf(fp, "\t Will place the event numbers on a file given by the hint\n");
   fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
   fprintf(fp, "\t '.eventno'. This file (with such filename) will be \n");
   fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
 
-  fprintf(fp, "-b | --dump-eventno\n");
+  fprintf(fp, "--dump-eventno\n");
   fprintf(fp, "\t Will dump event numbers in the output file if this flag\n");
   fprintf(fp, "\t is given.\n");
 
@@ -678,7 +685,7 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t             use this option in conjunction with -d rings\n");
   fprintf(fp, "\t   none    - no normalization at all (default)\n");
 
-  fprintf(fp, "-u | --fast-output\n");
+  fprintf(fp, "--fast-output\n");
   fprintf(fp, "\t when this option is activated, the output for each\n");
   fprintf(fp, "\t event will happen to a memory bank instead of \n");
   fprintf(fp, "\t direct access to a file. This will save access time\n");
