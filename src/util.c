@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.2 2000/05/22 18:46:00 rabello Exp $ */
+/* $Id: util.c,v 1.3 2000/05/22 20:34:37 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,7 +46,7 @@ EVENT search_event(FILE* in, const long evno)
   int has_info;
   EVENT event;
 
-  waste_initial_info(in);
+  /* waste_initial_info(in); */
 
   /* Read in the designated event (evno) */
   for(itor=1; itor<=evno; ++itor) {
@@ -59,7 +59,7 @@ EVENT search_event(FILE* in, const long evno)
   }
 
   /* Look into event and find out if it has or has not valid calo information
-   */ 
+   */
   if(event.nroi > 0) {
     int i;
     for(i=0; i<event.nroi; ++i)
@@ -77,7 +77,7 @@ EVENT search_event(FILE* in, const long evno)
   }
 
   return event;
-} 
+}
 
 long to_valid_long(const char* str)
 {
