@@ -1,7 +1,7 @@
 @node Introduction
 @chapter Introduction
 
-@c $Id: intro.texinfo,v 1.1 2000/09/11 13:56:54 andre Exp $
+@c $Id: intro.texinfo,v 1.2 2000/11/07 16:30:23 rabello Exp $
 
 @ifnottex
 This node gives an introduction over the package capabilities.
@@ -53,7 +53,7 @@ The user is not only encouraged to use the test programs included within
 the package, but also to develop new applications that extend or use the
 tools proposed on this package. Critics and suggestions are
 welcome. Please, don't be hesitate to e-mail me at
-@uref{mailto:Andre.Rabello@@ufrj.br, my work place}.
+@email{Andre.Rabello@@ufrj.br}.
 
 @node More information
 @section Where can I get more information
@@ -69,7 +69,7 @@ You can find the latest version of these libraries at my web site. For
 now, I only have CVS access through the web for viewing, but a solution
 may be thought of and package availability should be ok sometime in a
 near future. Till there you can request me the latest version of the
-package at @uref{mailto:Andre.Rabello@@ufrj.br}. In order to access the
+package at @email{Andre.Rabello@@ufrj.br}. In order to access the
 web repository, you can point your browser to
 @uref{http://www.lps.ufrj.br/~rabello/cgi-bin/cvsweb, my CVS Web
 interface}.
