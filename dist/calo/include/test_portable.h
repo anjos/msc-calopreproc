@@ -1,7 +1,7 @@
 /* hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: test_portable.h,v 1.1 2000/05/26 17:22:04 rabello Exp $ */
+/* $Id: test_portable.h,v 1.2 2000/05/31 13:47:40 rabello Exp $ */
 
 /* A doorkeeper for this header */
 #ifndef __TEST_PORTABLE_H
@@ -45,6 +45,13 @@ bool_t check_int (FILE*, const int, const int, const char*);
    floats are different and TRUE if the they are the equal. The fourth
    parameter is "what is being checked. */
 bool_t check_float (FILE*, const float, const float, const char*);
+
+/* This functions checks doubles that should be equal at the third and second
+   argument. In the case they are not close enough, a message is reported to
+   the file pointed by "of", the first argument. It should return FALSE if the
+   floats are different and TRUE if the they are the equal. The fourth
+   parameter is "what is being checked. */
+bool_t check_double (FILE*, const double, const double, const char*);
 
 /* This function checks the EM digi variables against the values decoded by
    portable.h::DecodeId(). The digis carry some decodification check values,
