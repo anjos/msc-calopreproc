@@ -1,0 +1,56 @@
+\input texinfo @c -*- texinfo -*-
+@c %**start of header
+@setfilename calo-preproc.info
+@settitle Calorimeter Preprocessing Package
+@c %**end of header
+
+@c $Id: userman.texinfo,v 1.1 2000/09/11 13:56:54 andre Exp $
+
+@c This texinfo file is part of the calo-preproc package and it aims to
+@c describe the various features of this preprocessing package.
+
+@titlepage
+@title The Calorimeter Preprocessing Package
+@subtitle Version 0.3 of @today
+@author Andr@'e Rabello dos Anjos
+@end titlepage
+
+@c the style I'm using
+@paragraphindent 2
+
+@c -----------------------------
+@c Now, we start the 'top node'
+@c -----------------------------
+
+@ifnottex
+
+@node Top
+@top Calo-preproc
+
+The Calorimeter Preprocessing Package is a set of functions written in C
+that can ease the manipulation of ASCII data files from ATLAS L2
+simulations originally written in CWN-tuples (with HBOOK). This manual
+applies to version 0.3 of the calo-preproc package.
+
+@menu
+
+* Introduction::            A short presentation over the package capabilities
+* Examplified application:: This is the description of an application designed
+                            using the library facilities. 
+* Facilities::              What you can use from the library
+
+@end menu
+
+@end ifnottex
+
+@include intro.texinfo
+@include start.texinfo
+@include facilities.texinfo
+
+@bye
+
+
+
+
+
+

@@ -1,0 +1,14 @@
+@node Facilities
+@chapter The library facilities
+
+@c $Id: facilities.texinfo,v 1.1 2000/09/11 13:56:54 andre Exp $
+
+@ifnottex
+
+This node describes the library features and how to interact with them
+
+@end ifnottex
+
+THIS MESSAGE WILL DISAPPER WHEN THIS NODE IS REVISED.
+
+

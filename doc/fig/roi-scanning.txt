@@ -1,0 +1,6 @@
+[NO IMAGE AVAILABLE]
+
+Note: You're probably trying to see an image within an info 
+file. This is *not* possible. If you'd like to have the image
+and/or print it, please look for the dvi or html version of
+this manual.

@@ -1,0 +1,458 @@
+@node Examplified application
+@chapter The @code{preproc} Program
+
+@c $Id: start.texinfo,v 1.1 2000/09/11 13:56:54 andre Exp $
+
+@ifnottex
+
+This node describes the usage of @code{preproc}, an application created
+using the calorimeter and the spec library. This application fully uses
+the resources from the calorimeter library and could be used as a
+starting point for library understanding and analysis by a developer.
+
+@menu
+
+* Needs:: Describes what the application is needed for
+* Usage:: How to use the application, command line flags and others
+@c * Example: example. Describes an sample session using @code{preproc}
+
+@end menu
+
+@end ifnottex
+
+@node Needs
+@section What @code{preproc} is needed for
+
+At the (true) @dfn{Second Level Trigger, L2}, it's assumed that feature
+extractors and local decision units are to be sit waiting for
+L1 triggers to arrive. When this happen, such L2 units should poll for
+data on @dfn{Read-Out Buffer, ROB} and wait for their reply. While
+waiting, preprocessing units (possibly coupled to these L2 units) should
+take care of data preprocessing. Such work includes data organization
+and verification.
+
+While extracting the calorimeter data from the ASCII files, the user
+simulates the preprocessing units on L2 Trigger. Usually the user do not
+only want to dump the data into another file, but to analyze it through
+some specialized applications like energy adders or AI algorithms,
+histogramming and others. This analysis, in most cases, simulates L2
+feature extraction and local decisions.
+
+Some preprocessing on ROB data is almost always required when running a
+simulation (using files) or at the real final situation, since the
+calorimeter data arrive at the processing unit in a very @emph{raw}
+state of organization. With @emph{raw} state of organization, we mean:
+
+@itemize @bullet
+@item
+Cells may be missing for RoI completion. On that case, the processing
+application should be aware to implement pseudo-data completion if
+needed. This situation can happen if a ROB is @dfn{dead} or if it takes
+to long to answer to a data request.
+
+@item
+Cells may be duplicated. On that case, the preprocessing algorithm
+should be able to identify those cells and eliminate them from the final
+data set;
+
+@item
+Cells may overlap with other cells. On that case, the preprocessing
+should define a policy for the treatment of this data.
+
+@item
+Cells would be sent from the ROBs in @strong{any} order. This can happen
+since different ROBs can have a different number of requests to
+attend. For that, the preprocessing algorithm should wait a predefined
+
+@item
+Cells may not belong to the current RoI being processed. This can happen
+since it is @strong{not} defined if data from ROBs are sent as a whole
+or some data separation will be performed there. If not, this job has to
+be carried out by the data preprocessor on L2, meaning that the RoI have
+to be extracted from within the data sent by the ROBs.
+
+@end itemize
+
+In other situations we may consider to apply organized data to applications
+which may eventually not be considered for the final L2 Trigger, but
+demand some data arrangement. The @code{preproc} can also be suited to
+these situations. Actually, it can be adapted to any output formatting.
+
+You may regard the @code{preproc} application as an example application
+or event a to-be-extended application to suit your needs.
+
+@display
+
+@strong{Note:} The @code{preproc} is only suited for preprocessing of
+calorimeter data, usually known as @dfn{Digis}.
+
+@end display
+
+@node Usage
+@section How to use @code{preproc}
+
+Although @code{preproc} is a powerful tool for preprocessing calorimeter
+data, without most its command line options, its usefulness is
+limited. The power of @code{preproc} comes when the user fully utilizes
+its flags. Some options can't be used by themselves, but the user
+shouldn't bother with that, since mechanisms to prevent incorrect
+selection of options is present on @code{preproc}'s code.
+
+The @code{preproc} application accepts two different types of command
+options: `@minus{}' (@dfn{dashed}) and `@minus{}@minus{}'
+(@dfn{double-dashed}) which preceeds 1-character or long-option strings
+respectively. Some of the command line options are available using the
+1-character and long-option format and others only on long-option
+format.
+
+@subheading Command-line Options for @code{preproc}
+
+Options on this table are organized by their specific group of action.
+
+@table @code
+
+@item -i filename
+@itemx --input-file=filename
+The user must supply @emph{at least} the input filename so the
+application can read in the RoI digis. There's @strong{no} default on
+the input filename and not giving this options is considered an error by
+the application.
+
+@item -o file-suffix
+@itemx --output-file=file-suffix
+If this option is supplied, the output files will be suffixed by the
+string given as argument. This option is @strong{no} not mandatory. The
+default is to dump all output to the screen (@file{stderr}). If this
+option is given, the default output file will be @file{suffix.data}.
+
+@itemx --config-file
+If this option is given, the configuration, which is dumped to the
+screen by default, is dumped to the configuration file named
+@file{suffix.config}.
+
+@itemx --dump-eventno
+This option controls the dumping of event numbers. If this option is
+given, the program will dump 2 numbers preceeding each event on the
+default output. The first number represents the RoI position within the
+input file and the second, thet RoI position within the output
+file. Both numbers are @strong{not} the same usually, since the
+preprocessing mechanisms implemented may cut some RoIs from output when
+not attending some conditions (for instance, data completion).
+
+@item -k string
+@itemx --eventno-comment=string
+If this option is given with a small string (usually 3 or 4 characters),
+all event number values will be preceeded by that string. This is
+usefull for creating comment out parts on the output data.
+
+@item --eventno-file
+This option controls the creation of an isolated file with suffix
+@file{.eventno} which will contain the RoI (file events) numbers
+described above.
+
+@item -e number
+@itemx --event-number=number
+When this option is given, @code{preproc} will search for the event
+@code{number} given by the argument and will process @emph{only} that
+event.
+
+@item -r number
+@itemx --roi-number=number
+When this option is given, @code{preproc} will process only an specific
+RoI inside the event numbered by the @code{-e} option. If the @code{-e}
+option is not given, this is considered an error.
+
+@item -l description
+@itemx --layer=string
+This option will cause the uniformization process to force only the
+describe layers to be checked and output. That means that layers that
+are not mentioned are not checked for uniformization and are also
+@emph{not} dumped to output. @dfn{Uniformization} means:
+
+@enumerate
+
+@item
+Check if all digis are inside the RoI pre-defined region, defining the
+cell that each digi belongs to;
+
+@item
+Check if all digis that belong to this layer produce a complete set. No
+cell could be missing.
+
+@end enumerate
+
+The @dfn{description} is a string formed by the layer names followed by
+commas. The layer names may be:
+
+@table @code
+
+@item ps
+The PreSample layer. The granularity for this layer is 16 x 4 (eta x phi).
+
+@item em1
+The front electromagnetic layer. The granularity for this layer is 128 x 4.
+
+@item em2
+The middle electromagnetic layer. The granularity for this layer is 16 x 16.
+
+@item em3
+The back electromagnetic layer. The granularity for this layer is 8 x 16.
+
+@item had1
+The front hadronic layer. The granularity for this layer is 4 x 4.
+
+@item had2
+The middle hadronic layer. The granularity for this layer is 4 x 4.
+
+@item had3
+The back hadronic layer. The granularity for this layer is 4 x 4.
+
+@item all
+All layers above will be selected for the uniformization criteria. This
+implies that all RoI layers will be checked for the default granularity
+@strong{and} data completion. @emph{This is the default behaviour}.
+
+@end table
+
+@item -s description
+@itemx --select=description
+This option describes the layer information that is to be dumped to
+output. By default, all layers selected by the @code{-l} option will be
+dumped, but you can control the output by selecting a different number
+of layers to be dumped. For instance, you may select all layers to be
+used for uniformization and only the three hadronic section numbers to
+be dumped into file. Don't worry about invalid selections, there are
+mechanisms to avoid mistakes into the main application. The program will
+activate the checking mechanism each time you try to dump a layer that
+is not selected by the @code{-l} option. The format for
+@code{description} is the same as the @code{-l} option.
+
+@item -d description
+@itemx --dump=description
+This option controls what is going to be output by
+@code{preproc}. @code{description} is one of:
+
+@table @code
+
+@item digis 
+Will dump all digis on the current RoI. This option de-activates all
+restrictions to RoI dumping and will cause @strong{all} RoIs in a file
+to be dumped @emph{as they are}. Each RoI digi is dumped using 5 fields,
+followed by a @code{\n} (new line character). The fields are:
+@code{CaloRegion}, @code{Et}, @code{eta}, @code{phi}, @code{Digi Id}.
+
+@item udigis
+Will dump all digis from an RoI that respects the uniformization style
+applied. The dump will look like the @code{digis} argument, what differs
+is only RoI selection.
+
+@item rois
+Will dump an RoI, as seen @emph{after} the preprocessing scheme. The
+final cell arrangement depends on which layers are selected to be
+dumped. The RoI is formed by blocks, each block represents 1 layer of
+the calorimeter (@code{ps, em1, em2, em3, had1, had2 or had3}, on that
+order). Each block is divided in lines, representing @code{phi}
+coordinates. Each line may have many numbers, each number represents the
+@code{eta,phi} value of energy at a specific cell. In this way, the
+@dfn{RoI scan} can be considered to be left-to-right, bottom-to-up, as
+seen by the next figure:
+
+@image{fig/roi-scanning,300pt}
+
+Only cell energies are dumped with this option since the other values
+are usually not important for late processing. Note that this
+preprocessing scheme @emph{may} gather the energy values of some cells
+in order to preserve RoI uniformity (i.e., every layer has uniform
+granularity). Layers may also be gathered to preserve the 7-layer scheme
+proposed before. @strong{This is the default option}.
+
+@item rings
+Will dump the square-like rings formed by finding the peak of energy on
+each layer, and then forming rings around that cell. The output
+organization is done by blocks, each block representing an RoI and each
+RoI divided by lines, each representing a layer. The numbers within a
+line a arranged by the proximity with the peak of energy. The leftmost
+is the peak.
+
+@end table
+
+@item -g description
+@itemx --dump-energy=description
+This option will control which types of energy values are dumped to the
+default output (or to the proper file). The @code{description} is a
+string formed by the succession of one or more of the following strings,
+followed by commas:
+
+@table @code
+@item db_et
+dump the value of transverse energy as it be detected by L2.
+
+@item db_et 
+dump the value of transverse energy as it be detected by L2 over the
+hadronic section.
+
+@item db_t1et 
+L1 energy threshold.
+
+@item roi_et 
+The total energy calculated by the point of view the selected layers of
+the uniform RoI.
+
+@item roi_etem 
+The total energy on the EM (EM and PS) sections calculated using the
+selected layers of the uniform RoI.
+
+@item roi_ethad
+The total energy on the HAD sections calculated using the selected
+layers of the uniform RoI.
+
+@item roi_digis 
+The total energy found summing all digis on a RoI without any
+preprocessing.
+
+@item all 
+Print all information described above. This is the default behaviour.
+
+@item none
+Unselect any previous selections, clearing the energy output. If this
+item is selected, nothing should be printed, unless it is overwritten by
+a following option.
+
+@end table
+
+@item -t string
+@itemx --energy-comment=string
+If this option is given with a small string (usually 3 or 4 characters),
+all energy values will be preceeded by that string. This is usefull for
+creating comment out parts on the output data.
+
+@item --energy-file
+If this option is given, a separate file, prefixed with @file{.energy}
+will be created and will become the default output for the energy
+values.
+
+@item -n description
+@itemx --normalization=description
+This option may define the normalization police to be applied to the
+data being preprocessed, which may be needed according to the specific
+process that will be applied @emph{after} preprocessing is done. Note
+that normalization can only be applied to @code{rings} or @code{rois},
+as defined by the @code{-d} option. Mechanisms to prevent unsupported
+normalization criteria are present on the main application. The
+@dfn{description} is a string that contains one and only one of the
+following names:
+
+@table @code
+@item all
+Each cell on the formed (uniformized) RoI will have its energy divided
+by the sum of energies of all cells that compose the RoI. To be part of
+the RoI and thus compose the final energy value that will be used to
+normalize each cell, the cell must belong to a layer that was selected
+by the @code{-l} option above. Layers or cells that don't belong to a
+selected layer won't be accounted to compose the total RoI energy (known
+as Etot).
+
+@item section
+As in @code{all} all cells will be divided by a common value. In this
+case, cells that belong to the EM section (namely, ps, em1, em2 and em3)
+will be divided by the energy sum of cells that belong to the EM
+section. The same will happen for cells at the hadronic section (namely,
+had1, had2 and ha3).
+
+@item layer
+Same as above, but the factor will be accounted on layer basis.
+
+@item unity
+This normalization type can @strong{only} be applied to @code{rings}. At
+this case, the set of values that belong to an RoI will be normalized
+according to the modulus@footnote{The modulus considered is the square
+root of sum of squares of each value on an @emph{ring} RoI.} 1
+criterium. That is, @code{preproc} will evaluate the modulus for the
+vector consisted of @emph{all} RoI values and will then divide each
+value by that modulus.
+
+@item none
+This is the default behaviour. At this case, no normalization is applied
+to the output values.
+
+@end table
+
+@item -u 
+@itemx --fast-output
+If this option is given, when each event is processed, the output won't
+be printed to a file, but into a memory pool for late file dumping. It's
+usefull when the user output files sit on a remote computer and the
+connection between the current station and the remote file server is
+slow. So, the output from preprocessing is dumped into a memory stack,
+known as obstack (@inforef{Obstacks,LibC online manual,libc}), and at
+the end, all output is dumped into the correct files. The speed-up costs
+the output size in memory consumption. Make sure you have at least 32Mb
+of RAM before using this option.
+
+@item -x number
+@itemx --load-nevents=number
+By default, the program would load from the ASCII database 10 events,
+preprocess all RoIs@footnote{Actually, because of datafile corruption,
+only the first RoI from each event seems to be relevant. Using other
+RoIs may cause abnormal program termination.} on them and then load the
+next 10 events to continue the processing. This option can control the
+number of events loaded at each of the described loops.
+
+It's useful in situations where the input files sit on a remote file
+server with which you have a slow link. You can specify here a
+considerably big number which will cover for all events to be load and
+when the program is run, all events from file will be loaded at once,
+preserving your network connections and optimizing the processing
+time. The only restriction is memory, which you should have in order to
+load all the events on file. Event size is kind-of-difficult to guess
+right now, so you could evaluate the number of events you can
+load. Nevertheless, a hint is: with 128 Mb, 1150 events represent an
+occupation of approximately 60-70% of the memory banks.
+
+@strong{Note:} The file size is @strong{not} an estimate of the event
+size since it's only an ASCII representation of integers, float-point
+numbers and labels.
+
+@item --verbose
+If this option is given, at output, @code{preproc} will print a
+@emph{on-line} table summarizing the number of events preprocessed,
+rejected and output by the program. Other messages that don't appear
+normally may also be enabled with this option.
+
+@item -f description
+@itemx --format=description
+This option describes the output formatting. Only two values for
+@code{description} are accepted for the moment:
+
+@table @code
+@item raw
+This is the default formatting. Nothing else is printed to the screen
+but the things described so far.
+@item snns
+This option will cause @code{preproc} to dump SNNS headers within the
+output file and also to put comment like strings before each event
+output, describing the particle type and other event features. This will
+also cause @code{preproc} to dump, after each event, a target value,
+indicating the type of particle dumped as defined by the @code{-p}
+option.
+
+@strong{Note:} This option is @emph{only} accepted if @code{rings} is
+the @code{-d} dumping selection.
+
+@end table
+
+@item -p description
+@itemx --particle=description
+This option is usefull when dumping SNNS-formatted files. It describes
+the particle contained within the file being preprocessed. Only two
+particle names are accepted for now: @code{electron} and @code{jet}. The
+first causes the target value to be set to @math{+1} and the second to
+@math{-1}. This is usefull for neural networks training
+algorithms. There's no checking for this option, but if the output is
+not @code{SNNS} formatted, no output concerning particle types is given.
+
+@end table
+
+
+
+

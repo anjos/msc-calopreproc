@@ -1,0 +1,79 @@
+@node Introduction
+@chapter Introduction
+
+@c $Id: intro.texinfo,v 1.1 2000/09/11 13:56:54 andre Exp $
+
+@ifnottex
+This node gives an introduction over the package capabilities.
+
+@menu
+
+* What about this::     The former library introduction
+* More information:: Where to get specialized information
+
+@end menu
+
+@end ifnottex
+
+@node What about this
+@section What's the Calorimeter Preprocessing package about
+
+The aim of this package is to provide the user with tools (ANSI-C
+functions) for analysing dumps of calorimeter digis in ASCII format, as
+defined by ATLAS Level 2 Trigger at CERN. This formatting is used to
+store, digitized data (found on ROBs) and probable L2 features found
+after L2 processing. Such features that could be used as a debugging
+parameters.
+
+The ASCII format is defined in C by a library called 'spec'. This
+library demands a description file, not too complex, that is located in
+the 'src' subdir named 'data.spec'. Such a description is the standard
+description available at CERN by J.Baines. You're *not* advised to
+change it unless you know exactly what you're doing. It resumes all
+trigger variables one can find necessary for Level 1/2 processing.
+
+Besides that, I've create the calorimeter library, which is composed of
+simple functions that perform simple things like arranging the digis
+into trigger towers and summing energies. Some processing methods like
+Uniformization and Et evaluation are also included as functions with
+simple calls. For that library I had to create some special types as
+well. They are mostly for internal library use, with exceptions, and you
+shouldn't have to bore a lot with those.  If you intend to use such
+functions you will have to compile your programs against 'libcalo.a' as
+well.
+
+To make it easy for all of us, I've built an application that fully
+utilizes almost all aspects of those 2 libraries (@code{calo} and
+@code{spec}) and can preprocess ASCII Data Files in order to dump
+preprocessed RoIs for later analysis. Normalization, checking, arranging
+and output formatting are provided automatically by using run time
+options.
+
+The user is not only encouraged to use the test programs included within
+the package, but also to develop new applications that extend or use the
+tools proposed on this package. Critics and suggestions are
+welcome. Please, don't be hesitate to e-mail me at
+@uref{mailto:Andre.Rabello@@ufrj.br, my work place}.
+
+@node More information
+@section Where can I get more information
+
+You can browse Baine's page on datafiles and formats from:
+
+@uref{http://hepunx.rl.ac.uk/atlasuk/simulation/level2/doc/ctrig/dumpfiles.html}
+
+All programs using the @code{spec} library must be compiled against the file
+@code{libspec.a}.
+
+You can find the latest version of these libraries at my web site. For
+now, I only have CVS access through the web for viewing, but a solution
+may be thought of and package availability should be ok sometime in a
+near future. Till there you can request me the latest version of the
+package at @uref{mailto:Andre.Rabello@@ufrj.br}. In order to access the
+web repository, you can point your browser to
+@uref{http://www.lps.ufrj.br/~rabello/cgi-bin/cvsweb, my CVS Web
+interface}.
+
+
+
+
