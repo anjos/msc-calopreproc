@@ -8,7 +8,7 @@
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.1 2000/08/11 20:29:07 rabello Exp $ */
+/* $Id: energy.c,v 1.2 2000/08/16 11:21:34 andre Exp $ */
 
 /* These are the shorts that define what we'll dump. Each of those is explained
    above. */
@@ -79,71 +79,77 @@ unsigned short* string2edump(unsigned short* to, const char* from)
 char* get_energy(const ROI* r, const uniform_roi_t* ur, 
 		 const unsigned short flags, const char* initstring) 
 {
-  char* retval;
-  char* temp; /* temporary resource for holding strings */
+  char* retval = NULL;
+  double temp; /* a temporary space for holding some values */
 
   /* First of all see if we have to print something */
   if (flags == EDUMP_NONE) return 0;
 
   /* In such case I have to allocate the space for the initstring */
-  asprintf(&temp, "%s", initstring);
+  ascat(&retval, initstring);
 
-  if (flags & EDUMP_DB_ET) /* have to print it */ {
-    /* copy the preceeding string into a safe place and append data */
-    asprintf(&retval, "%s %e", temp, r->l2CalEm.Et);
-    /* free the old used string */
-    free(temp);
-    /* duplicate data pointer into the temporary variable */
-    temp = retval;
+  if (flags & EDUMP_DB_ET) {
+    temp = r->l2CalEm.Et;
+    ascat_double(&retval, &temp);
   }
 
-  if (flags & EDUMP_DB_ETHAD) /* have to print it */ {
-    /* copy the preceeding string into a safe place and append data */
-    asprintf(&retval, "%s %e", temp, r->l2CalEm.EtHad);
-    /* free the old used string */
-    free(temp);
-    /* duplicate data pointer into the temporary variable */
-    temp = retval;
+  if (flags & EDUMP_DB_ETHAD) { 
+    temp = r->l2CalEm.EtHad;
+    ascat_double(&retval, &temp);
   }
 
-  if (flags & EDUMP_DB_T1ET) /* have to print it */ {
-    /* copy the preceeding string into a safe place and append data */
-    asprintf(&retval, "%s %d", temp, r->header.t1Et);
-    /* free the old used string */
-    free(temp);
-    /* duplicate data pointer into the temporary variable */
-    temp = retval;
+  if (flags & EDUMP_DB_T1ET) 
+    ascat_int(&retval, &r->header.t1Et);
+
+  if (flags & EDUMP_ROI_ET) {
+    temp = uniform_roi_energy(ur);
+    ascat_double(&retval, &temp);
   }
 
-  if (flags & EDUMP_ROI_ET) /* have to print it */ {
-    /* copy the preceeding string into a safe place and append data */
-    asprintf(&retval, "%s %e", temp, uniform_roi_energy(ur));
-    /* free the old used string */
-    free(temp);
-    /* duplicate data pointer into the temporary variable */
-    temp = retval;
+  if (flags & EDUMP_ROI_ETEM) {
+    temp = uniform_roi_EM_energy(ur);
+    ascat_double(&retval,&temp);
   }
 
-  if (flags & EDUMP_ROI_ETEM) /* have to print it */ {
-    /* copy the preceeding string into a safe place and append data */
-    asprintf(&retval, "%s %e", temp, uniform_roi_EM_energy(ur));
-    /* free the old used string */
-    free(temp);
-    /* duplicate data pointer into the temporary variable */
-    temp = retval;
-  }
-
-  if (flags & EDUMP_ROI_ETHAD) /* have to print it */ {
-    /* copy the preceeding string into a safe place and append data */
-    asprintf(&retval, "%s %e", temp, uniform_roi_HAD_energy(ur));
-    /* free the old used string */
-    free(temp);
-    /* duplicate data pointer into the temporary variable */
-    temp = retval;
+  if (flags & EDUMP_ROI_ETHAD) {
+    temp = uniform_roi_HAD_energy(ur);
+    ascat_double(&retval, &temp);
   }
 
   /* Now we can return the final stuff */
   return retval;
+}
+
+/* Given a flag description of energy configuration, this function can return a
+   string containing the energy parameter descriptions. The string must have
+   been allocated previously (with at least 60 bytes). */
+char* edump2string (const unsigned short* from, char* to)
+{
+  char* retval; /* the place where we're going to put the output description */
+  retval = NULL;
+
+  /* Check if I have to return nothing */
+  if (*from == EDUMP_NONE) {
+    strcpy(to, "none");
+    return to;
+  }
+
+  /* In such case I have to allocate the space for the initstring */
+  ascat(&retval, "(");
+
+  if (*from & EDUMP_DB_ET) ascat(&retval,"DB_ET");
+  if (*from & EDUMP_DB_ETHAD) ascat(&retval,"DB_ETHAD");
+  if (*from & EDUMP_DB_T1ET) ascat(&retval,"DB_T1ET");
+  if (*from & EDUMP_ROI_ET) ascat(&retval,"ROI_ET");
+  if (*from & EDUMP_ROI_ETEM) ascat(&retval,"ROI_ETEM");
+  if (*from & EDUMP_ROI_ETHAD) ascat(&retval,"ROI_ETHAD");
+
+  /* final delimiter */
+  ascat(&retval,")");
+
+  strncpy(to,retval,59);
+  free(retval);
+  return to;
 }
 
 /* Validates energy selection based on layer selection criteria. For instance,
