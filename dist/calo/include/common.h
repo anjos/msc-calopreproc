@@ -1,11 +1,7 @@
+/* $Id: common.h,v 1.1.1.2 2000/04/06 01:23:40 rabello Exp $ */
+
 #ifndef COMMON_H
 #define COMMON_H
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
-double fabs(double x);
 
 #define PI 3.141592653589793
 
