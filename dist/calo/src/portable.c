@@ -8,12 +8,13 @@
  *
  * 0 - zero; K - calo; m - module; S - side or signal; e - eta and p is phi.
  *                        (region)
- * $Id: portable.c,v 1.2 2000/04/06 00:48:58 rabello Exp $
+ * $Id: portable.c,v 1.2.1.1 2000/04/11 15:15:31 rabello Exp $
  *
  * ************************************************************************* */
  
 #include "portable.h"
 #include <math.h>
+#include <stdio.h>
 
 double rint(double x);
 double pow(double x, double y);
