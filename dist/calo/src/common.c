@@ -1,9 +1,11 @@
-/* $Id: common.c,v 1.3.1.1 2000/04/06 01:19:05 rabello Exp $ */
+/* $Id: common.c,v 1.4 2000/04/06 01:45:22 rabello Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include "common.h"
+
+double fabs(double x);
 
 const static double MaxPhiWindow = 2.0;
 
@@ -17,7 +19,7 @@ Flag PhiWrap(double* PhiMax, double* PhiMin)
       /* now we have to exchage phimax and phimin because the expected order is
        inverted. If this is not correct, wrong results may arrive. */
       double temp = *PhiMax;
-      *PhiMax = *PhiMin;
+      *PhiMax = PhiMin;
       *PhiMin = temp;
     }
     *PhiMax = *PhiMax + 2 * PI;
