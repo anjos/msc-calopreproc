@@ -1,0 +1,29 @@
+#!/bin/csh -f 
+
+# This script replaces (case sensitively) the occurences of argv[1] by argv[2]
+# in files pointed by the last argument (argv[3]). A backup copy is saved in
+# case of error.
+#
+# If the substituted or to-substitute string contains shell characters, then
+# you can escape them with " ".
+
+# copyleft André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
+
+# A mini-help
+if ( $#argv == 0 ) then
+    
+    echo Usage: $0 \<what to change\> \<to what\> \<file list\>
+    exit(0);
+
+endif
+
+# Now, for each file specified in $3 I'll apply the changes
+foreach file ( $argv[3-$#argv] )
+    
+    echo -n "changing $file... "
+    sed -e "s/$1/$2/g" $file > new.c
+    mv $file $file~
+    mv new.c $file
+    echo "done."
+
+end

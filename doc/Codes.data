@@ -1,0 +1,148 @@
+CELL IDENTIFIERS for the Calorimeters
+
+Universal Pattern:
+	KKKK.mmm.S.eeeeeeeee.pppppppp
+
+Bits 0..7	Phi cell #	LSB=2*Pi/256; IPHI=0 starts at phi=0.
+Bits 8..16	Eta cell #
+Bit 17		Side A/B or sign(eta)
+Bits 18..20	Module # or Sampling #
+Bits 21..24	Calorimeter Number
+
+
+
+________________________________________
+EM BARREL	Calo #2
+________________________________________
+
+Generic Pattern:
+	0010.0cc.S.eeeeeeeee.pppppppp
+
+Patterns:
+S1	0010.001.S.eeeeeeeee.pppppp00
+S2	0010.010.S.eeeeee000.pppppppp
+S3	0010.011.S.eeeee0000.pppppppp
+
+Notes (eta granularity):
+	Bit 8 = units of deta=0.025/8 starting at eta=0.
+
+
+
+________________________________________
+EM ENDCAP	Calo #3
+________________________________________
+
+Generic Pattern: 
+	0011.Wcc.S.eeeeeeeee.pppppppp
+
+Wheel and Compartment [Wcc]
+	001	S1 Outer Wheel
+	010	S2 Outer Wheel
+	011	S3 Outer Wheel
+	101	S1 Inner Wheel
+	110	S2 Inner Wheel
+
+Patterns:
+S1	0011.001.S.eeeeeeeee.pppppp00	1.5<eta<2.0
+S1	0011.001.S.eeeeeeee0.pppppp00	2.0<eta<2.4
+S1	0011.001.S.eeeeee000.pppppp00	eta<1.5 and 2.4<eta<2.5
+S2	0011.010.S.eeeeee000.pppppppp	eta<2.5
+S3	0011.011.S.eeeee0000.pppppppp	1.5<eta<2.5
+S1'	0011.101.S.0eee00000.pppppp00	2.5<eta<3.2
+S2'	0011.110.S.0eee00000.pppppp00	2.5<eta<3.2
+
+Notes (eta granularity):
+	For the Large Wheel, bits 11 to 16 always count in units of 
+	deta=0.025 starting at eta=1.4 (the first cell extends below
+	1.4 and it is assigned IETA=0). Bit 8 (LSB of IETA) is usually 
+	deta=0.025/8. However, in the range 1.8<eta<2.0, bits 8 to 10 
+	count the strip number inside a pad (0 to 5) i.e. the LSB is 
+	deta=0.025/6. For the Small Wheel, bits 13 to 15 count in units
+	of deta=0.1 starting at eta=2.5.
+
+
+
+
+________________________________________
+PS BARREL	Calo #1
+________________________________________
+
+Generic Pattern: 
+	0001.000.S.MMMeee000.pppppp00
+
+Notes:
+	MMM is the Module Number (1 to 8); eee is the readout channel
+	inside a module (1 to 8). MMMeee counts *approximately* in units
+	of deta=0.025. IETA=0 starts at eta=0.
+
+
+
+
+________________________________________
+PS ENDCAP	Calo #11
+________________________________________
+
+Generic Pattern:
+	1011.000.S.00eeee000.pppppp00
+
+Notes:
+	Bits 11 to 14 count in units of deta=0.025 starting at eta=1.4.
+
+
+
+
+________________________________________
+HEC		Calo #5
+________________________________________
+
+Generic Pattern:
+	0101.mmm.S.eeeee0000.pppppp00
+
+Notes (attention!):
+	mmm is the module number along z (1 to 7).
+	eeeee counts in units of deta=0.1 starting at eta=1.5.
+
+
+
+
+________________________________________
+TILECAL		Calo #4
+________________________________________
+
+Generic Pattern:
+	0100.qss.S.eeee00000.pppppp00
+
+Regions [qss]
+	001	Barrel Sampling 1
+	010	Barrel Sampling 2 or Plug Sampling 2
+	011	Barrel Sampling 3 or Plug Sampling 3
+	101	Ext. Barrel Sampling 1
+	110	Ext. Barrel Sampling 2
+	111	Ext. Barrel Sampling 3
+	000	Scintillator
+
+Notes:
+	eeee counts in units of deta=0.1 starting at eta=0.
+
+
+
+
+________________________________________
+FORWARD		Calo #6		channels=2*(12k+10k+8k)=40,000 tubes
+________________________________________
+
+Generic Pattern:
+	0110.0cc.S.0xxxxxxxx.yyyyyyyy
+
+Sampling [0cc]
+	001	Sampling 1	DX=0.75/2	XOFF=45.1875	YOFF=45.1416
+	010	Sampling 2	DX=0.8179/2	XOFF=45.189	YOFF=44.9785
+	011	Sampling 3	DX=0.9/2	XOFF=45.225	YOFF=44.8168
+
+To obtain X and Y for a tube:
+	X=DX*NX-XOFF
+	Y=DY*NY-YOFF where DY=DX*SQRT(3.)
+
+To obtain NX and NY from X and Y:
+	NX=INT((X+45.5)/DX)
+	NY=INT((Y+45.5)/DY)
