@@ -1,7 +1,7 @@
 @node Examplified application
 @chapter The @code{preproc} Program
 
-@c $Id: start.texinfo,v 1.4 2000/11/25 19:35:40 andre Exp $
+@c $Id: start.texinfo,v 1.5 2000/12/08 15:20:02 rabello Exp $
 
 @ifnottex
 
@@ -234,17 +234,21 @@ This option controls what is going to be output by
 
 @table @code
 
-@item digis 
+@item digis
 Will dump all digis on the current RoI. This option de-activates all
 restrictions to RoI dumping and will cause @strong{all} RoIs in a file
-to be dumped @emph{as they are}. Each RoI digi is dumped using 5 fields,
-followed by a @code{\n} (new line character). The fields are:
-@code{CaloRegion}, @code{Et}, @code{eta}, @code{phi}, @code{Digi Id}.
+to be dumped @emph{as they are}. The dump consists, for each RoI, of its
+window (values for eta, minimum and maximum and values for phi, minximum
+and maximum in this order), followed by the number of EM digis, the EM
+digis, the number of Hadronic digis and finally the Hadronic digis. Each
+RoI digi is dumped using 5 fields, followed by a @code{\n} (new line
+character). The fields are: @code{CaloRegion}, @code{Et}, @code{eta},
+@code{phi}, @code{Digi Id}.
 
 @item udigis
 Will dump all digis from an RoI that respects the uniformization style
 applied. The dump will look like the @code{digis} argument, what differs
-is only RoI selection.
+is only RoI selection criterium.
 
 @item rois
 Will dump an RoI, as seen @emph{after} the preprocessing scheme. The
