@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.11 2000/08/17 00:14:48 andre Exp $ */
+/* $Id: main.c,v 1.12 2000/08/18 03:10:38 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -65,6 +65,14 @@ typedef struct pararamter_t
   long int event_no; /* The event number to process */
   long int roi_no; /* The roi number to process */
 
+  FILE* evfp; /* The file where the event numbers will be stored if asked */
+  bool_t dump_eventno; /* Do I have to dump event numbers? */
+  char event_comment_str[5]; /* The string that should contain the initial
+				characters to print with the event number
+				variables. It's usefull for printing comment
+				like information for many script languages and
+				processors like MatLab or PAW. */
+
   bool_t dump_rings; /* Do I have to dump rings? */
   bool_t dump_digis; /* Do I have to dump digis? */
   bool_t dump_uniform_digis; /* Do I have to dump digis from uniform RoIs? */
@@ -85,7 +93,7 @@ typedef struct pararamter_t
 void process_flags (parameter_t*, const int, char**);
 void test_flags (parameter_t*);
 void print_help_msg (FILE*, const char*);
-void fprintf_progress (FILE*, const bool_t, const int, const int);
+void fprintf_progress (FILE*, const bool_t);
 bool_t process_ROI (const ROI*, const parameter_t*);
 void process_EVENT (const EVENT*, const parameter_t*);
 int dump_rings (const uniform_roi_t*, const parameter_t*);
@@ -93,15 +101,15 @@ void dump_config(FILE*, const parameter_t*);
 
 static int _iunits = 0; /* This shall, during execution, be set to the
 			   number of dumped features */
-static int _nevents = 0; /* This shall be set to the number of events dumped to
-			    file */
+static int dumped_events = 0; /* This shall be set to the number of events
+				 dumped to file */ 
+static int event_counter = 0; /* This shall keep the number of events processed
+				 so far */
 
 int main (int argc, char* argv[])
 {
   parameter_t params;
 
-  /* I want to capture the errors produced by uniformization. */
-  extern int uniform_contour_err;
   EVENT event;
 
 #ifdef TRACE_DEBUG
@@ -115,18 +123,23 @@ int main (int argc, char* argv[])
   params.ofbuf = 0;
   params.cfp = stdout; /* by default dump configuration to screen */
   params.efp = stdout; /* the energy file will be stdout by default */
+  params.evfp = stdout; /* the event number file will be stdout by default */
   params.particle = ELECTRON; /* by default, use electron */
   params.event_no = 0;
   params.roi_no = 0;
   params.dump_rings = FALSE; /* rings are a specific case */
   params.dump_digis = FALSE; /* digis are a specific case */
   params.dump_uniform_digis = FALSE; /* uniform_digis are a specific case */
+  params.dump_eventno = FALSE; /* do not dump event numbers by default */
   params.format_snns = FALSE; /* SNNS formating for output */
   params.process_all_events = TRUE; /* process all by default */
   params.process_all_rois = TRUE; /* processs all rois */
   params.verbose = FALSE; /* verbose output? */
   strcpy(params.edump_comment_str, ""); /* by default, nothing is to be printed
 					   before the energy parameters */
+
+  strcpy(params.event_comment_str, ""); /* by default, nothing is to be printed
+					   before the event numbers */
 
   /* The input file hint will be "default" */
   strncpy(params.ofhint, "default", MAX_FILENAME);
@@ -151,16 +164,14 @@ int main (int argc, char* argv[])
   }
   
   else {
-    long int counter = 0;
-
     waste_initial_info(params.ifp);
-    fprintf_progress(stderr, params.verbose, counter, uniform_contour_err);
+    fprintf_progress(stderr, params.verbose);
 
     while (read_EVENT(params.ifp,&event) == ERR_SUCCESS) {
-      ++counter;
+      ++event_counter;
       process_EVENT(&event, &params);
       free_EVENT(&event);
-      fprintf_progress(stderr, params.verbose, counter, uniform_contour_err); 
+      fprintf_progress(stderr, params.verbose); 
     } /* event loop */
 
     if (params.verbose) fprintf(stderr,"\n"); /* just to make sure we don't
@@ -168,11 +179,18 @@ int main (int argc, char* argv[])
 						 the screen */
 
     /* The final printout, independent of verbosity */
-    fprintf(stderr, "(main) I've dumped %ld events\n", counter - 
-	    uniform_contour_err);
+    fprintf(stderr, "(main) I've dumped %d events\n", dumped_events);
+/*      fprintf(stderr, "(main) I've dumped %d events\n", event_counter -  */
+/*  	    uniform_contour_err); */
 
   } /* else process all events */
   
+  /* close the files we may open: event-number and energy */
+  if ( (params.evfp != params.ofp) && (params.evfp != stdout) )
+    fclose(params.evfp);
+  if ( (params.efp != params.ofp) && (params.efp != stdout) )
+    fclose(params.efp);
+
   /* close streams and free pointers */
   fclose(params.ifp);
   free(params.ifbuf);
@@ -196,6 +214,7 @@ void process_flags (parameter_t* p, const int argc, char** argv)
   { 
     /* These options set a flag. */ 
     {"energy-file", 0, 0, 'a'},
+    {"dump-eventno", 0, 0, 'b'},
     {"config-file", 0, 0, 'c'},
     {"dump", 1, 0, 'd'},
     {"event-number", 1, 0, 'e'},
@@ -203,6 +222,8 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {"dump-energy", 1, 0, 'g'},
     {"help", 0, 0, 'h'},
     {"input-file", 1, 0, 'i'},
+    {"eventno-file", 0, 0, 'j'},
+    {"eventno-comment", 1, 0, 'k'},
     {"layer", 1, 0, 'l'},
     {"normalization", 1, 0, 'n'},
     {"output-file", 1, 0, 'o'},
@@ -214,7 +235,7 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {0, 0, 0, 0}
   };
   
-  while (EOF != (c=getopt_long(argc, argv, "i:o:cag:he:r:d:f:p:l:s:n:v", 
+  while (EOF != (c=getopt_long(argc, argv, "i:o:bcajk:g:he:r:d:f:p:l:s:n:vt:",
 			       long_options, &option_index) ) ) {
     switch (c) {
 
@@ -250,57 +271,53 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     case 'd': /* What to dump? */
       if ( strcasecmp(optarg, "digis" ) == 0 ) {
 	p->dump_digis = TRUE;
-	break;
       }
 
       else if ( strcasecmp(optarg, "rings" ) == 0 ) {
 	p->dump_rings = TRUE;
-	break;
       }
 
       else if ( strcasecmp(optarg, "udigis" ) == 0 ) {
 	p->dump_uniform_digis = TRUE;
-	break;
       }
 
-      else if ( strcasecmp(optarg, "rois" ) == 0 )
-	break;
+      /* this is the default, do nothing */
+      else if ( strcasecmp(optarg, "rois" ) == 0 ) {}
 
       else {
 	fprintf(stderr,"(main)ERROR: Can't recognize format -> %s\n", optarg);
 	exit(EXIT_FAILURE);
       }
+      break;
 
     case 'f': /* What to dump? */
       if ( strcasecmp(optarg, "snns" ) == 0 ) {
 	p->format_snns = TRUE;
-	break;
       }
 
-      else if ( strcasecmp(optarg, "raw" ) == 0 ) {
-	break;
-      }
+      /* this is the default, do nothing */
+      else if ( strcasecmp(optarg, "raw" ) == 0 ) {}
 
       else {
 	fprintf(stderr,"(main)ERROR: Can't recognize format -> %s\n", optarg);
 	exit(EXIT_FAILURE);
       }
+      break;
 
     case 'p': /* What's the target? */
       if ( strcasecmp(optarg, "jet" ) == 0 ) {
 	p->particle = JET;
-	break;
       }
 
       else if ( strcasecmp(optarg, "electron" ) == 0 ) {
 	p->particle = ELECTRON;
-	break;
       }
 
       else {
 	fprintf(stderr,"(main)ERROR: A type of particle ?? -> %s\n", optarg);
 	exit(EXIT_FAILURE);
       }
+      break;
 
     case 'l': /* Which layers to require? */
       string2layer(&p->layer_flags,optarg);
@@ -318,8 +335,12 @@ void process_flags (parameter_t* p, const int argc, char** argv)
       string2normalization(&p->normalization,optarg);
       break;
 
-    case 'v': /* dump rings instead of plain RoIs */
+    case 'v': /* dumps information on screen? v == verbose */
       p->verbose = TRUE;
+      break;
+
+    case 'b': /* dump event numbers? */
+      p->dump_eventno = TRUE;
       break;
 
     case 'e': /* dump only event 'number' */
@@ -367,6 +388,18 @@ void process_flags (parameter_t* p, const int argc, char** argv)
       }
       p->efp = p->ofp;
 
+      /* Set the event numbers file to be the same as me */
+      if (p->evfp != stdout) {
+	fprintf(stderr, "(main)WARN: had to close events file. It was not\n");
+	fprintf(stderr, "            coherent with the output file. If you\n");
+	fprintf(stderr, "            want to place events in a different \n");
+	fprintf(stderr, "            file, put the -j option after the -o\n");
+	fprintf(stderr, "            The event output will be placed at\n");
+	fprintf(stderr, "            the default output file: %s\n", temp);
+	fclose(p->efp);
+      }
+      p->evfp = p->ofp;
+
       /* set the config file to be stdout if not coherent */
       if (p->cfp != stdout) {
 	fprintf(stderr, "(main)WARN: had to close config file. It was not\n");
@@ -388,24 +421,38 @@ void process_flags (parameter_t* p, const int argc, char** argv)
       break;
     }
 
-    case 'c': { /* output configuration parameters to file 'config-file' */
+    case 'k': { /* the string to be used when dumping the event numbers */
+      strncpy(p->event_comment_str, optarg, 4);
+      break;
+    }
+
+    case 'a': { /* output energy parameters to file 'energy-file' */
       char* temp;
-      fprintf(stderr,"(main)WARN: using hint -> %s (an error?)\n", p->ofhint);
-      asprintf(&temp, "%s.config",p->ofhint);
-      if (NULL==(p->cfp=fopen(temp,"w"))) {
-	fprintf(stderr, "(main) Can\'t open config file %s\n", temp);
+      asprintf(&temp, "%s.energy",p->ofhint);
+      if (NULL==(p->efp=fopen(temp,"w"))) {
+	fprintf(stderr, "(main) Can\'t open energy file %s\n", temp);
 	exit(EXIT_FAILURE);
       }
       free(temp);
       break;
     }
 
-    case 'a': { /* output energy parameters to file 'energy-file' */
+    case 'j': { /* output event numbers to file 'eventno-file' */
       char* temp;
-      fprintf(stderr,"(main)WARN: using hint -> %s (an error?)\n", p->ofhint);
-      asprintf(&temp, "%s.energy",p->ofhint);
-      if (NULL==(p->efp=fopen(temp,"w"))) {
-	fprintf(stderr, "(main) Can\'t open energy file %s\n", temp);
+      asprintf(&temp, "%s.eventno",p->ofhint);
+      if (NULL==(p->evfp=fopen(temp,"w"))) {
+	fprintf(stderr, "(main) Can\'t open event number file %s\n", temp);
+	exit(EXIT_FAILURE);
+      }
+      free(temp);
+      break;
+    }
+
+    case 'c': { /* output configuration parameters to file 'config-file' */
+      char* temp;
+      asprintf(&temp, "%s.config",p->ofhint);
+      if (NULL==(p->cfp=fopen(temp,"w"))) {
+	fprintf(stderr, "(main) Can\'t open config file %s\n", temp);
 	exit(EXIT_FAILURE);
       }
       free(temp);
@@ -498,7 +545,7 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "author: André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>\n");
   fprintf(fp, "usage: %s -i file [-d what] [-f format] [-v]", prog);
   fprintf(fp, " [-n normalization] [-l layer] [-p particle]");
-  fprintf(fp, " [-o file] [-ca] [-e # -r #] [-g energies] [-t en-string]\n");
+  fprintf(fp, " [-o file] [-abcj] [-e # -r #] [-g energies] [-t en-string]\n");
   fprintf(fp, "       %s -h or --help prints this help message.\n", prog);
   fprintf(fp, "[OPTIONS SUMMARY]\n");
 
@@ -524,6 +571,16 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
   fprintf(fp, "\t '.energy'. This file (with such filename) will be \n");
   fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
+
+  fprintf(fp, "-j | --eventno-file\n");
+  fprintf(fp, "\t Will place the event numbers on a file given by the hint\n");
+  fprintf(fp, "\t on -o option (or 'default') concatenated by the string\n");
+  fprintf(fp, "\t '.eventno'. This file (with such filename) will be \n");
+  fprintf(fp, "\t  created if doesn't exist or truncated if it does.\n");
+
+  fprintf(fp, "-b | --dump-eventno\n");
+  fprintf(fp, "\t Will dump event numbers in the output file if this flag\n");
+  fprintf(fp, "\t is given.\n");
 
   fprintf(fp, "-e # | --event-number=#\n");
   fprintf(fp, "\t only preprocess event #\n");
@@ -564,7 +621,12 @@ void print_help_msg(FILE* fp, const char* prog)
 
   fprintf(fp, "-t string | --energy-comment=string\n");
   fprintf(fp, "\t preceeds the energy values by this string when dumping \n");
-  fprintf(fp, "\t Only 5 characters are allowed. The rest is ignored \n");
+  fprintf(fp, "\t Only 5 characters are allowed, the rest will be ignored \n");
+  fprintf(fp, "\t The default behaviour is to print nothing before values\n");
+
+  fprintf(fp, "-k string | --eventno-comment=string\n");
+  fprintf(fp, "\t preceeds the event numbers by this string when dumping \n");
+  fprintf(fp, "\t Only 5 characters are allowed, the rest will be ignored \n");
   fprintf(fp, "\t The default behaviour is to print nothing before values\n");
 
   fprintf(fp, "-f string | --format=string\n");
@@ -622,32 +684,37 @@ void print_help_msg(FILE* fp, const char* prog)
 }
 
 /* This function prints the progress of execution if the v flag is on. The
-   first integer is an event counter while the second represent the rejection
-   errors. */
-void fprintf_progress(FILE* fp, const bool_t v, const int c, const int e)
+   numbers printed come from global variables that control the number of events
+   processed automatically. */
+void fprintf_progress(FILE* fp, const bool_t v)
 {
   int i; /* iterator for backspaces */
 
-  if (!v) return;
+  /* Well, if we choose not to be verbose I can just get out of here...*/
+  if(!v) return;
 
   /* Prints the initial table information */
-  if(!c) {
+  if(!event_counter) {
     fprintf(fp," Progress | Rejected | Dumped\n");
     fprintf(fp,"----------+----------+-------\n");
-    fprintf(fp,"  %5d   | %6d   | %5d", c, e, c-e);
+    fprintf(fp,"  %5d   | %6d   | %5d", event_counter, event_counter -
+	    dumped_events, dumped_events);
     return;
   }
 
   /* progress report */
   for(i=0; i<28; ++i) fprintf(stderr,"\b");
-  fprintf(fp,"  %5d   | %6d   | %5d", c, e, c-e);
+  fprintf(fp,"  %5d   | %6d   | %5d", event_counter, event_counter -
+	  dumped_events, dumped_events);
   fflush(stderr);
 
   return;
 }
 
-/* Process an RoI, checking what to dump. The returned value is the number of
-   dumped fields to file, or zero */
+/* Process an RoI, checking what to dump. The returned value is a bool
+   indicating the RoI was correctly processed or not. Event accouting was also
+   moved into here since this place is perfect for doing it: event rejection
+   can only happen here. */
 bool_t process_ROI(const ROI* roi, const parameter_t* p)
 {
   tt_roi_t ttroi; /* The calorimeter RoI */
@@ -657,8 +724,13 @@ bool_t process_ROI(const ROI* roi, const parameter_t* p)
     fprintf(stderr,"(main)ERROR: ROI has no digi info. ");
     return (FALSE);
   }
+
+  ++dumped_events; /* Can we count one more valid event? */
    
   if (p->dump_digis) {
+    if(p->dump_eventno) /* do I have to dumpe event numbers? */
+      fprintf(p->evfp, "%s %d %d\n", p->event_comment_str,
+	      event_counter, dumped_events);
     dump_DIGIS(p->ofp,roi);
   }
 
@@ -668,11 +740,16 @@ bool_t process_ROI(const ROI* roi, const parameter_t* p)
     if ( !build_roi(roi, FALSE, &ttroi) ) {
       fprintf(stderr,"\n");
       fprintf(stderr,"(main)ERROR: ROI can't go in tt format. ");
+      --dumped_events; /* Actually, I won't use this one */
       return (FALSE);
     }
 
     /* Uniformize, normalize and check for correction */
     if ( uniformize (&ttroi,&ur,p->layer_flags,p->normalization) != NULL ) {
+
+      if(p->dump_eventno) /* do I have to dumpe event numbers? */
+      fprintf(p->evfp, "%s %d %d\n", p->event_comment_str,
+	      event_counter, dumped_events);
 
       /* Do we have to dump digis? If yes, we can't print anything else */
       if (p->dump_uniform_digis) dump_DIGIS(p->ofp,roi);
@@ -699,13 +776,16 @@ bool_t process_ROI(const ROI* roi, const parameter_t* p)
       free_uniform_roi (&ur);
     }
 
+    else { /* I couldn't uniformize the RoI... */
+      --dumped_events; /* Actually, I won't use this one */
+    }
+
     /* free the required resources */
     free_roi(&ttroi);
   }
 
   return (TRUE);
 }
-
 
 /* Do all event checkings and process the whole event, return the number of
    fields processed per RoI. If the number of fields per RoI is variable, it
@@ -767,18 +847,16 @@ int dump_rings (const uniform_roi_t* ur, const parameter_t* p)
   ringroi.nring = ring_sum(ur, &ringroi, p->print_flags);
 
   if (ringroi.nring > 0) {
-      ++_nevents;
-
       _iunits = asprintf_ring_vector (&dump, ringroi.ring, ringroi.nring);
 
       if (p->format_snns) {
 	temp = dump;
 	asprintf(&dump, "## INPUT roi=%d features=%d\n%s",
-		 _nevents, _iunits, dump);
+		 dumped_events, _iunits, dump);
 	free(temp);
 
 	temp = dump;
-	asprintf(&dump, "%s## TARGET roi=%d ", dump, _nevents);
+	asprintf(&dump, "%s## TARGET roi=%d ", dump, dumped_events);
 	free(temp);
 
 	temp = dump;
@@ -792,7 +870,7 @@ int dump_rings (const uniform_roi_t* ur, const parameter_t* p)
       }
 
       /* If this is the first print out, include the header */
-      if (_nevents == 1 && p->format_snns) 
+      if (dumped_events == 1 && p->format_snns) 
 	fprintf_SNNS_header(p->ofp, 1, _iunits, 1);
 
       fprintf(p->ofp,"%s",dump);
@@ -800,7 +878,7 @@ int dump_rings (const uniform_roi_t* ur, const parameter_t* p)
       free_ring_vector(ringroi.ring, ringroi.nring);
       free(dump); /* the information to print */
   }
-  return (_nevents);
+  return (dumped_events);
 }
 
 /* This procedure will dump the configuration data into a organized format,
@@ -836,17 +914,34 @@ void dump_config(FILE* fp, const parameter_t* par)
     }
   }
 
-  /* The energy filename */
-  if (par->efp != stdout) {
-    if (par->efp != par->ofp)
-      fprintf(fp, " +- Energy File: %s.energy \n", par->ofhint);
-    else 
-      fprintf(fp, " +- Energy File: %s.data \n", par->ofhint);
+  /* The event accouting */
+  fprintf(fp, " +- Event number dumping: %s\n", 
+	  (par->dump_eventno)?"Yes":"No" );
+
+  /* The event number filename */
+  if (par->evfp != stdout) {
+    if (par->evfp != par->ofp)
+      fprintf(fp, " +- Event-number File: %s.eventno \n", par->ofhint); 
+    else
+      fprintf(fp, " +- Event-number File: %s.data \n", par->ofhint);
   }
+
+  /* The event number comment string, if it exists */
+  if (strcmp(par->event_comment_str, "") != 0 )
+    fprintf(fp, " +- Event number comment string: %s\n", 
+	    par->event_comment_str);
 
   /* What types of energy are going to be printed */
   fprintf(fp, " +- Energy printing: %s\n", 
 	  edump2string(&par->dump_energy,temp));
+
+  /* The energy filename */
+  if (par->efp != stdout) {
+    if (par->efp != par->ofp)
+      fprintf(fp, " +- Energy File: %s.energy \n", par->ofhint); 
+    else 
+      fprintf(fp, " +- Energy File: %s.data \n", par->ofhint);
+  }
 
   /* The energy comment string, if it exists */
   if (strcmp(par->edump_comment_str, "") != 0 )
@@ -869,6 +964,7 @@ void dump_config(FILE* fp, const parameter_t* par)
 
   fprintf(fp, "==========================================\n");
 
+  /* close the configuration file pointer, so, no need to do it afterwards...*/
   fclose(fp);
   
 }
