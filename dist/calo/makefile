@@ -1,28 +1,34 @@
 ## hello emacs, this is a -*- makefile -*- 
 ## Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
 
-## $Id: makefile,v 1.8 2000/08/11 20:31:20 rabello Exp $
+## $Id: makefile,v 1.9 2000/08/31 23:51:47 andre Exp $
 
 ### Calorimeter Library compilation
+
+### COMPILATION MACROS
+
+AR = ar
+CC = gcc
+RANLIB = ranlib
+ARFLAGS = -rvu
+CDEFS = -D_BSD_SOURCE -D_GNU_SOURCE
+CFLAGS = -g -ansi -pedantic -Wall $(CDEFS)
+LDFLAGS = -L. -L../spec/src -lm -lcalo -lspec
+MAKE = gmake
+RM = rm -f
+MV = mv -v
+SED = sed
 
 ### GENERAL MACROS
 
 INCLUDE = -I../../include -I../spec/include -I./include
-FILES = trigtowr.c flat.c common.c \
-	portable.c zstt.c calostr.c \
-	fexdef.c calo.c ring.c \
-	uniform.c energy.c
+FILES = trigtowr.c common.c portable.c ring.c uniform.c energy.c
 SRCS = $(FILES:%.c=./src/%.c)
 OBJS = $(SRCS:.c=.o)
 DOC_DIR = ./doc
 
 ### DATA SPECIFICATION FILES
 DATA_SPEC_OBJ = ../../src/data.o
-
-### COMPILATION MACROS
-
-include ./mk/config.mk
-LDFLAGS = -L. -L../spec/src -lm -lcalo -lspec
 
 ### DEPENDENCY MACROS
 
