@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.h,v 1.2 2000/07/20 00:48:28 rabello Exp $ */
+/* $Id: uniform.h,v 1.3 2000/08/11 16:13:34 rabello Exp $ */
 
 #ifndef _UNIFORM_H
 #define _UNIFORM_H
@@ -51,12 +51,23 @@ uniform_roi_t* uniformize (const tt_roi_t*, uniform_roi_t*,
    patterns of 'ps', 'em1' and so, in order to build the final short. If a
    field is found that doesn't belong to the expected classes, a warning of
    ignorement will be issued, so, don't worry:) The function will return a
-   pointer to a short, that should have be allocated previously. I advise to
+   pointer to a short, that should have been allocated previously. I advise to
    pass a regular static short reference to this function instead of worrying
-   with data allocation on your main routines. This function acceptes the
+   with data allocation on your main routines. This function accepts the
    following field separators: ',' (comma) or ' ' (space). If the special tag
    'all' is found in any position or by itself, all layers are enabled. */
 unsigned short* string2layer(unsigned short*, const char*);
+
+/* This function checks returning TRUE/FALSE if there's a coherency between
+   what is required to be present on event and what should be printed on output
+   in terms of layers. Note that it's NOT possible to print something that is
+   not required. Therefore, in those cases, the function should return FALSE
+   and let all other cases to go along with a 'clean' TRUE. If one wants to
+   print all that is being selected, he/she should not have to worry with
+   selecting stuff to be printed, this should be done automatically by this
+   function. The first argument holds a pointer to the layer_flags and the
+   second to the print_flags. */
+bool_t validate_print_selection(const unsigned short*, unsigned short*);
 
 /* Converts the string token to one of the possible normalization parameters,
    defined on the body of uniform.c:normal_t. This function checks
@@ -71,16 +82,22 @@ unsigned short* string2normalization(unsigned short*, const char*);
 bool_t free_uniform_roi (uniform_roi_t*);
 
 /* This function prints all layers of the uniform roi given
-   (2nd. argument). The first argument should be a valid FILE*. For now this
-   function can only work with EM layers since it relies on is_layer() to
-   correctly select the layer of interest. The function returns the number of
-   cells printed for this uniform RoI.
+   (2nd. argument). The first argument should be a valid FILE*. The function
+   returns the number of cells printed for this uniform RoI.  The output
+   organization is done using the layer granularity. So, for instance, if the
+   layer is 16x16 (phixeta), there will be 16 lines with 16 numbers each,
+   separated by spaces. If the layer is 10x5, there will be 10 lines with 5
+   numbers in each one */
+int print_uniform_roi (FILE*, const uniform_roi_t*, const unsigned short);
 
-   The output organization is done using the layer granularity. So, for
-   instance, if the layer is 16x16 (phixeta), there will be 16 lines with 16
-   numbers each, separated by spaces. If the layer is 10x5, there will be 10
-   lines with 5 numbers in each one */
-int print_uniform_roi (FILE*, const uniform_roi_t*);
+/* Returns TRUE if the flags contain a description for inclusion of layer on
+   the current processing and FALSE otherwise. */
+bool_t flag_contains_layer(const unsigned short, const CaloLayer*);
+
+/* Counts the number of layers that should be printed. This is useful for
+   functions that have to preallocate space based on the number of layers that
+   should be processed. */
+short flag_contains_nlayers(const unsigned short flags);
 
 #endif /* _UNIFORM_H */
 
