@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.8 2000/08/11 16:11:38 rabello Exp $ */
+/* $Id: main.c,v 1.9 2000/08/11 20:28:34 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,6 +29,7 @@ FILE * open_obstack_stream (struct obstack*);
 #include "trigtowr.h" /* for processing the data into trigger towers */
 #include "ring.h"
 #include "uniform.h"
+#include "energy.h"
 
 #ifdef TRACE_DEBUG
 #include <mcheck.h>
@@ -62,6 +63,14 @@ typedef struct pararamter_t
   bool_t dump_digis; /* Do I have to dump digis? */
   bool_t dump_uniform_digis; /* Do I have to dump digis from uniform RoIs? */
   bool_t format_snns; /* Dumps data using SNNS formatting */
+  unsigned short dump_energy; /* Chooses to dump the energy variables or not */
+  char energy_names[50]; /* The dumped energy names for future reference */
+
+  char edump_comment_str[5];/* The string that should contain the initial
+			       characters to print with the energy
+			       variables. It's usefull for printing comment
+			       like information for many script languages and
+			       processors like MatLab or PAW. */
   
   bool_t process_all_events; /* Do I have to process all events? */
   bool_t process_all_rois; /* Do I have to process all rois for each event? */
@@ -110,6 +119,8 @@ int main (int argc, char* argv[])
   params.process_all_events = TRUE; /* process all by default */
   params.process_all_rois = TRUE; /* processs all rois */
   params.verbose = FALSE; /* verbose output? */
+  strcpy(params.edump_comment_str, ""); /* by default, nothing is to be printed
+					   before the energy parameters */
 
   /* Require all layers by default */
   string2layer(&params.layer_flags, "all");
@@ -117,6 +128,9 @@ int main (int argc, char* argv[])
   string2layer(&params.print_flags, "all");
   /* Don't normalize by default */
   string2normalization(&params.normalization, "none");
+
+  /* Print ALL energy values before event data */
+  string2edump(&params.dump_energy, "all");
   
   /* get and treat parameters */
   process_flags(&params,argc,argv);
@@ -179,6 +193,7 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {"input-file", 1, 0, 'i'},
     {"output-file", 1, 0, 'o'},
     {"config-file", 1, 0, 'c'},
+    {"dump-energy", 1, 0, 'g'},
     {"help", 0, 0, 'h'},
     {"event-number", 1, 0, 'e'},
     {"roi-number", 1, 0, 'r'},
@@ -188,11 +203,12 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {"layer", 1, 0, 'l'},
     {"select", 1, 0, 's'},
     {"normalization", 1, 0, 'n'},
+    {"energy-comment", 1, 0, 't'},
     {"verbose", 0, 0, 'v'},
     {0, 0, 0, 0}
   };
   
-  while (EOF != (c=getopt_long(argc, argv, "i:o:c:he:r:d:f:p:l:s:n:v", 
+  while (EOF != (c=getopt_long(argc, argv, "i:o:c:g:he:r:d:f:p:l:s:n:v", 
 			       long_options, &option_index) ) ) {
     switch (c) {
 
@@ -285,6 +301,11 @@ void process_flags (parameter_t* p, const int argc, char** argv)
       strcpy(p->layer_names,optarg);
       break;
 
+    case 'g': /* What energy values would you like printed? */
+      string2edump(&p->dump_energy,optarg);
+      strcpy(p->energy_names,optarg);
+      break;
+
     case 's': /* Which layers to print to output? */
       string2layer(&p->print_flags,optarg);
       strcpy(p->print_names,optarg);
@@ -331,6 +352,11 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 	exit(EXIT_FAILURE);
       }
       
+      break;
+    }
+
+    case 't': { /* the string to be used when dumping the RoI energy values */
+      strcpy(p->edump_comment_str, optarg);
       break;
     }
 
@@ -405,6 +431,12 @@ void test_flags (parameter_t* p)
     exit(EXIT_FAILURE);
   }
 
+  /* No sense in print energy values that are NOT uniformized */
+  if ( validate_energy_selection(&p->layer_flags, &p->dump_energy) == FALSE ) {
+    fprintf(stderr, "(main)ERROR: Can't continue. Will abort\n");
+    exit(EXIT_FAILURE);
+  }
+
 }
 
 void print_help_msg(FILE* fp, const char* prog)
@@ -413,7 +445,7 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "author: André Rabello dos Anjos <Andre.dos.Anjos@cern.ch>\n");
   fprintf(fp, "usage: %s -i file [-d what] [-f format] [-v]", prog);
   fprintf(fp, " [-n normalization] [-l layer] [-p particle]");
-  fprintf(fp, " [-o file] [-e # -r #]\n");
+  fprintf(fp, " [-o file] [-e # -r #] [-g energies] [-t en-string]\n");
   fprintf(fp, "       %s -h or --help prints this help message.\n", prog);
   fprintf(fp, "[OPTIONS SUMMARY]\n");
 
@@ -448,6 +480,32 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, " (default)\n");
   fprintf(fp, "\t   rings  - dump rings around energy peaks for each\n");
   fprintf(fp, "\t            layer on all uniformizable RoIs\n");
+
+  fprintf(fp, "-g string | --dump-energy=string\n");
+  fprintf(fp, "\t dumps energy information according to the values in\n");
+  fprintf(fp, "\t 'string'. The 'string' should be a comma separated list\n");
+  fprintf(fp, "\t of values. A list may contain one or more of the\n");
+  fprintf(fp, "\t following values:\n");
+  fprintf(fp, "\t   db_et    - dump the value of transverse energy as it\n");
+  fprintf(fp, "\t              be detected by L2\n");
+  fprintf(fp, "\t   db_et    - dump the value of transverse energy as it\n");
+  fprintf(fp, "\t              be detected by L2 over the hadronic section\n");
+  fprintf(fp, "\t   db_t1et  - L1 energy threshold\n");
+  fprintf(fp, "\t   roi_et   - The total energy calculated by the point of\n");
+  fprintf(fp, "\t              view the selected layers of the uniform RoI\n");
+  fprintf(fp, "\t   roi_etem - The total energy on the EM (EM and PS)\n");
+  fprintf(fp, "\t              sections calculated using the selected\n");
+  fprintf(fp, "\t              layers of the uniform RoI\n");
+  fprintf(fp, "\t   roi_ethad- The total energy on the HAD sections\n");
+  fprintf(fp, "\t              calculated using the selected layers of the\n");
+  fprintf(fp, "\t               uniform RoI\n");
+  fprintf(fp, "\t   all      - Print all information described above.\n");
+  fprintf(fp, "\t              this is the default behaviour\n");
+
+  fprintf(fp, "-t string | --energy-comment=string\n");
+  fprintf(fp, "\t preceeds the energy values by this string when dumping \n");
+  fprintf(fp, "\t Only 5 characters are allowed. The rest is ignored \n");
+  fprintf(fp, "\t The default behaviour is to print nothing before values\n");
 
   fprintf(fp, "-f string | --format=string\n");
   fprintf(fp, "\t dumps using the format specified by 'string'. It can be:\n");
@@ -694,6 +752,9 @@ void dump_config(FILE* fp, const parameter_t* par)
       fprintf(fp, " +- Normalization: %s\n", par->norm_name);
     }
   }
+
+  fprintf(fp, " +- Energy printing: %s\n", par->energy_names);
+  fprintf(fp, " +- Energy comment string: %s\n", par->edump_comment_str);
 
   fprintf(fp, " +- Output Format: ");
   if (par->format_snns) {
