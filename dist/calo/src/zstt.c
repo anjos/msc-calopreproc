@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: zstt.c,v 1.2 2000/05/31 13:53:43 rabello Exp $ */
+/* $Id: zstt.c,v 1.3 2000/06/16 21:26:56 rabello Exp $ */
 
 #include "zstt.h"
 
@@ -18,7 +18,7 @@ extern ErrorCode CreateZSCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
   }
   
   /* alloc space */
-  if ( (tt->layer = SmartAlloc(tt->layer, tt->NoOfLayers * sizeof(CaloLayer)))
+  if ( (tt->layer = mxalloc(tt->layer, tt->NoOfLayers, sizeof(CaloLayer)))
        == NULL ) 
     {
       fprintf(stderr, "ERROR(trigtowr.c): No space for layer\n");
@@ -56,8 +56,8 @@ extern ErrorCode PlaceZSCell(const Energy energy, const CellInfo* cell, const
 {
   layer->NoOfCells++;
 
-  if ( (layer->cell = SmartAlloc(layer->cell, layer->NoOfCells *
-				 sizeof(CaloCell))) == NULL ) 
+  if ( (layer->cell = mxalloc(layer->cell, layer->NoOfCells,
+			      sizeof(CaloCell))) == NULL ) 
     {  
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't alloc cells\n");
       return(CALO_ERROR);

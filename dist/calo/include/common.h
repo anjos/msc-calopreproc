@@ -1,7 +1,7 @@
 /* hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: common.h,v 1.5 2000/05/31 12:06:06 rabello Exp $ */
+/* $Id: common.h,v 1.6 2000/06/16 21:26:42 rabello Exp $ */
 
 #ifndef COMMON_H
 #define COMMON_H
@@ -83,11 +83,11 @@ typedef struct Area {
 */
 bool_t PhiWrap(double*, double*);
 
-/* 
-   This function is capable of allocating a given number of bytes, testing
-   whether the allocation was performed right. If the first argument is not
-   null, than, it reallocates space for pointer and tests it. 
-*/
-void* SmartAlloc(void*, const int);
+/* This function is capable of allocating a given number of positions of size
+   given by the last argument , testing whether the allocation was performed
+   right. If the first argument is not null, than, it reallocates space for the
+   current pointer and tests it. The allocated space is initialized if this is
+   call to obtain new space. */
+void* mxalloc(void*, const int, const int);
 
 #endif /* COMMON_H */

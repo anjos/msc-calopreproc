@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: calostr.c,v 1.3 2000/05/31 12:01:24 rabello Exp $ */
+/* $Id: calostr.c,v 1.4 2000/06/16 21:26:55 rabello Exp $ */
 
 #include "calostr.h"
 
@@ -69,8 +69,8 @@ ErrorCode SplitCells(const ROI* roi, CaloStringRoI* stringroi)
 
 void StringLayerAlloc(CaloStringRoI* roi)
 {
-  if ( (roi->layer = SmartAlloc(roi->layer, (roi->NoOfLayers + 1) *
-				sizeof(StringLayer))) != NULL ) { 
+  if ( (roi->layer = mxalloc(roi->layer, (roi->NoOfLayers + 1),
+			     sizeof(StringLayer))) != NULL ) { 
     roi->NoOfLayers++;
     return;
   }
@@ -82,7 +82,7 @@ void StringLayerAlloc(CaloStringRoI* roi)
 
 void StringCellAlloc(StringLayer* s)
 {
-  if ( (s->cell = SmartAlloc(s->cell, (s->NoOfCells + 1) * sizeof(StringCell)))
+  if ( (s->cell = mxalloc(s->cell, (s->NoOfCells + 1), sizeof(StringCell)))
        != NULL ) { 
     s->NoOfCells++;
     return;
