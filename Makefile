@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.5 2000/05/23 01:06:33 rabello Exp $
+# $Id: Makefile,v 1.6 2000/05/26 16:46:14 rabello Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -99,7 +99,7 @@ $(DATASPEC:%=./src/%.c): spec $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.5 $$' of '$$Date: 2000/05/23 01:06:33 $$'
+	@echo \* -- current version is '$$Revision: 1.6 $$' of '$$Date: 2000/05/26 16:46:14 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
@@ -118,7 +118,7 @@ cleanlib:
 clean: cleanlib
 	rm -f ./src/*~ ./src/*.o $(DATASPEC:%=./src/%.[co])
 	rm -f ./include/*~ $(DATASPEC:%=./include/%.h) ./*~
-	rm -f wrdata test
+	rm -f wrdata testfile
 
 
 
