@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.5 2000/08/11 20:29:38 rabello Exp $ */
+/* $Id: uniform.c,v 1.6 2000/08/16 11:21:46 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -411,6 +411,10 @@ unsigned short* string2layer(unsigned short* to, const char* from)
       (*to) = FLAG_ALL;
       break;
     }
+    else if ( strcasecmp(token,"none") == 0 ) { 
+      (*to) = 0;
+      break;
+    }
     else fprintf(stderr, "(uniform)WARN: valid token? -> %s\n", token);
   }
   
@@ -418,6 +422,36 @@ unsigned short* string2layer(unsigned short* to, const char* from)
   free(temp2);
 
   return (to);
+}
+
+char* layer2string(const unsigned short* from, char* to)
+{
+  char* retval; /* the place where we're going to put the output description */
+  retval = NULL;
+
+  /* Check if I have to return nothing */
+  if (*from == 0) {
+    strcpy(to, "none");
+    return to;
+  }
+
+  /* In such case I have to allocate the space for the initstring */
+  ascat(&retval, "(");
+
+  if (*from & FLAG_PS) ascat(&retval,"PS");
+  if (*from & FLAG_EM1) ascat(&retval,"EM1");
+  if (*from & FLAG_EM2) ascat(&retval,"EM2");
+  if (*from & FLAG_EM3) ascat(&retval,"EM3");
+  if (*from & FLAG_HAD1) ascat(&retval,"HAD1");
+  if (*from & FLAG_HAD2) ascat(&retval,"HAD2");
+  if (*from & FLAG_HAD3) ascat(&retval,"HAD3");
+
+  /* final delimiter */
+  ascat(&retval,")");
+
+  strncpy(to,retval,59);
+  free(retval);
+  return to;
 }
 
 bool_t validate_print_selection(const unsigned short* layer, 
@@ -516,6 +550,26 @@ unsigned short* string2normalization(unsigned short* to, const char* from)
   }
 
   return (to);
+}
+
+char* normalization2string(const unsigned short* from, char* to)
+{
+  char* retval; /* the place where we're going to put the output description */
+  retval = NULL;
+
+  /* Check if I have to return nothing */
+  if (*from == 0) {
+    strcpy(to, "None");
+    return to;
+  }
+
+  if (*from & NORMAL_ALL) ascat(&retval,"Total RoI Energy");
+  if (*from & NORMAL_SECTION) ascat(&retval,"Section Energy (EM/HAD)");
+  if (*from & NORMAL_LAYER) ascat(&retval,"Layer Energy");
+
+  strncpy(to,retval,59);
+  free(retval);
+  return to;
 }
 
 /* It should check whether the RoI has an uniform granularity over the proposed
