@@ -1,4 +1,4 @@
-/* $Id: common.c,v 1.4.1.1 2000/04/06 01:46:47 rabello Exp $ */
+/* $Id: common.c,v 1.5 2000/04/07 18:58:43 rabello Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,9 +9,15 @@ double fabs(double x);
 
 const static double MaxPhiWindow = 2.0;
 
-/* This functions examins 2 cases. 1) The RoI falls into the phi wrap region,
-   but PhiMin is not greater than PhiMax. 2) The RoI falls into the phi wrap
-   region and PhiMin is greater than PhiMax. */
+/* The L1 RoI selector, may mark the value of PhiMax as being the max value of
+   phi among the corners of the RoI or the one in the end following the
+   counter-clockwise direction of the RoI along phi. This functions examins the
+   2 cases and correct the RoI phi values: 1st. case) If the RoI falls into the
+   phi wrap region, but PhiMin is not greater than PhiMax. 2nd. case) If the
+   RoI falls into the phi wrap region and PhiMin is greater than PhiMax. In
+   both cases, the function adjusts PhiMin to be the greatest of the two values
+   and add 2*PI to PhiMax. This way, PhiMax goes to a value, greater than
+   PhiMin, which would not happen if this verification was not done here. */
 Flag PhiWrap(double* PhiMax, double* PhiMin)
 {
   if ( fabs(*PhiMax - *PhiMin) > MaxPhiWindow) { /* Yes is a PhiWrap case */
@@ -22,6 +28,7 @@ Flag PhiWrap(double* PhiMax, double* PhiMin)
       *PhiMax = *PhiMin;
       *PhiMin = temp;
     }
+    /* increase the value of PhiMax by 2*PI adjusting it */
     *PhiMax = *PhiMax + 2 * PI;
     return(ON);
   }
@@ -40,7 +47,7 @@ void* SmartAlloc(void* ptr, const int size)
   }
   
   else { /* can realloc */
-    if( ( ptr = realloc (ptr, size) ) == NULL ) {  
+    if( ( ptr = realloc (ptr, size) ) == NULL ) {
       fprintf(stderr, "ERROR(common.c): No space for reallocation\n");
       return(NULL);
     }
