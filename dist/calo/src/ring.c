@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.c,v 1.7 2000/09/06 14:59:59 andre Exp $ */
+/* $Id: ring.c,v 1.8 2000/09/06 21:13:15 rabello Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +10,7 @@
 #include "common.h"
 #include "trigtowr.h"
 #include "uniform.h"
+#include "normal.h" 
 
 /* Don't know really why to declare this here */
 int asprintf (char**, const char*, ...);
@@ -86,7 +87,8 @@ int asprintf_ring (char** sp, const ring_t* rp)
 }
 
 int ring_sum (const uniform_roi_t* ur, ringroi_t* ringroi,
-	      const unsigned short print_flags) 
+	      const unsigned short* print_flags,
+	      const unsigned short* norm_flags)
 {
   int max;
   int i; /* iterator */
@@ -106,7 +108,6 @@ int ring_sum (const uniform_roi_t* ur, ringroi_t* ringroi,
     
     /* Only process the layers that are going to be printed */
     if ( flag_contains_layer(print_flags, &ur->layer[i]) ) {
-      
 
       /* Search for the highest energy value. */
       max = get_max_idx(&ur->layer[i]);
@@ -125,6 +126,9 @@ int ring_sum (const uniform_roi_t* ur, ringroi_t* ringroi,
     }
 
   }
+
+  /* Normalize if needed */
+  ring_normalize(ringroi, norm_flags);
 
   return (flag_contains_nlayers(print_flags));
 }
