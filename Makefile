@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.17 2000/09/01 01:09:40 andre Exp $
+# $Id: Makefile,v 1.18 2000/09/11 14:26:45 andre Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -35,7 +35,7 @@ OBJS = $(SRCS:%.c=%.o)
 # Configuring the data file sources
 # =================================
 
-all: preproc
+all: preproc docs
 
 depend: version spec $(DATASPEC:%=./src/%.c)
 	@echo -------------------------
@@ -107,25 +107,26 @@ $(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
 	@echo DONE\!
 	@echo " "
 
+docs:
+	@echo \* Building documentation files...
+	@cd ./doc; $(MAKE) $(MAKEFLAGS) all
+
 # The phony targets
 # =================
 
-.PHONY: clean cleanlib cleandoc cleanfig version dist sdist
+.PHONY: clean cleanlib cleandoc version dist sdist
 
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.17 $$' of '$$Date: 2000/09/01 01:09:40 $$'
+	@echo \* -- current version is '$$Revision: 1.18 $$' of '$$Date: 2000/09/11 14:26:45 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
 	@echo " "
 
-cleandoc: cleanfig
-	@cd ./doc; rm -f *~
-
-cleanfig:
-	@cd ./doc/fig; rm -f *.ps *.eps *.bak *~
+cleandoc:
+	@cd ./doc; $(MAKE) clean
 
 cleanlib:
 	cd ./dist/calo; $(MAKE) clean
