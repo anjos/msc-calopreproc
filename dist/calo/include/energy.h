@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: energy.h,v 1.4 2000/09/06 14:52:00 andre Exp $ */
+/* $Id: energy.h,v 1.5 2000/09/06 21:16:21 rabello Exp $ */
 
 #ifndef _ENERGY_H
 #define _ENERGY_H
@@ -56,7 +56,7 @@ unsigned short* string2edump(unsigned short*, const char*);
    characters to be inserted on the beginning of the string. The string
    returned is allocated with malloc() and should be freed after usage. */
 char* get_energy(const ROI*, const uniform_roi_t*, 
-		 const unsigned short, const char*);
+		 const unsigned short*, const char*);
 
 /* Validates energy selection based on layer selection criteria. For instance,
    there's no sense to print HAD energy IF no hadronic layer has been selected
@@ -80,9 +80,9 @@ char* edump2string (const unsigned short*, char*);
    the last two, should be the return value of the first, but you can think the
    implementation of uniform_roi_energy() as a debugging parameter for the sum
    of the other two. */
-Energy uniform_roi_energy (const uniform_roi_t*);
-Energy uniform_roi_EM_energy (const uniform_roi_t*);
-Energy uniform_roi_HAD_energy (const uniform_roi_t*);
+Energy* uniform_roi_energy (const uniform_roi_t*, Energy*);
+Energy* uniform_roi_EM_energy (const uniform_roi_t*, Energy*);
+Energy* uniform_roi_HAD_energy (const uniform_roi_t*, Energy*);
 
 #endif /* _ENERGY_H */
 
