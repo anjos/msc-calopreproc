@@ -1,9 +1,9 @@
 /* hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: common.h,v 1.3.1.1 2000/04/11 15:14:11 rabello Exp $ */
+/* $Id: common.h,v 1.4 2000/05/26 17:41:59 rabello Exp $ */
 
-#ifndef COMMON_H 
+#ifndef COMMON_H
 #define COMMON_H
 
 #define PI 3.141592653589793
