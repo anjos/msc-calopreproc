@@ -1,13 +1,14 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.h,v 1.1 2000/08/22 02:51:46 andre Exp $ */
+/* $Id: parameter.h,v 1.2 2000/08/27 16:25:15 andre Exp $ */
 
 /* The door keepers */
 #ifndef __PARAMETER_H
 #define __PARAMETER_H
 
 #include <stdio.h>
+#include <obstack.h>
 
 #include "common.h"
 
@@ -32,6 +33,9 @@ typedef struct pararamter_t
   /* The output file buffer */
   char* ofbuf;
 
+  /* The output object stack. (for fast execution) */
+  struct obstack output_obs;
+
   /* The output file name hint will be copied into here */
   char ofhint[MAX_FILENAME+1];
 
@@ -39,10 +43,13 @@ typedef struct pararamter_t
   char ifname[MAX_FILENAME+1]; 
 
   /* The file where the config will be stored */
-  FILE* cfp; 
+  FILE* cfp;
 
   /* The file where the energy data will be stored if asked */
-  FILE* efp; 
+  FILE* efp;
+
+  /* The energy object stack. (for fast execution) */
+  struct obstack energy_obs;
 
   /* The type of particle present on file */
   particle_t particle; 
@@ -64,6 +71,12 @@ typedef struct pararamter_t
 
   /* The file where the event numbers will be stored if asked */
   FILE* evfp; 
+
+  /* The event number object stack. (for fast execution) */
+  struct obstack eventno_obs;
+
+  /* Do I have to output data to memory instead of file? */
+  bool_t run_fast;
 
   /* Do I have to dump event numbers? */
   bool_t dump_eventno; 
@@ -118,6 +131,12 @@ void process_flags (parameter_t*, const int, char**);
 /* This function will close all unclosed files, free dinamically allocated
    memory and return gracefully. Use this before ending your program */
 void terminate_parameters (parameter_t* p);
+
+/* This function will write the event into file or memory bank, depending on
+   the users' choice. As parameters, it receives the output file, the output
+   object stack, whether to dump to the memory (TRUE) or to directly to file
+   (FALSE) and the information on a C-style string. */
+void output_string(FILE*, struct obstack*, const bool_t, const char*);
 
 #endif /* __PARAMETER_H */
 
