@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.15 2000/08/22 02:47:04 andre Exp $
+# $Id: Makefile,v 1.16 2000/09/01 01:08:19 andre Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -48,17 +48,6 @@ depend: version spec $(DATASPEC:%=./src/%.c)
 	@if [ ! -e $(MKDEPFILE) ]; then touch $(MKDEPFILE); fi 
 	$(MKDEP) $(MKDEPFLAGS) $(INCLUDE) $(SRCS) ./src/test.c ./src/data.c
 
-testfile: version spec $(DATASPEC:%=./src/%.o) ./src/test.o ./src/util.o calo
-	@echo -----------------------
-	@echo Building executables...
-	@echo -----------------------
-	@echo " "
-	$(CC) ./src/test.o $(DATASPEC:%=./src/%.o) ./src/util.o $(LDFLAGS) -o $@
-	@echo DONE\!
-	@echo " "
-	@echo In case of doubts\, don\'t push it too far\, e-mail me\:
-	@echo Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
-
 preproc: version spec $(DATASPEC:%=./src/%.o) $(OBJS) calo
 	@echo -----------------------
 	@echo Building executables...
@@ -68,7 +57,7 @@ preproc: version spec $(DATASPEC:%=./src/%.o) $(OBJS) calo
 	@echo DONE\!
 	@echo " "
 	@echo In case of doubts\, don\'t push it too far\, e-mail me\:
-	@echo Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
+	@echo Andre Rabello dos Anjos \<Andre\.Rabello\@ufrj\.br\>
 
 calo: $(DATASPEC:%=./src/%.c)
 	@echo DONE\!
@@ -127,7 +116,7 @@ $(DATASPEC:%=./src/%.c): $(DATASPEC:%=./src/%.spec)
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.15 $$' of '$$Date: 2000/08/22 02:47:04 $$'
+	@echo \* -- current version is '$$Revision: 1.16 $$' of '$$Date: 2000/09/01 01:08:19 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
@@ -147,7 +136,7 @@ clean: cleanlib cleanfig
 	rm -f ./src/*~ ./src/*.o $(DATASPEC:%=./src/%.[co])
 	rm -f ./include/*~ $(DATASPEC:%=./include/%.h) ./*~
 	rm -f $(MKDEPFILE) $(MKDEPFILE:%=%.bak)
-	rm -f preproc testfile TAGS
+	rm -f preproc TAGS
 
 dist: clean
 	@echo \* Creating distribution (date will be written on DATE)...
