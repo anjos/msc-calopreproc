@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: test.c,v 1.2 2000/05/31 11:52:48 rabello Exp $ */
+/* $Id: test.c,v 1.3 2000/07/07 18:51:50 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@ int main (int argc, char* argv[])
 
   char c;
 
-  CaloTTEMRoI ttroi; /* The calorimeter RoI */
+  tt_roi_t ttroi; /* The calorimeter RoI */
 
   FlatEM em; /* The calorimeter EM part of the RoI flattened */
   FlatHad had; /* the hadronic part flattened */
