@@ -1,3 +1,8 @@
+## hello emacs, this is a -*- makefile -*- 
+## Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
+
+## $Id: makefile,v 1.3 2000/05/26 15:52:15 rabello Exp $
+
 ### Calorimeter Library compilation
 
 ### GENERAL MACROS
@@ -8,10 +13,13 @@ SRCS = $(FILES:%.c=./src/%.c)
 OBJS = $(SRCS:.c=.o)
 DOC_DIR = ./doc
 
+### DATA SPECIFICATION FILES
+DATA_SPEC_OBJ = ../../src/data.o
+
 ### COMPILATION MACROS
 
 include ./mk/config.mk
-LDFLAGS = -lm
+LDFLAGS = -L. -L../spec/src -lm -lcalo -lspec
 
 ### DEPENDENCY MACROS
 
@@ -28,6 +36,16 @@ MKDEPFLAGS = -f $(MKDEPFILE)
 
 all: libcalo.a
 
+test: libcalo.a test_portable
+
+test_%: src/test_%.o complements libcalo.a
+	$(CC) $(CFLAGS) $< ../../src/data.o ../../src/util.o $(LDFLAGS) -o $@
+
+complements:
+	$(MAKE) -C ../spec/src libspec.a 
+	$(MAKE) -C ../.. ./src/data.o
+	$(MAKE) -C ../.. ./src/util.o
+
 libcalo.a: $(OBJS)
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
@@ -37,6 +55,7 @@ depend:
 	$(MKDEP) $(MKDEPFLAGS) $(INCLUDE) $(SRCS)
 
 clean: 
-	$(RM) $(OBJS) libcalo.a src/*~ include/*~ *~ 
+	$(RM) $(OBJS) libcalo.a src/*~ include/*~ *~  test_*
 	$(RM) $(MKDEPFILE) $(MKDEPFILE:%=%.bak)
+	$(RM) src/test_portable.o
 
