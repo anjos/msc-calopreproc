@@ -5,7 +5,7 @@
    CaloDigi's that may be present in the file. The building of this file is
    accomplished by make (1).  */
 
-/* $Id: main.c,v 1.16 2000/08/29 20:47:37 andre Exp $ */
+/* $Id: main.c,v 1.17 2000/09/01 01:34:16 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -292,7 +292,7 @@ int dump_rings (const uniform_roi_t* ur, parameter_t* p)
   ringroi_t ringroi;
 
   /* I have to change the value pointed by rp */
-  ringroi.nring = ring_sum(ur, &ringroi, p->print_flags);
+  ring_sum(ur, &ringroi, p->print_flags);
 
   if (ringroi.nring > 0) {
       _iunits = asprintf_ring_vector (&dump, ringroi.ring, ringroi.nring);
