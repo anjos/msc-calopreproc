@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.9 2000/08/11 20:28:34 rabello Exp $ */
+/* $Id: main.c,v 1.10 2000/08/16 11:20:59 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -50,11 +50,8 @@ typedef struct pararamter_t
 
   particle_t particle; /* The type of particle present on file */
   unsigned short layer_flags; /* Which layers to process. See uniform.[ch] */
-  char layer_names[50]; /* The layer names for future reference */
   unsigned short print_flags; /* Which layers to dump. See uniform.[ch] */
-  char print_names[50]; /* The print layer names for future reference */
   unsigned short normalization; /* Normalization scheme. See module uniform */
-  char norm_name[10]; /* The used normalization for future reference */
 
   long int event_no; /* The event number to process */
   long int roi_no; /* The roi number to process */
@@ -64,7 +61,6 @@ typedef struct pararamter_t
   bool_t dump_uniform_digis; /* Do I have to dump digis from uniform RoIs? */
   bool_t format_snns; /* Dumps data using SNNS formatting */
   unsigned short dump_energy; /* Chooses to dump the energy variables or not */
-  char energy_names[50]; /* The dumped energy names for future reference */
 
   char edump_comment_str[5];/* The string that should contain the initial
 			       characters to print with the energy
@@ -134,10 +130,6 @@ int main (int argc, char* argv[])
   
   /* get and treat parameters */
   process_flags(&params,argc,argv);
-
-  /* dump configuration. It shall close the output file automatically. Do *NOT*
-     attempt to write on it afterwards! */
-  dump_config(params.cfp, &params);
 
   if (!params.process_all_events) {
     event = search_event(params.ifp, params.event_no);
@@ -298,22 +290,18 @@ void process_flags (parameter_t* p, const int argc, char** argv)
 
     case 'l': /* Which layers to require? */
       string2layer(&p->layer_flags,optarg);
-      strcpy(p->layer_names,optarg);
       break;
 
     case 'g': /* What energy values would you like printed? */
       string2edump(&p->dump_energy,optarg);
-      strcpy(p->energy_names,optarg);
       break;
 
     case 's': /* Which layers to print to output? */
       string2layer(&p->print_flags,optarg);
-      strcpy(p->print_names,optarg);
       break;
 
     case 'n': /* Which normalization to use? */
       string2normalization(&p->normalization,optarg);
-      strcpy(p->norm_name,optarg);
       break;
 
     case 'v': /* dump rings instead of plain RoIs */
@@ -379,8 +367,11 @@ void process_flags (parameter_t* p, const int argc, char** argv)
   } /* end of while on (getopt) */
 
   /* Now we test the coherency of flags */
-
   test_flags(p);
+
+  /* dump configuration. It shall close the config file automatically. Do *NOT*
+     attempt to write on it afterwards! */
+  dump_config(p->cfp, p);
 
 } /* end of process flags */
 
@@ -429,6 +420,12 @@ void test_flags (parameter_t* p)
   if ( validate_print_selection(&p->layer_flags, &p->print_flags) == FALSE ) {
     fprintf(stderr, "(main)ERROR: Can't continue. Will abort\n");
     exit(EXIT_FAILURE);
+  }
+
+  /* No sense in requiring to print ROI energies if dumping digis */
+  if (p->dump_digis || p->dump_uniform_digis) {
+    string2layer(&p->layer_flags, "none");
+    string2edump(&p->dump_energy, "none");
   }
 
   /* No sense in print energy values that are NOT uniformized */
@@ -616,9 +613,20 @@ bool_t process_ROI(const ROI* roi, const parameter_t* p)
       if ( uniformize (&ttroi,&ur,p->layer_flags,p->normalization) != NULL ) {
 
 	if (p->dump_uniform_digis) dump_DIGIS(p->ofp,roi);
-	else print_uniform_roi (p->ofp,&ur,p->print_flags);
+
+	else { /* print energy info (if needed)+ RoI info */
+	  if ( !p->dump_energy ) {
+	    char* t=get_energy(roi, &ur, p->dump_energy, p->edump_comment_str);
+	    fprintf(p->ofp, "%s\n", t);
+	    free(t);
+	  }
+	  print_uniform_roi (p->ofp,&ur,p->print_flags);
+	  fprintf(p->ofp, "\n"); /* An extra space between outputs */
+	}
+
 	free_uniform_roi (&ur);
       }
+
     }
 
     /* free all resources */
@@ -733,6 +741,7 @@ int dump_rings (const tt_roi_t* roi, const parameter_t* p)
 void dump_config(FILE* fp, const parameter_t* par) 
 {
   time_t current_time = time(NULL); /* just a dummy variable for timing */
+  char temp[60]; /* for temporary strings */
 
   fprintf(fp, "-+- CONFIGURATION PARAMETERS\n");
   fprintf(fp, " +- Date: %s", ctime(&current_time));
@@ -746,14 +755,18 @@ void dump_config(FILE* fp, const parameter_t* par)
   else fprintf(fp, "Uniform Rois\n");
 
   if (! par->dump_digis ) {
-    fprintf(fp, " +- Uniformizing Selection: %s\n", par->layer_names);
+    fprintf(fp, " +- Uniformizing Selection: %s\n", 
+	    layer2string(&par->layer_flags,temp));
     if (! par->dump_uniform_digis ) {
-      fprintf(fp, " +- Printing Selection: %s\n", par->print_names);
-      fprintf(fp, " +- Normalization: %s\n", par->norm_name);
+      fprintf(fp, " +- Printing Selection: %s\n", 
+	      layer2string(&par->print_flags,temp));
+      fprintf(fp, " +- Normalization: %s\n", 
+	      normalization2string(&par->normalization,temp));
     }
   }
 
-  fprintf(fp, " +- Energy printing: %s\n", par->energy_names);
+  fprintf(fp, " +- Energy printing: %s\n", 
+	  edump2string(&par->dump_energy,temp));
   fprintf(fp, " +- Energy comment string: %s\n", par->edump_comment_str);
 
   fprintf(fp, " +- Output Format: ");
