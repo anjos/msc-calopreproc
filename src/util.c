@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.5 2000/06/28 15:47:54 rabello Exp $ */
+/* $Id: util.c,v 1.6 2000/07/12 04:31:45 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,7 +15,7 @@
 double fabs(double x);
 
 /* functions only seen by this file */
-void waste_initial_info(FILE*);
+void waste_VERSION(FILE*);
 void waste_CALGEOM(FILE*);
 void waste_TRTGEOM(FILE*);
 void waste_SCTGEOM(FILE*);
@@ -47,6 +47,7 @@ EVENT search_event(FILE* in, const long evno)
   EVENT event;
   bool_t eliminated = FALSE;
 
+  /* wastes the initial information */
   waste_initial_info(in);
 
   /* Read in the designated event (evno) */
@@ -70,7 +71,7 @@ EVENT search_event(FILE* in, const long evno)
   } 
 
   if (eliminated) fprintf(stderr,"\n");
-  fprintf(stderr,"(util) Will be processing event %ld...\n", itor-1);
+  fprintf(stderr,"(util) Using event -> %ld\n", itor-1);
 
   /* Look into event and find out if it has or has not valid calo information
    */
@@ -159,11 +160,14 @@ long count_events(FILE* fp)
 
 void waste_initial_info(FILE* fp)
 {
+  waste_VERSION(fp);
   waste_CALGEOM(fp);
   waste_TRTGEOM(fp);
   waste_SCTGEOM(fp);
 }
 
+/* This function just reads and wastes the VERSION tag of the file pointed by
+   the first argument */
 void waste_VERSION(FILE* fp)
 {
   VERSION v;
@@ -216,6 +220,33 @@ void waste_SCTGEOM(FILE* fp)
     exit(EXIT_FAILURE);
   }
   free_SCTGEOM(&sctg);
+
+  return;
+}
+
+void dump_DIGIS(FILE* fp,const ROI* roi)
+{
+  int i; /* iterator */
+
+  for(i=0; i<roi->calDigi.nEmDigi; ++i) {
+    int   cr = roi->calDigi.emDigi[i].CaloRegion;
+    float en = roi->calDigi.emDigi[i].Et;
+    float e  = roi->calDigi.emDigi[i].eta;
+    float p  = roi->calDigi.emDigi[i].phi;
+    int   id = roi->calDigi.emDigi[i].id;
+
+    fprintf(fp, "%d %e %e %e %ld\n", cr, en, e, p, id);
+  }
+
+  for(i=0; i<roi->calDigi.nhadDigi; ++i) {
+    int   cr = roi->calDigi.hadDigi[i].CaloRegion;
+    float en = roi->calDigi.hadDigi[i].Et;
+    float e  = roi->calDigi.hadDigi[i].eta;
+    float p  = roi->calDigi.hadDigi[i].phi;
+    int   id = roi->calDigi.hadDigi[i].id;
+
+    fprintf(fp, "%d %e %e %e %ld\n", cr, en, e, p, id);
+  }
 
   return;
 }
