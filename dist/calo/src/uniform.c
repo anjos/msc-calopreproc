@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.4 2000/08/11 16:12:46 rabello Exp $ */
+/* $Id: uniform.c,v 1.5 2000/08/11 20:29:38 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -21,11 +21,6 @@ int uniform_contour_err = 0;
 /* In order to make things simpler, I should enumerate a new type that holds
    only 2 sub-types of calorimeters. */
 typedef enum mycalo_t {PS=PSBARRREL, EM=EMBARREL, HAD=TILECAL} mycalo_t;
-
-/* For flag specification */
-typedef enum flag_t {FLAG_PS=0x40, FLAG_EM1=0x20, FLAG_EM2=0x10, FLAG_EM3=0x8, 
-		     FLAG_HAD1=0x4, FLAG_HAD2=0x2, FLAG_HAD3=0x1, 
-		     FLAG_ALL=0x7F} flag_t;
 
 /* For normalization specification */
 typedef enum normal_t {NORMAL_NONE=0x0, NORMAL_ALL=0x1, NORMAL_SECTION=0x2, 
@@ -58,7 +53,6 @@ void free_had_tt (hadtt_t);
 
 int print_uniform_layer (FILE*, const CaloLayer*);
 Energy uniform_layer_energy (const CaloLayer*);
-Energy uniform_roi_energy (const uniform_roi_t*);
 void uniform_roi_normalize (uniform_roi_t*, const Energy);
 void uniform_layer_normalize (CaloLayer*, const Energy);
 
@@ -270,6 +264,33 @@ Energy uniform_roi_energy (const uniform_roi_t* rp)
   
   for (i=0; i< rp->nlayer; ++i)
     counter += uniform_layer_energy(&rp->layer[i]);
+    
+  return (counter);
+}
+
+/* This function shall add all energies on a uniform RoI:EM section. It returns
+   the result of that summation. */
+Energy uniform_roi_EM_energy (const uniform_roi_t* rp)
+{
+  Energy counter = 0;
+  int i;
+  
+  for (i=0; i< rp->nlayer; ++i)
+    if (rp->layer[i].calo == EM || rp->layer[i].calo == PS)
+      counter += uniform_layer_energy(&rp->layer[i]);
+    
+  return (counter);
+}
+/* This function shall add all energies on a uniform RoI:HAD section. It
+   returns the result of that summation. */
+Energy uniform_roi_HAD_energy (const uniform_roi_t* rp)
+{
+  Energy counter = 0;
+  int i;
+  
+  for (i=0; i< rp->nlayer; ++i)
+    if (rp->layer[i].calo == HAD)
+      counter += uniform_layer_energy(&rp->layer[i]);
     
   return (counter);
 }
