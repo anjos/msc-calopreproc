@@ -1,7 +1,7 @@
 /* hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: common.h,v 1.8 2000/07/07 18:25:18 rabello Exp $ */
+/* $Id: common.h,v 1.9 2000/08/16 11:22:06 andre Exp $ */
 
 #ifndef COMMON_H
 #define COMMON_H
@@ -86,5 +86,34 @@ bool_t PhiWrap(double*, double*);
    current pointer and tests it. The allocated space is initialized if this is
    call to obtain new space. */
 void* mxalloc(void*, const int, const int);
+
+/* Concatenate one string to the other, returning the first. The memory needed
+   is allocated as with malloc(). If *to is NULL, newly allocated memory is
+   returned. The returned value is the number of chars passed to the first
+   argument. ATTENTION: The first argument is a double-char-pointer. The string
+   which is going to be allocated is going to be placed there. I suggest using
+   &((char*)charptr) instead of creating a double-char-pointer. */
+int ascat (char**, const char*);
+
+/* Concatenate one string to a double forming a new string with the double
+   value included. The precision used is the default of XXprintf() functions in
+   general, i.e. "%e". The memory needed is allocated as with malloc(). If *to
+   is NULL, newly allocated memory is returned. The returned value is the
+   number of chars passed to the first argument. ATTENTION: The first argument
+   is a double-char-pointer. The string which is going to be allocated is going
+   to be placed there. I suggest using &((char*)charptr) instead of creating a
+   double-char-pointer. */
+int ascat_double (char**, const double*);
+
+/* Concatenate one string to an int forming a new string with the int value
+   included. The precision used is the default of XXprintf() functions in
+   general, i.e. "%d". The memory needed is allocated as with malloc(). If *to
+   is NULL, newly allocated memory is returned. The returned value is the
+   number of chars passed to the first argument. ATTENTION: The first argument
+   is a double-char-pointer. The string which is going to be allocated is going
+   to be placed there. I suggest using &((char*)charptr) instead of creating a
+   double-char-pointer. */
+int ascat_int (char**, const int*);
+
 
 #endif /* COMMON_H */
