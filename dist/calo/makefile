@@ -1,7 +1,7 @@
 ## hello emacs, this is a -*- makefile -*- 
 ## Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
 
-## $Id: makefile,v 1.6 2000/07/07 18:24:37 rabello Exp $
+## $Id: makefile,v 1.7 2000/07/20 00:51:26 rabello Exp $
 
 ### Calorimeter Library compilation
 
@@ -35,7 +35,7 @@ MKDEPFLAGS = -f $(MKDEPFILE)
 .PHONY: clean depend clean_test
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 all: libcalo.a
 
