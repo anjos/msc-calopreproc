@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: energy.h,v 1.3 2000/08/22 02:50:08 andre Exp $ */
+/* $Id: energy.h,v 1.4 2000/09/06 14:52:00 andre Exp $ */
 
 #ifndef _ENERGY_H
 #define _ENERGY_H
@@ -9,6 +9,7 @@
 #include "data.h"
 #include "common.h"
 #include "uniform.h"
+#include "energy.h"
 
 /* 
    This component includes functions for processing event energy. It introduces
@@ -69,6 +70,19 @@ bool_t validate_energy_selection(const unsigned short*, unsigned short*);
    string containing the energy parameter descriptions. The string must have
    been allocated previously (with at least 60 bytes). */
 char* edump2string (const unsigned short*, char*);
+
+/* The next functions extract the energy sum of all cells of the collected
+   RoI. The RoI cells available are selected at run time by the appropriate
+   layer_flags on main.c. The EM and HAD versions of it return only the EM and
+   hadronic sections energies. Note: The first function (uniform_roi_energy())
+   is *NOT* implemented using the following EM/HAD versions, it just sums over
+   all cells on the RoI with no EM/HAD distinction. Hipothetically, the sum of
+   the last two, should be the return value of the first, but you can think the
+   implementation of uniform_roi_energy() as a debugging parameter for the sum
+   of the other two. */
+Energy uniform_roi_energy (const uniform_roi_t*);
+Energy uniform_roi_EM_energy (const uniform_roi_t*);
+Energy uniform_roi_HAD_energy (const uniform_roi_t*);
 
 #endif /* _ENERGY_H */
 
