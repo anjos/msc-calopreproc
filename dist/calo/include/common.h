@@ -1,4 +1,4 @@
-/* $Id: common.h,v 1.1.1.2 2000/04/06 01:23:40 rabello Exp $ */
+/* $Id: common.h,v 1.2 2000/04/06 21:46:22 rabello Exp $ */
 
 #ifndef COMMON_H
 #define COMMON_H
@@ -34,7 +34,7 @@ typedef struct Area {
   Point UpperRight;
 } Area;
 
-extern Flag PhiWrap(double*, double*);
-extern void* SmartAlloc(void*, const int);
+Flag PhiWrap(double*, double*);
+void* SmartAlloc(void*, const int);
 
 #endif /* COMMON_H */
