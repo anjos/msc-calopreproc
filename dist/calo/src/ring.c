@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.c,v 1.5 2000/08/11 16:12:36 rabello Exp $ */
+/* $Id: ring.c,v 1.6 2000/08/17 00:12:26 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,62 +88,48 @@ int asprintf_ring (char** sp, const ring_t* rp)
   return (rp->nfeat);
 }
 
-int ring_sum (const tt_roi_t* r, ringroi_t* ringroi,
-	      const unsigned short layer_flags, 
-	      const unsigned short print_flags, 
-	      const unsigned short normalization_flags)
+int ring_sum (const uniform_roi_t* ur, ringroi_t* ringroi,
+	      const unsigned short print_flags) 
 {
   int max;
-  uniform_roi_t ur;
   int i; /* iterator */
   int rc = 0; /* ring counter - iterator */
 
-  ur.nlayer = 0;
-  ur.layer = NULL;
+  /* Pre-allocate the number of rings that should be enough for all the
+     output */
+  ringroi->nring = flag_contains_nlayers(print_flags);
+  ringroi->ring = (ring_t*) calloc(ringroi->nring, sizeof(ring_t));
 
-  /* Transform the tt_roi_t in succesive layers of a uniform TT*/
-  if (uniformize(r,&ur,layer_flags,normalization_flags) != NULL) {
+  /* loop over all layers. If layer is not to be printed, it should be
+     ignored. Attention: do *NOT* use i for ring indexing since it contains
+     the layer indexing which is not the same for rings. Layers are selected
+     according to the layer_flag, while rings are created depending on the
+     print_flag! */
+  for (i=0; i<ur->nlayer; ++i) {
+    
+    /* Only process the layers that are going to be printed */
+    if ( flag_contains_layer(print_flags, &ur->layer[i]) ) {
+      
 
-    /* Pre-allocate the number of rings that should be enough for all the
-       output */
-    ringroi->nring = flag_contains_nlayers(print_flags);
-    ringroi->ring = (ring_t*) calloc(ringroi->nring, sizeof(ring_t));
+      /* Search for the highest energy value. */
+      max = get_max_idx(&ur->layer[i]);
 
-    /* loop over all layers. If layer is not to be printed, it should be
-       ignored. Attention: do *NOT* use i for ring indexing since it contains
-       the layer indexing which is not the same for rings. Layers are selected
-       according to the layer_flag, while rings are created depending on the
-       print_flag! */
-    for (i=0; i<ur.nlayer; ++i) {
-
-      /* Only process the layers that are going to be printed */
-      if ( flag_contains_layer(print_flags, &ur.layer[i]) ) {
-	
-
-	/* Search for the highest energy value. */
-	max = get_max_idx(&ur.layer[i]);
-
-	/* Allocate space for features and adjust ring parameters */
-	ringroi->ring[rc].nfeat = number_of_features( ur.layer[i].calo, 
-						      ur.layer[i].level );
-	ringroi->ring[rc].feat = (Energy*) calloc ( ringroi->ring[rc].nfeat,
-						    sizeof(Energy) );
-
-	/* Evaluate the rings */
-	ring_sum_around(&ur.layer[i],&(ringroi->ring[rc]),max);
-
-	/* Let's process the next ring on the next pass */
-	++rc; 
-      }
-
+      /* Allocate space for features and adjust ring parameters */
+      ringroi->ring[rc].nfeat = number_of_features( ur->layer[i].calo, 
+						    ur->layer[i].level );
+      ringroi->ring[rc].feat = (Energy*) calloc ( ringroi->ring[rc].nfeat,
+						  sizeof(Energy) );
+      
+      /* Evaluate the rings */
+      ring_sum_around(&ur->layer[i],&(ringroi->ring[rc]),max);
+      
+      /* Let's process the next ring on the next pass */
+      ++rc; 
     }
 
-    free_uniform_roi(&ur);
-
-    return (flag_contains_nlayers(print_flags));
   }
 
-  return 0;
+  return (flag_contains_nlayers(print_flags));
 }
 
 /* This function only evaluates the maximum energy peak and return the results

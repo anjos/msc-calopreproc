@@ -1,12 +1,13 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.h,v 1.5 2000/08/11 16:13:25 rabello Exp $ */
+/* $Id: ring.h,v 1.6 2000/08/17 00:12:49 andre Exp $ */
 
 #ifndef _RING_H
 #define _RING_H
 
 #include <stdio.h>
 #include "ttdef.h"
+#include "uniform.h"
 
 /* defines how rings are going to be arranged */
 typedef struct ring_t 
@@ -22,26 +23,25 @@ typedef struct ringroi_t
   int nring;
 }ringroi_t;
 
-/* Given an array of cells in tt_roi_t format, this function can output the
-   squared rings formed by summing the rings outside the energy peak of the
-   layer being analysed. The RoI on it's raw state (by trigtowr.c) should be
-   passed along options for uniformization, printing and normalization on that
-   order. 
+/* Given an array of cells in uniform_roi_t format, this function can output
+   the squared rings formed by summing the rings outside the energy peak of the
+   layer being analysed. The RoI on it's uniformized state (by uniform.c)
+   should be passed along with a place to put the ringroi_t malloc'ed inside
+   and options for printing on that order.
 
    In order to do its job, this function will search for the highest energy
    value among all cells, and will continously sum the cells around the energy
    peak till there are no more cells to sum or the maximum number of rings is
    reached as described above ring.c:ring_sum_around(). The layers to be
    included in processing and normalization type are specified by the unsigned
-   shorts in the end (last 2 arguments), as describe in module uniform.[ch].
+   shorts in the end (last argument), as describe in module uniform.[ch].
 
    The function should return the number of layers were the ringing algorithm
    were applied. The ringroi_t.ring pointer will be directed to some space
    containing the extracted rings. The space should not be preallocated, but
    one must free it after usage. The actual space for ringroi_t SHOULD be
    preallocated. I suggest using static local allocation. */
-int ring_sum (const tt_roi_t*, ringroi_t*, const unsigned short, 
-	      const unsigned short, const unsigned short);
+int ring_sum (const uniform_roi_t*, ringroi_t*, const unsigned short);
 
 /* This function just frees a ring_t */
 bool_t free_ring (ring_t*);
