@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* copyleft Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: trigtowr.c,v 1.7 2000/07/07 18:48:57 rabello Exp $ */
+/* $Id: trigtowr.c,v 1.8 2000/07/12 04:34:46 rabello Exp $ */
 
 
 #include "trigtowr.h"
@@ -64,8 +64,7 @@ CellInfo get_info_from_digi (const emCalDigiType*, const bool_t);
 /* Build RoI from layers into trigger towers of type tt_roi_t (3-D). The
    variable pointed by caloroi, has to be *fully* initialized before calling
    this function, otherwise, unexpected results my occur. */
-ErrorCode build_roi(const ROI* roi, const bool_t fix_window,
-		    tt_roi_t* caloroi)
+bool_t build_roi(const ROI* roi, const bool_t fix_window, tt_roi_t* caloroi)
 {
   int x,y;
 
@@ -94,7 +93,7 @@ ErrorCode build_roi(const ROI* roi, const bool_t fix_window,
       /* Oops! */
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't put ");
       fprintf(stderr, "**ELECTROMAGNETIC** digis in place\n");
-      return(CALO_ERROR);
+      return(FALSE);
     }
   
   if (put_had_digis(roi->calDigi.hadDigi, 
@@ -102,10 +101,10 @@ ErrorCode build_roi(const ROI* roi, const bool_t fix_window,
     {
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't put ");
       fprintf(stderr, "**HADRONIC** digis in place\n"); 
-      return(CALO_ERROR); 
+      return(FALSE); 
     } 
 
-  return(CALO_SUCCESS);
+  return(TRUE);
   
 } /* end BuildCaloTTS */
 
