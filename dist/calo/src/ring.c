@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.c,v 1.9 2000/09/19 00:32:41 andre Exp $ */
+/* $Id: ring.c,v 1.10 2000/10/23 02:25:14 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,7 +88,8 @@ int asprintf_ring (char** sp, const ring_t* rp)
 
 int ring_sum (const uniform_roi_t* ur, ringroi_t* ringroi,
 	      const unsigned short* print_flags,
-	      const unsigned short* norm_flags, const Energy* radiusp)
+	      const unsigned short* norm_flags, const Energy* radiusp,
+	      const config_weighted_t* cw)
 {
   int max;
   int i; /* iterator */
@@ -128,7 +129,7 @@ int ring_sum (const uniform_roi_t* ur, ringroi_t* ringroi,
   }
 
   /* Normalize if needed */
-  ring_normalize(ringroi, norm_flags, radiusp);
+  ring_normalize(ringroi, norm_flags, radiusp, cw);
 
   return (flag_contains_nlayers(print_flags));
 }
@@ -295,3 +296,25 @@ bool_t free_ring (ring_t* r)
   return (TRUE);
 }
 
+/* Calculates the energy in a ring layer, returning the result on *e */
+void ringlayer_energy(const ring_t* rp, Energy* e)
+{
+  int feature; /* iterator */
+  (*e) = 0.;
+  for (feature = 0; feature < rp->nfeat; ++feature)
+    (*e) += rp->feat[feature];
+  return;
+}
+
+/* Calculates the total RoI energy, based on rings only */
+void ringroi_energy(const ringroi_t* rrp, Energy* e)
+{
+  int layer; /* iterators */
+  Energy tmp; /* accumulator */
+  (*e) = 0.;
+  for (layer=0; layer<rrp->nring; ++layer) {
+    ringlayer_energy(&rrp->ring[layer], &tmp);
+    (*e) += tmp;
+  }
+  return;
+}
