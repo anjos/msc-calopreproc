@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.11 2000/12/08 15:21:14 rabello Exp $ */
+/* $Id: util.c,v 1.12 2000/12/08 17:50:29 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -196,6 +196,7 @@ void waste_SCTGEOM(FILE* fp)
 char* get_DIGIS(const ROI* roi)
 {
   int i; /* iterator */
+  char* info; /* another temp buffer */
   char* temp = ""; /* a temporary holder */
 
   /* Firstly, we print the RoI window, the order is etamin, etamax, phimin,
@@ -209,27 +210,31 @@ char* get_DIGIS(const ROI* roi)
   ascat_int(&temp, &roi->calDigi.nEmDigi);
   ascat(&temp, "\n");
   for(i=0; i<roi->calDigi.nEmDigi; ++i) {
-    ascat_int(&temp, &roi->calDigi.emDigi[i].CaloRegion);
-    ascat_float(&temp, &roi->calDigi.emDigi[i].Et);
-    ascat_float(&temp, &roi->calDigi.emDigi[i].eta);
-    ascat_float(&temp, &roi->calDigi.emDigi[i].phi);
-    ascat_int(&temp, &roi->calDigi.emDigi[i].id);
-    ascat(&temp, "\n");
+    int   cr = roi->calDigi.emDigi[i].CaloRegion;
+    float en = roi->calDigi.emDigi[i].Et;
+    float e  = roi->calDigi.emDigi[i].eta;
+    float p  = roi->calDigi.emDigi[i].phi;
+    int   id = roi->calDigi.emDigi[i].id;
+    asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
+    free(temp);
+    temp = info; 
   }
 
   ascat_int(&temp, &roi->calDigi.nhadDigi);
   ascat(&temp, "\n");
   for(i=0; i<roi->calDigi.nhadDigi; ++i) {
-    ascat_int(&temp, &roi->calDigi.hadDigi[i].CaloRegion);
-    ascat_float(&temp, &roi->calDigi.hadDigi[i].Et);
-    ascat_float(&temp, &roi->calDigi.hadDigi[i].eta);
-    ascat_float(&temp, &roi->calDigi.hadDigi[i].phi);
-    ascat_int(&temp, &roi->calDigi.hadDigi[i].id);
-    ascat(&temp, "\n");
+    int   cr = roi->calDigi.hadDigi[i].CaloRegion;
+    float en = roi->calDigi.hadDigi[i].Et;
+    float e  = roi->calDigi.hadDigi[i].eta;
+    float p  = roi->calDigi.hadDigi[i].phi;
+    int   id = roi->calDigi.hadDigi[i].id;
+    asprintf(&info, "%s%d %e %e %e %d\n", temp, cr, en, e, p, id);
+    free(temp);
+    temp = info; 
   }
 
   ascat(&temp, "\n");
-
+  fprintf(stderr, "%s", temp);
   return temp;
 }
 
