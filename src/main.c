@@ -5,19 +5,14 @@
    CaloDigi's that may be present in the file. The building of this file is
    accomplished by make (1).  */
 
-/* $Id: main.c,v 1.14 2000/08/22 02:48:59 andre Exp $ */
+/* $Id: main.c,v 1.15 2000/08/27 16:24:19 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <obstack.h>
+
 #include <string.h>
-
-/* Functions that shall be initialized */
-FILE * open_obstack_stream (struct obstack*);
-
-/* The definition of obstack initialization and destruction */
-#define obstack_chunk_alloc malloc 
-#define obstack_chunk_free free
 
 #include "util.h"
 #include "parameter.h" /* the default input parameters, sizes and so on */
@@ -33,9 +28,9 @@ FILE * open_obstack_stream (struct obstack*);
 #endif
 
 void fprintf_progress (FILE*, const bool_t);
-bool_t process_ROI (const ROI*, const parameter_t*);
-void process_EVENT (const EVENT*, const parameter_t*);
-int dump_rings (const uniform_roi_t*, const parameter_t*);
+bool_t process_ROI (const ROI*, parameter_t*);
+void process_EVENT (const EVENT*, parameter_t*);
+int dump_rings (const uniform_roi_t*, parameter_t*);
 
 /* This shall, during execution, be set to the number of dumped features */
 static int _iunits = 0; 
@@ -44,9 +39,7 @@ static int _iunits = 0;
 static int dumped_events = 0; 
 
 /* This shall keep the number of events processed so far */
-static int event_counter = 0; 
-
-
+static int event_counter = 0;
 
 int main (int argc, char* argv[])
 {
@@ -57,7 +50,7 @@ int main (int argc, char* argv[])
 #ifdef TRACE_DEBUG
   mtrace();
 #endif
-  
+
   /* sets up the default parameters */
   init_parameters(&params);
 
@@ -91,7 +84,8 @@ int main (int argc, char* argv[])
   } /* else process all events */
 
   /* This will close unclosed files and free all memory needed so far for
-     saving the run parameters. */
+     saving the run parameters. It will also dump, if needed, the memory banks
+     containing event data. */
   terminate_parameters(&params);
 
   /* exit gracefully */
@@ -133,9 +127,10 @@ void fprintf_progress(FILE* fp, const bool_t v)
    indicating the RoI was correctly processed or not. Event accouting was also
    moved into here since this place is perfect for doing it: event rejection
    can only happen here. */
-bool_t process_ROI(const ROI* roi, const parameter_t* p)
+bool_t process_ROI(const ROI* roi, parameter_t* p)
 {
   tt_roi_t ttroi; /* The calorimeter RoI */
+  char* info;
 
   if(roi->calDigi.nEmDigi == 0 && roi->calDigi.nhadDigi == 0) {
     fprintf(stderr,"\n");
@@ -144,12 +139,29 @@ bool_t process_ROI(const ROI* roi, const parameter_t* p)
   }
 
   ++dumped_events; /* Can we count one more valid event? */
-   
+
+  /* do I have to dump event numbers? */
+  if(p->dump_eventno) {
+    /* create the string containing the event number data */
+    asprintf(&info, "%s %d %d\n", p->event_comment_str, event_counter, 
+	     dumped_events);
+    
+    /* put string to final destination */
+    output_string(p->evfp, &p->eventno_obs, p->run_fast, info);
+    
+    /* clear the output string */
+    free(info);
+  }
+
   if (p->dump_digis) {
-    /* do I have to dump event numbers? */
-    if(p->dump_eventno) fprintf(p->evfp, "%s %d %d\n", p->event_comment_str,
-				event_counter, dumped_events);
-    dump_DIGIS(p->ofp,roi);
+    /* get the digis into string format */
+    info = get_DIGIS(roi);
+
+    /* Put the string into memory pool or file */
+    output_string(p->ofp, &p->output_obs, p->run_fast, info);
+    
+    /* Free the allocated space */
+    free(info);
   }
 
   else { /* Then I have to put all into TT format */
@@ -167,32 +179,48 @@ bool_t process_ROI(const ROI* roi, const parameter_t* p)
 
       /* Do we have to dump energy information? */
       if ( p->dump_energy ) {
-	char* t=get_energy(roi, &ur, p->dump_energy, p->edump_comment_str);
-	fprintf(p->efp, "%s\n", t);
-	free(t);
+	/* get the energies for this event, in a string */
+	info = get_energy(roi, &ur, p->dump_energy, p->edump_comment_str);
+
+	/* Put the string into memory pool or file */
+	output_string(p->efp, &p->energy_obs, p->run_fast, info);
+    
+	/* Free the allocated space */
+	free(info);
       }
 
-      /* do I have to dumpe event numbers? */
-      if(p->dump_eventno)
-	fprintf(p->evfp, "%s %d %d\n", p->event_comment_str,
-		event_counter, dumped_events);
+      if (p->dump_uniform_digis) {
+	/* get the digis into string format */
+	info = get_DIGIS(roi);
 
-      /* Do we have to dump digis? If yes, we can't print anything else */
-      if (p->dump_uniform_digis) dump_DIGIS(p->ofp,roi);
+	/* Put the string into memory pool or file */
+	output_string(p->ofp, &p->output_obs, p->run_fast, info);
+    
+	/* Free the allocated space */
+	free(info);
+      }
 
       else {
 	/* Do we have to dump rings or uniform RoIs? */
 	if (p->dump_rings) dump_rings(&ur, p);
 
 	/* To print the uniform RoIs is what is left for us... */
-	else print_uniform_roi (p->ofp,&ur,p->print_flags);
+	else {
+	  info = get_uniform_roi (&ur,p->print_flags);
+	  output_string(p->ofp, &p->output_obs, p->run_fast, info);
+	  free(info);
+	}
       }
-	
+
       /* An extra space between outputs */
-      fprintf(p->ofp, "\n"); 
+      {
+	char space[] = "\n";
+	output_string(p->ofp, &p->output_obs, p->run_fast, space);
+      }
 
       /* free the required resources */
       free_uniform_roi (&ur);
+      
     }
 
     else { /* I couldn't uniformize the RoI... */
@@ -209,7 +237,7 @@ bool_t process_ROI(const ROI* roi, const parameter_t* p)
 /* Do all event checkings and process the whole event, return the number of
    fields processed per RoI. If the number of fields per RoI is variable, it
    should exit with an error message. */
-void process_EVENT (const EVENT* ev, const parameter_t* p)
+void process_EVENT (const EVENT* ev, parameter_t* p)
 {
   int i; /* iterator */
 
@@ -256,7 +284,7 @@ void process_EVENT (const EVENT* ev, const parameter_t* p)
    do it's job. The obstack is passed as an extra paramater and is used to dump
    the contents produced at each iteration. The obstack must be initialized
    previously. */
-int dump_rings (const uniform_roi_t* ur, const parameter_t* p)
+int dump_rings (const uniform_roi_t* ur, parameter_t* p)
 {
   char* dump;
   char* temp;
@@ -279,7 +307,7 @@ int dump_rings (const uniform_roi_t* ur, const parameter_t* p)
 	free(temp);
 
 	temp = dump;
-	asprintf(&dump, "%starget=%s\n", dump, 
+	asprintf(&dump, "%starget=%s\n", dump,
 		 (p->particle==JET)?"JET":"ELECTRON");
 	free(temp);
 
@@ -289,16 +317,16 @@ int dump_rings (const uniform_roi_t* ur, const parameter_t* p)
       }
 
       /* If this is the first print out, include the header */
-      if (dumped_events == 1 && p->format_snns) 
-	fprintf_SNNS_header(p->ofp, 1, _iunits, 1);
+      if (dumped_events == 1 && p->format_snns) {
+	char* t = get_SNNS_header(1, _iunits, 1);
+	output_string(p->ofp, &p->output_obs, p->run_fast, t);
+	free(t);
+      }
 
-      fprintf(p->ofp,"%s",dump);
+      output_string(p->ofp, &p->output_obs, p->run_fast, dump);
 
       free_ring_vector(ringroi.ring, ringroi.nring);
       free(dump); /* the information to print */
   }
   return (dumped_events);
 }
-
-
-
