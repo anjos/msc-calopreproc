@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.18 2000/09/11 14:26:45 andre Exp $
+# $Id: Makefile,v 1.19 2000/09/11 21:53:51 andre Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -119,10 +119,12 @@ docs:
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.18 $$' of '$$Date: 2000/09/11 14:26:45 $$'
+	@echo \* -- current version is '$$Revision: 1.19 $$' of '$$Date: 2000/09/11 21:53:51 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
+	@echo -n \* Note: Do \*not\* forget to set the WORKDIR variable or
+	@echo " things" may not go smooth.
 	@echo " "
 
 cleandoc:
@@ -132,7 +134,7 @@ cleanlib:
 	cd ./dist/calo; $(MAKE) clean
 	cd ./dist/spec; $(MAKE) clean
 
-clean: cleanlib cleanfig
+clean: cleanlib cleandoc
 	rm -f ./src/*~ ./src/*.o $(DATASPEC:%=./src/%.[co])
 	rm -f ./include/*~ $(DATASPEC:%=./include/%.h) ./*~
 	rm -f $(MKDEPFILE) $(MKDEPFILE:%=%.bak)
