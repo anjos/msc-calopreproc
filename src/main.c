@@ -5,7 +5,7 @@
    CaloDigi's that may be present in the file. The building of this file is
    accomplished by make (1).  */
 
-/* $Id: main.c,v 1.18 2000/09/06 14:48:52 andre Exp $ */
+/* $Id: main.c,v 1.19 2000/09/06 21:12:34 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -225,12 +225,12 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
     }
 
     /* Uniformize, normalize and check for correction */
-    if ( uniformize (&ttroi,&ur,p->layer_flags,p->normalization) != NULL ) {
+    if ( uniformize (&ttroi,&ur,&p->layer_flags,&p->normalization) != NULL ) {
 
       /* Do we have to dump energy information? */
       if ( p->dump_energy ) {
 	/* get the energies for this event, in a string */
-	info = get_energy(roi, &ur, p->dump_energy, p->edump_comment_str);
+	info = get_energy(roi, &ur, &p->dump_energy, p->edump_comment_str);
 
 	/* Put the string into memory pool or file */
 	output_string(p->efp, p->energy_obsp, p->run_fast, info);
@@ -256,7 +256,7 @@ bool_t process_ROI(const ROI* roi, parameter_t* p)
 
 	/* To print the uniform RoIs is what is left for us... */
 	else {
-	  info = get_uniform_roi (&ur,p->print_flags);
+	  info = get_uniform_roi (&ur, &p->print_flags);
 	  output_string(p->ofp, p->output_obsp, p->run_fast, info);
 	  free(info);
 	}
@@ -341,7 +341,7 @@ int dump_rings (const uniform_roi_t* ur, parameter_t* p)
   ringroi_t ringroi;
 
   /* I have to change the value pointed by rp */
-  ring_sum(ur, &ringroi, p->print_flags);
+  ring_sum(ur, &ringroi, &p->print_flags, &p->normalization);
 
   if (ringroi.nring > 0) {
       _iunits = asprintf_ring_vector (&dump, ringroi.ring, ringroi.nring);
