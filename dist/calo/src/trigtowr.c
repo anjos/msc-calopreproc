@@ -1,31 +1,42 @@
 /* Hello emacs, this is -*- c -*- */
 /* copyleft Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: trigtowr.c,v 1.2 2000/04/07 19:36:48 rabello Exp $ */
+/* $Id: trigtowr.c,v 1.3 2000/05/31 13:55:25 rabello Exp $ */
 
 #include "trigtowr.h"
 
-/* internal helper functions */
-ErrorCode BuildCaloTTS(const ROI*, const Flag, CaloTTEMRoI*);
-ErrorCode PutEMDigis(emCalDigiType*, const int, const Flag, CaloTTEMRoI*); 
-/* using the same function for em and had digis - ATTENTION */
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "data.h"
+#include "error.h"
+#include "common.h"
+#include "portable.h"
+#include "ttdef.h"
+#include "zstt.h"
 
-Flag PointIsInRegion(const Point*, const Area*);
+extern double rint(double x);
+
+bool_t PointIsInRegion(const Point*, const Area*);
 int GetIndex(const CellInfo*, const int, const int, const Point*);
-
 ErrorCode CreateCaloLayer(CaloTriggerTower*, const CellInfo*);
 ErrorCode InitCaloLayer(CaloLayer*, const CellInfo*);
 CaloCell* CreateCaloCells(CaloCell*, const int);
 void InitCaloCells(const int, CaloCell*);
-
 ErrorCode PlaceCell(const Energy, const CellInfo*, const Point*, CaloLayer*); 
-
 void FreeCaloTriggerTower(CaloTriggerTower*);
 void FreeCaloLayer(CaloLayer* layer);
+ErrorCode PutEMDigis(emCalDigiType*, const int, const bool_t, CaloTTEMRoI*); 
 
 
-/* Build RoI from layers into trigger towers */
-ErrorCode BuildCaloTTS(const ROI* roi, const Flag zsup, CaloTTEMRoI* caloroi) 
+/*
+  =========================
+   FUNCTION IMPLEMENTATION
+  =========================
+*/
+
+/* Build RoI from layers into trigger towers (3-D) */
+ErrorCode BuildCaloTTS(const ROI* roi, const bool_t zsup, CaloTTEMRoI* caloroi) 
 {
   int x,y;
 
@@ -35,8 +46,8 @@ ErrorCode BuildCaloTTS(const ROI* roi, const Flag zsup, CaloTTEMRoI* caloroi)
       caloroi->tt[x][y].NoOfLayers = 0;
       caloroi->tt[x][y].layer = NULL;
     }
-  caloroi->PhiWrap = OFF;
-  caloroi->fixed = OFF;
+  caloroi->PhiWrap = FALSE;
+  caloroi->fixed = FALSE;
 
   /* copies correlated variables */
   caloroi->Region.UpperRight.Phi = roi->header.PhiMax;
@@ -45,26 +56,34 @@ ErrorCode BuildCaloTTS(const ROI* roi, const Flag zsup, CaloTTEMRoI* caloroi)
   caloroi->Region.LowerLeft.Eta = roi->header.EtaMin;
 
   if (PutEMDigis(roi->calDigi.emDigi, roi->calDigi.nEmDigi, zsup, caloroi) ==
-      ERROR)
+      CALO_ERROR)
     {
        /* Oops! */
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't put EM digis in place\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
   
   /* doing a cast, emdigi == haddigi for the moment - 6.5.98 */
   if (PutEMDigis((emCalDigiType*)roi->calDigi.hadDigi, roi->calDigi.nhadDigi,
-		 zsup, caloroi) == ERROR) { 
+		 zsup, caloroi) == CALO_ERROR) { 
     /* Oops! */
     fprintf(stderr, "ERROR(trigtowr.c): Couldn't put HAD digis in place\n");
-    return(ERROR);
+    return(CALO_ERROR);
   }
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
   
 } /* end BuildCaloEMRoI */
 
-ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const Flag zsup,
+/*
+  Puts the EM digis into the trigger tower, hopefully correctly. This
+  functions is also used to put the HAD digis into the trigger towers because,
+  actually EM and HAD digis are the same. 
+
+  This function has provisions to deal with decoding errors from DecodeId and
+  with RoI's that fall into the wraparound regions of phi.
+*/
+ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const bool_t zsup,
 		     CaloTTEMRoI* roi) 
 {
   int counter;
@@ -72,7 +91,7 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const Flag zsup,
   ErrorCode (*pcell) (const Energy, const CellInfo*, const Point*, CaloLayer*);
 
   /* switch to right functions */
-  if ( zsup == ON ) {
+  if ( zsup == TRUE ) {
     ccallay = &CreateZSCaloLayer;
     pcell = &PlaceZSCell;
   }
@@ -82,14 +101,14 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const Flag zsup,
   }
 
   /* provisional trick to use dumped files with wrong RoI window */
-  if (roi->fixed == OFF) {
+  if (roi->fixed == FALSE) {
     if( (roi->Region.LowerLeft.Phi -= 0.1) < 0. ) 
       roi->Region.LowerLeft.Phi += 2 * PI; 
     if( (roi->Region.UpperRight.Phi += 0.1) > 2 * PI ) 
       roi->Region.UpperRight.Phi -= 2 * PI; 
     roi->Region.LowerLeft.Eta -= 0.1;
     roi->Region.UpperRight.Eta += 0.1;
-    roi->fixed = ON;
+    roi->fixed = TRUE;
 
     /* check whether we are talking about the phi wrap around area */
     roi->PhiWrap = PhiWrap(&(roi->Region.UpperRight.Phi),
@@ -98,17 +117,17 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const Flag zsup,
 
 
   /* finds out cells and layers associated to each TT */
-  if (NoOfDigis == 0) return (SUCCESS);
+  if (NoOfDigis == 0) return (CALO_SUCCESS);
   for(counter = 0; counter < NoOfDigis; ++counter) {
 
     CellInfo cell;
-    Flag fit = OFF;
+    bool_t fit = FALSE;
     int eta, phi;
     Area area; /* lower left and upper right */
 
-    if ( GetCellInfo( (digi+counter)->id, &cell, roi->PhiWrap) == ERROR) {
+    if ( GetCellInfo( (digi+counter)->id, &cell, roi->PhiWrap) == CALO_ERROR) {
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't get cell info\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
 
     /* This is a special trick that should NOT be used regurlarly. It replaces
@@ -118,7 +137,7 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const Flag zsup,
        even at the original hbook files. This should be taken out as soon as
        this problem is correct, though it will do no harm, if decoding is fine
     */ 
-    if(fcomp(cell.center.Eta,(digi+counter)->eta,0.0001)==ERROR) {
+    if(fcomp(cell.center.Eta,(digi+counter)->eta,0.0001)== CALO_ERROR ) {
       cell.center.Eta = (digi+counter)->eta;
     } 
     /* End of magic trick */
@@ -133,59 +152,59 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const Flag zsup,
 	area.UpperRight.Phi = area.LowerLeft.Phi + PhiTTSize;
 	area.UpperRight.Eta = area.LowerLeft.Eta + EtaTTSize;
 	
-	if ( PointIsInRegion(&(cell.center), &area) == ON )
+	if ( PointIsInRegion(&(cell.center), &area) == TRUE )
 	{
 
 	    /* fits in this TT */
-	    Flag layer_exist = OFF;
+	    bool_t layer_exist = FALSE;
 	    int LayerIndex;
 	    int i;
 
-	    fit = ON;
+	    fit = TRUE;
 
 	    for (i = 0; i < roi->tt[phi][eta].NoOfLayers; i++)
 	      if (cell.calo == roi->tt[phi][eta].layer[i].calo &&
 		  cell.region == roi->tt[phi][eta].layer[i].level) {
-		layer_exist = ON;
+		layer_exist = TRUE;
 		LayerIndex = i;
 	      }
 
-	    if (layer_exist == OFF) {
-	      if ( ccallay(&(roi->tt[phi][eta]), &cell) == ERROR ) {
+	    if (layer_exist == FALSE) {
+	      if ( ccallay(&(roi->tt[phi][eta]), &cell) == CALO_ERROR ) {
 		fprintf(stderr, "ERROR(trigtowr.c): Couldn't create layer\n");
-		return(ERROR);
+		return(CALO_ERROR);
 	      }
 	      LayerIndex = roi->tt[phi][eta].NoOfLayers - 1;
 	    }
 	      
 	    if ( pcell( (digi+counter)->Et, &cell, &(area.LowerLeft),
-			&roi->tt[phi][eta].layer[LayerIndex]) == ERROR ) {
+			&roi->tt[phi][eta].layer[LayerIndex]) == CALO_ERROR ) {
 	      fprintf(stderr, "ERROR(trigtowr.c): No index for cell\n");
-	      return(ERROR);
+	      return(CALO_ERROR);
 	    }
 	    
 	  } /* fits in tt[phi][eta] */
 	  
       } /* end loop over tt's */
 
-    if(fit == OFF) {
+    if(fit == FALSE) {
       fprintf(stderr, "ERROR(trigtowr.c): cell %d is out of RoI scope\n",
 	      counter);
-      return(ERROR);
+      return(CALO_ERROR);
     }
   
   } /* loop over cells */
-  return(SUCCESS);
+  return(CALO_SUCCESS);
   
 } /* end PutDigis */
 
-Flag PointIsInRegion(const Point* p, const Area* a)
+bool_t PointIsInRegion(const Point* p, const Area* a)
 {
   if( p->Phi > a->LowerLeft.Phi && p->Phi < a->UpperRight.Phi && p->Eta >
       a->LowerLeft.Eta && p->Eta < a->UpperRight.Eta)    
-    return(ON);
+    return(TRUE);
   
-  return(OFF);
+  return(FALSE);
 
 }
 
@@ -219,7 +238,7 @@ ErrorCode CreateCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
     fprintf(stderr, "ERROR(trigtowr.c): ");
     fprintf(stderr, "Max no of layers (%d) exceeded\n",
 	    MaxNumberOfLayers);
-    return(ERROR);
+    return(CALO_ERROR);
   }
   
   /* alloc space */
@@ -227,17 +246,17 @@ ErrorCode CreateCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
        == NULL ) 
     {
       fprintf(stderr, "ERROR(trigtowr.c): No space for layer\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
 
   /* init */
-  if ( InitCaloLayer(&tt->layer[tt->NoOfLayers-1], cell) ==ERROR )
+  if ( InitCaloLayer(&tt->layer[tt->NoOfLayers-1], cell) == CALO_ERROR )
     {
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't init layer\n");
-      return(ERROR);
+      return(CALO_ERROR);
     }
  
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 
 }
 
@@ -255,10 +274,10 @@ ErrorCode InitCaloLayer(CaloLayer* layer, const CellInfo* cell)
 
   if ((layer->cell = CreateCaloCells(layer->cell, layer->NoOfCells)) == NULL){
     fprintf(stderr, "ERROR(trigtowr.c): Couldn't initialise cells\n");
-    return(ERROR);
+    return(CALO_ERROR);
   }
   
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 CaloCell* CreateCaloCells(CaloCell* cell, const int size)
@@ -290,12 +309,12 @@ ErrorCode PlaceCell(const Energy energy, const CellInfo* cell, const Point* p,
 
   if ( (CellIndex = GetIndex(cell, layer->EtaGran, layer->PhiGran, p)) < 0 ) {
     fprintf(stderr, "ERROR(trigtowr.c): No index for cell\n");
-    return(ERROR);
+    return(CALO_ERROR);
   }
 
   layer->cell[CellIndex].energy = energy;
 
-  return(SUCCESS);
+  return(CALO_SUCCESS);
 }
 
 void FreeCaloEMRoI(CaloTTEMRoI* roi)
