@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: uniform.c,v 1.11 2000/11/28 21:05:17 rabello Exp $ */
+/* $Id: uniform.c,v 1.12 2000/12/05 18:21:20 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -910,7 +910,8 @@ void peak_find(const CaloLayer* layer, int* idx, double* eta, double* phi)
 /* This function will just calculate the relative point of the cell into the
    RoI. The EM RoI is 0.4 by 0.4 in eta x phi and using the granularity of eta
    and phi it's not difficult to calculate where the cell is. The RoI scanning
-   is defined on <root>/doc/fig/roi-scanning.fig. */
+   is defined on <root>/doc/fig/roi-scanning.fig. It returns the cell center on
+   the last two arguments. */
 void vector2point(const int* eg, const int* pg, const int* idx, double* eta,
 		  double*phi)
 {
