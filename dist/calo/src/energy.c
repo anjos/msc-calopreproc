@@ -10,7 +10,7 @@
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.10 2000/12/11 14:25:01 andre Exp $ */
+/* $Id: energy.c,v 1.11 2000/12/20 08:17:00 andre Exp $ */
 
 /* Some prototypes used here on */
 Energy* energy_from_all_digis(const ROI*, Energy*);
@@ -556,8 +556,8 @@ void build_rshape (const CaloLayer* layer, const int* peak, double* val)
 
 /* This function will build the quantity known as Rstrip. This quantity is used
    for fine jet separation (as I understood from Saul...). In order to find
-   this quantity, one searchs, in a window 0.2x0.2 around the peak of energy on
-   EM layer 2, on EM layer 1 for two strips with the maximum energy. That's an
+   this quantity, one searchs (in a window 0.2x0.2 around the peak of energy at
+   EM layer 2) on EM layer 1 for two strips with the maximum energy. That's an
    easy job! */
 void build_rstrip (const CaloLayer* layer, const int* max, double* val)
 {
@@ -594,14 +594,17 @@ void build_rstrip (const CaloLayer* layer, const int* max, double* val)
     if (fabs(eta-eta_max) <= 0.5*cluster_eta_range &&
 	fabs(phi-phi_max) <= 0.5*cluster_phi_range) {
 
-      /* if the energy is greater than the previous peak */
-      if (layer->cell[i].energy > e1) { 
-	
-	/* Swap values */
-	e2 = e1;
-	e1 = layer->cell[i].energy;
+      /* Test if this is a peak */
+      if (layer->cell[i].energy > layer->cell[i+1].energy &&
+	  layer->cell[i].energy > layer->cell[i-1].energy)
 
-      }
+	/* if the energy is greater than the previous peak */
+	if (layer->cell[i].energy > e1) {
+	  /* Swap values */
+	  e2 = e1;
+	  e1 = layer->cell[i].energy;
+
+	}
 
     }
 
