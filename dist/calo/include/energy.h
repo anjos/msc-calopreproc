@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: energy.h,v 1.1 2000/08/11 20:30:16 rabello Exp $ */
+/* $Id: energy.h,v 1.2 2000/08/16 11:24:20 andre Exp $ */
 
 #ifndef _ENERGY_H
 #define _ENERGY_H
@@ -64,6 +64,10 @@ char* get_energy(const ROI*, const uniform_roi_t*,
    the second to the energy_flags as forseen on parameter_t@main.c */
 bool_t validate_energy_selection(const unsigned short*, unsigned short*);
 
+/* Given a flag description of energy configuration, this function can return a
+   string containing the energy parameter descriptions. The string must have
+   been allocated previously (with at least 60 bytes). */
+char* edump2string (const unsigned short*, char*);
 
 #endif /* _ENERGY_H */
 
