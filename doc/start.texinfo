@@ -1,7 +1,7 @@
 @node Examplified application
 @chapter The @code{preproc} Program
 
-@c $Id: start.texinfo,v 1.5 2000/12/08 15:20:02 rabello Exp $
+@c $Id: start.texinfo,v 1.6 2001/01/30 16:34:59 andre Exp $
 
 @ifnottex
 
@@ -243,7 +243,9 @@ and maximum in this order), followed by the number of EM digis, the EM
 digis, the number of Hadronic digis and finally the Hadronic digis. Each
 RoI digi is dumped using 5 fields, followed by a @code{\n} (new line
 character). The fields are: @code{CaloRegion}, @code{Et}, @code{eta},
-@code{phi}, @code{Digi Id}.
+@code{phi}, @code{Digi Id}. The option @code{control-only}, if given with
+this sub-option, will suppress the digis themselves from the output, only
+control data will be displayed.
 
 @item udigis
 Will dump all digis from an RoI that respects the uniformization style
@@ -279,6 +281,12 @@ line a arranged by the proximity with the peak of energy. The leftmost
 is the peak.
 
 @end table
+
+@item --control-only
+This option, in conjunction with @code{--dump} (or @code{-d}) and sub-option
+@code{digis} or @code{udigis} will cause the preprocessor to dump only the
+RoI control data, i.e., the RoI window and the number of EM and hadronic cells
+on each RoI. 
 
 @item -g description
 @itemx --dump-energy=description
@@ -371,16 +379,11 @@ As in @code{all} all cells will be divided by a common value. In this
 case, cells that belong to the EM section (namely, ps, em1, em2 and em3)
 will be divided by the energy sum of cells that belong to the EM
 section. The same will happen for cells at the hadronic section (namely,
-had1, had2 and ha3). @emph{Attention: } This normalization type is
-@emph{not} implemented in code. The result of selecting @code{section}
-normalization will imply automatically in @code{all} mode normalization.
+had1, had2 and ha3). 
 
 @item layer
 Same as above, but the factor will be accounted on layer
-basis. @emph{Attention: } This normalization type is @emph{not}
-implemented in code. The result of selecting @code{layer}
-normalization will imply automatically in @code{all} mode normalization.
-
+basis.
 
 @item unity
 This normalization type can @strong{only} be applied to @code{rings}. At
