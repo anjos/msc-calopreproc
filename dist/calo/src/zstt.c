@@ -1,11 +1,16 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: zstt.c,v 1.3 2000/06/16 21:26:56 rabello Exp $ */
+/* $Id: zstt.c,v 1.4 2000/07/07 18:49:07 rabello Exp $ */
 
 #include "zstt.h"
 
 #include <math.h>
 extern double rint(double x);
+
+/* The definition of some globals */
+const static int MaxNumberOfLayers = 8;
+const static double EtaTTSize = 0.1;
+const static double PhiTTSize = 0.1;
 
 extern ErrorCode CreateZSCaloLayer(CaloTriggerTower* tt, const CellInfo* cell)
 {
@@ -52,7 +57,7 @@ extern ErrorCode InitZSCaloLayer(CaloLayer* layer, const CellInfo* cell)
 }
 
 extern ErrorCode PlaceZSCell(const Energy energy, const CellInfo* cell, const
-			     Point* p, CaloLayer* layer)
+			     point_t* p, CaloLayer* layer)
 {
   layer->NoOfCells++;
 
@@ -69,7 +74,7 @@ extern ErrorCode PlaceZSCell(const Energy energy, const CellInfo* cell, const
   layer->cell[layer->NoOfCells-1].index = GetZSIndex(cell, layer->EtaGran,
 						     layer->PhiGran, p);
   
-  if ( layer->cell[layer->NoOfCells-1].index.Eta < 0 ) {
+  if ( layer->cell[layer->NoOfCells-1].index.eta < 0 ) {
     fprintf(stderr, "ERROR(trigtowr.c): No index for cell\n");
     return(CALO_ERROR);
   }
@@ -78,30 +83,30 @@ extern ErrorCode PlaceZSCell(const Energy energy, const CellInfo* cell, const
   return(CALO_SUCCESS);
 }
 
-extern Index GetZSIndex(const CellInfo* cell, const int etagran, const int
-			phigran, const Point* p)
+extern index_t GetZSIndex(const CellInfo* cell, const int etagran, const int
+			  phigran, const point_t* p)
 {
   const double etastep = EtaTTSize / (double)etagran;
   const double phistep = PhiTTSize / (double)phigran;
   int x, y;
-  Index index;
+  index_t index;
 
   for(x = 0; x < phigran; x++)
     for(y = 0; y < etagran; y++) { /* loops over positions */
-      if( cell->center.Phi > (p->Phi + x * phistep ) && cell->center.Phi <
-	  (p->Phi + (x+1) * phistep ) && cell->center.Eta >
-	  (p->Eta + y * etastep ) && cell->center.Eta < (p->Eta
+      if( cell->center.phi > (p->phi + x * phistep ) && cell->center.phi <
+	  (p->phi + (x+1) * phistep ) && cell->center.eta >
+	  (p->eta + y * etastep ) && cell->center.eta < (p->eta
 						 + (y+1) * etastep) )   
 	{ /* fits in this cell */
-	  index.Eta = y;
-	  index.Phi = x;
+	  index.eta = y;
+	  index.phi = x;
 	  return( index );
 	}
     } /* end loop */
 
   /* Oops! */
-  index.Eta = -1;
-  index.Phi = -1;
+  index.eta = -1;
+  index.phi = -1;
   return( index );
 
 } 
