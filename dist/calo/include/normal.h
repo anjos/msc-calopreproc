@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: normal.h,v 1.2 2000/09/06 21:13:36 rabello Exp $ */
+/* $Id: normal.h,v 1.3 2000/09/11 14:29:47 andre Exp $ */
 
 #ifndef __NORMAL_H
 #define __NORMAL_H
@@ -32,5 +32,9 @@ unsigned short* string2normalization(unsigned short*, const char*);
    have its space pre-allocated since it won't be inside the function. The
    minimum space requirement is 60 bytes */
 char* normalization2string(const unsigned short*, char*);
+
+/* This function returns true if the unity normalization flag is active,
+   meaning that ring-unity-normalization will be applied. */
+bool_t normal_is_unit(const unsigned short*);
 
 #endif /* __NORMAL_H */

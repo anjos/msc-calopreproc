@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: normal.c,v 1.2 2000/09/06 21:13:07 rabello Exp $ */
+/* $Id: normal.c,v 1.3 2000/09/11 14:29:47 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -167,6 +167,14 @@ char* normalization2string(const unsigned short* from, char* to)
   strncpy(to,retval,59);
   free(retval);
   return to;
+}
+
+/* This function returns true if the unity normalization flag is active,
+   meaning that ring-unity-normalization will be applied. */
+bool_t normal_is_unit(const unsigned short* flags)
+{
+  if ( (*flags) & NORMAL_UNITY ) return TRUE;
+  return FALSE;
 }
 
 /* This function is the frontend to ringroi_t normalization. It will select the
