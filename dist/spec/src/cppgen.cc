@@ -23,6 +23,8 @@ CPPDeclarations::CPPDeclarations(const string& basename, ostream& os)
   m_output << "#include <iostream.h>" << endl;
   m_output << "#include <vector.h>" << endl  << endl;
 
+  m_output << "#include \"dmplib.h\"" << endl << endl;
+
 }
 
 /*
@@ -87,7 +89,7 @@ void CPPDeclarations::generate(Struct *struc)
 void CPPDeclarations::generate(Tag *tag)
 {
   // class definition
-  m_output << "class " << tag->name() << " { " << endl
+  m_output << "class " << tag->name() << " : public Tagged { " << endl
 	      << "public:" << endl;
 
   // default constructor
@@ -188,6 +190,12 @@ void CPPInput::generate(Field *field)
     // todo: only for one dimension at the moment...
     Expression *expr = *field->indices()->begin();
 
+    // resize vector<T> before reading into it
+    m_output << "    x." << field->name() << ".resize(";
+    expr->generate(*this);
+    m_output << ");" << endl;
+
+    // read array
     m_output << "    for(int i = 0; i < ";
     expr->generate(*this);
     m_output << "; i++) {" << endl;
@@ -208,6 +216,7 @@ void CPPInput::generate(Struct *struc)
 
   struc->fields()->generate(*this); 
 
+  m_output << "    return is;" << endl;
   m_output << "}" << endl << endl;
 }
 
@@ -215,11 +224,23 @@ void CPPInput::generate(Struct *struc)
 void CPPInput::generate(Tag *tag)
 {
   m_output << "istream& operator>>(istream& is, "
-	    << tag->name() << "& x)" << endl
-	    << "{" << endl;
+	   << tag->name() << "& x)" << endl
+	   << "{" << endl;
+
+  // check initial tag
+  m_output << "    x.check_start_tag(is,\"" 
+	   << tag->name() << "\");" << endl;
+
+  // check for empty block
+  m_output << "    if(!x.initialized()) return is;" << endl;
 
   tag->fields()->generate(*this);  
 
+  // check final tag
+  m_output << "    x.check_end_tag(is, \""
+	   << tag->name() << "\");" << endl;
+
+  m_output << "    return is;" << endl;
   m_output << "}" << endl << endl;
 }
 
@@ -264,6 +285,7 @@ void CPPOutput::generate(Struct *struc)
   
   struc->fields()->generate(*this);
   m_output << "    os << endl;" << endl;
+  m_output << "    return os;" << endl;
   m_output << "}" << endl << endl;
 
 }
@@ -280,10 +302,19 @@ void CPPOutput::generate(Tag *tag)
 
   // output start tag
   m_output << "    os << endl << \"{ " << tag->name() << "\" << endl;" << endl;
+
+  // check for uninitialized blocks
+  m_output << "    if(x.initialized()) {" << endl;
+
   // output fields
   tag->fields()->generate(*this); 
+
+  m_output << "    }" << endl;
+
   // output end tag
   m_output << "    os << endl << \"} " << tag->name() << "\" << endl;" << endl;
+
+  m_output << "    return os;" << endl;
 
   // end of function
   m_output << "}" << endl << endl;

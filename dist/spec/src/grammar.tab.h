@@ -7,10 +7,10 @@ typedef union {
   int           ivalue;
   vector<Expression*> *indices;
 } YYSTYPE;
-#define	IDENTIFIER	258
-#define	NUMBER	259
-#define	STRUCT	260
-#define	TAG	261
+#define	IDENTIFIER	257
+#define	NUMBER	258
+#define	STRUCT	259
+#define	TAG	260
 
 
 extern YYSTYPE yylval;

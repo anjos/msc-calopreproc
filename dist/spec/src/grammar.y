@@ -2,7 +2,7 @@
 %{
 
   /* 
-   * $Id: grammar.y,v 1.1.1.1 2000/03/13 21:03:44 rabello Exp $
+   * $Id: grammar.y,v 1.2 2000/07/07 18:24:04 rabello Exp $
    */
      
 #ifdef __hpux

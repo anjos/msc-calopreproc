@@ -1,5 +1,5 @@
 #
-# $Id: HP-UX.mk,v 1.1.1.1 2000/03/13 21:03:45 rabello Exp $
+# $Id: HP-UX.mk,v 1.2 2000/07/07 18:24:02 rabello Exp $
 #
 # variables for OS dependent source files
 # HP/UX
