@@ -6,7 +6,7 @@
    present in the file. The building of this file is accomplished by make (1).
 */ 
 
-/* $Id: main.c,v 1.6 2000/07/20 00:42:51 rabello Exp $ */
+/* $Id: main.c,v 1.7 2000/08/03 06:30:01 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -592,7 +592,8 @@ int dump_rings (const tt_roi_t* roi, const parameter_t* p)
       }
 
       /* If this is the first print out, include the header */
-      if (_nevents == 1) fprintf_SNNS_header(p->ofp, 1, _iunits, 1);
+      if (_nevents == 1 && p->format_snns) 
+	fprintf_SNNS_header(p->ofp, 1, _iunits, 1);
 
       fprintf(p->ofp,"%s",dump);
 
