@@ -1,14 +1,15 @@
 ## hello emacs, this is a -*- makefile -*- 
 ## Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
 
-## $Id: makefile,v 1.4 2000/05/31 11:55:11 rabello Exp $
+## $Id: makefile,v 1.5 2000/06/28 16:06:30 rabello Exp $
 
 ### Calorimeter Library compilation
 
 ### GENERAL MACROS
 
 INCLUDE = -I../../include -I../spec/include -I./include
-FILES = trigtowr.c flat.c common.c portable.c zstt.c calostr.c fexdef.c calo.c
+FILES = trigtowr.c flat.c common.c \
+	portable.c zstt.c calostr.c fexdef.c calo.c ring.c
 SRCS = $(FILES:%.c=./src/%.c)
 OBJS = $(SRCS:.c=.o)
 DOC_DIR = ./doc
