@@ -1,4 +1,4 @@
-/* $Id: portable.h,v 1.3 2000/04/06 00:43:58 rabello Exp $ */
+/* $Id: portable.h,v 1.4 2000/04/07 22:12:33 rabello Exp $ */
 
 #ifndef PORTABLE_H
 #define PORTABLE_H
@@ -51,6 +51,11 @@ void i2ucn(const unsigned int, char*);
 /* Compares, given an maximum error diference at the third argument, the two
    floats of the first and second arguments. */
 ErrorCode fcomp(const double, const double, const double); 
+
+/* From a cell id, it writes the eta, phi, calorimeter and region
+   of the cell. The region target is not resolved by this function
+   correctly. Not problem, you can't call this directly. */
+ErrorCode DecodeId(const unsigned int, CellInfo*);
 
 #endif
 
