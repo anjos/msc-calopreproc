@@ -1,7 +1,7 @@
 @node Examplified application
 @chapter The @code{preproc} Program
 
-@c $Id: start.texinfo,v 1.2 2000/09/19 00:34:38 andre Exp $
+@c $Id: start.texinfo,v 1.3 2000/11/07 16:29:10 rabello Exp $
 
 @ifnottex
 
@@ -357,10 +357,16 @@ As in @code{all} all cells will be divided by a common value. In this
 case, cells that belong to the EM section (namely, ps, em1, em2 and em3)
 will be divided by the energy sum of cells that belong to the EM
 section. The same will happen for cells at the hadronic section (namely,
-had1, had2 and ha3).
+had1, had2 and ha3). @emph{Attention: } This normalization type is
+@emph{not} implemented in code. The result of selecting @code{section}
+normalization will imply automatically in @code{all} mode normalization.
 
 @item layer
-Same as above, but the factor will be accounted on layer basis.
+Same as above, but the factor will be accounted on layer
+basis. @emph{Attention: } This normalization type is @emph{not}
+implemented in code. The result of selecting @code{layer}
+normalization will imply automatically in @code{all} mode normalization.
+
 
 @item unity
 This normalization type can @strong{only} be applied to @code{rings}. At
@@ -386,13 +392,37 @@ close directions. In this case, a maximum radius value should be given
 as an argument (using the @code{-m} option). If this is forgot, an error
 message should be reported and the @code{preproc} utility should abort.
 
+@item weighted_all
+This normalization type can only be applied when selecting @code{ring}
+dump mode (a check will be performed on start-up). On this case,
+normalization will occur differently for each value of the ring string
+inside each segment. The first ring (actually a cell) will be divided by
+the total RoI energy, the second by the total RoI energy minus the first
+ring energy, the third ring will have its energy divided by the total
+RoI energy minus the first and the second rings. This process will go on
+until the last ring is normalized. Since the signal/noise ratio on the
+last rings may be very small, it's possible that the use of this method
+busts too much noise and classification (or even representation)
+processes be damaged by the excess of such noise. For that not to
+happen, it is convinient to have a @code{limit ring} that will limit the
+denominator reduction after a certain number of rings. This parameter,
+actually, @emph{should} be defined to the proper use of this
+normalization method and is fully verified at start-up. The command-line
+option for that purpose is @code{config-weighted}.
+
+@item weighted_segment
+This is the same as @code{weighted_all}, but uses the segment (layer)
+energy as starting point for normalization. The same restrictions are
+applied to this method regarding signal-to-noise ratio on the border of
+RoIs.
+
 @item none
 This is the default behaviour. At this case, no normalization is applied
 to the output values.
 
 @end table
 
-@item -m=value
+@item -m value
 @itemx --max-radius=value
 This @code{value} represents the maximum radius of the N+1 dimensional
 sphere that will serve as the projection apparatus for the @emph{ring}
@@ -406,6 +436,25 @@ shall be reported indicating this error. Such error message will
 @emph{only} appear when this @code{value} is less than the modulus of
 the current RoI being processed, so pay attention when mass-processing a
 number of input files.
+
+@item -c list
+@itemx --config-weighted=list
+This option configures the @code{weighted_all} and
+@code{weighted_segment} normalization types, as described on these
+topics. The list is a comma separated list of integers that mark the
+last ring to apply the denominator reduction on the weighting process of
+the input rings. @emph{Attention: } The number of configured values and
+the number of layers configured to be dumped are verified for
+consistence at start-up. You cannot specify limitations of layers not
+present on the dumping process. An error should be sent and the program
+will fail. Also, be certain that the number you put in there is coherent
+with the number of rings each layer have. This verification will also be
+performed on startup. If, for instance, you select all layers to be
+dumped, you can configure this normalization with:
+
+@example
+preproc --normalization=weighted_all --config-weighted=3,4,3,6,2,2,2 [other arguments]
+@end example
 
 @item -u 
 @itemx --fast-output
