@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.12 2000/12/08 17:50:29 rabello Exp $ */
+/* $Id: util.c,v 1.13 2001/01/24 20:57:59 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -234,7 +234,6 @@ char* get_DIGIS(const ROI* roi)
   }
 
   ascat(&temp, "\n");
-  fprintf(stderr, "%s", temp);
   return temp;
 }
 
