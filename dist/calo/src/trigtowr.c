@@ -1,3 +1,8 @@
+/* Hello emacs, this is -*- c -*- */
+/* copyleft Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
+
+/* $Id: trigtowr.c,v 1.2 2000/04/07 19:36:48 rabello Exp $ */
+
 #include "trigtowr.h"
 
 /* internal helper functions */
@@ -101,8 +106,7 @@ ErrorCode PutEMDigis(emCalDigiType* digi, const int NoOfDigis, const Flag zsup,
     int eta, phi;
     Area area; /* lower left and upper right */
 
-    if (GetCellInfo((digi+counter)->id, roi->PhiWrap,
-		    roi->Region.LowerLeft.Phi, &cell) == ERROR) {
+    if ( GetCellInfo( (digi+counter)->id, &cell, roi->PhiWrap) == ERROR) {
       fprintf(stderr, "ERROR(trigtowr.c): Couldn't get cell info\n");
       return(ERROR);
     }
