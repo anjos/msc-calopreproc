@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.3 2000/08/29 20:47:48 andre Exp $ */
+/* $Id: parameter.c,v 1.4 2000/09/06 14:49:11 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +26,7 @@
 #include "uniform.h"
 #include "util.h"
 #include "common.h"
+#include "normal.h"
 
 /* The definition of obstack initialization and destruction */
 #define obstack_chunk_alloc malloc 
@@ -142,6 +143,10 @@ parameter_t* init_parameters (parameter_t* p) {
   /* Don't normalize by default */
   string2normalization(&p->normalization, "none");
 
+  /* Let's start with 10 events per processing loop. This is about (2Mb: see
+     parameter.h on the description of memory consumption for this variable. */
+  p->load_events = 10;
+
   return p;
 }
 
@@ -200,16 +205,62 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {"roi-number", 1, 0, 'r'},
     {"select", 1, 0, 's'},
     {"energy-comment", 1, 0, 't'},
+    {"load-nevents", 1, 0, 'x'},
     {0, 0, 0, 0}
   };
   
-  while (EOF != (c=getopt_long(argc, argv, "i:o:k:g:he:r:d:f:p:l:s:n:t:",
+  while (EOF != (c=getopt_long(argc, argv, "i:o:k:g:he:r:d:f:p:l:s:n:t:x:",
 			       long_options, &option_index) ) ) {
     switch (c) {
 
     case 0: /* Got a nil-flagged option */
       break;
       
+    case 'd': /* What to dump? */
+      if ( strcasecmp(optarg, "digis" ) == 0 ) {
+	p->dump_digis = TRUE;
+      }
+
+      else if ( strcasecmp(optarg, "rings" ) == 0 ) {
+	p->dump_rings = TRUE;
+      }
+
+      else if ( strcasecmp(optarg, "udigis" ) == 0 ) {
+	p->dump_uniform_digis = TRUE;
+      }
+
+      /* this is the default, do nothing */
+      else if ( strcasecmp(optarg, "rois" ) == 0 ) {}
+
+      else {
+	fprintf(stderr,"(param)ERROR: Can't recognize format -> %s\n", optarg);
+	exit(EXIT_FAILURE);
+      }
+      break;
+
+    case 'e': /* dump only event 'number' */
+      p->event_no = to_valid_long(optarg);
+      p->process_all_events = FALSE;
+      break;
+
+    case 'f': /* What to dump? */
+      if ( strcasecmp(optarg, "snns" ) == 0 ) {
+	p->format_snns = TRUE;
+      }
+
+      /* this is the default, do nothing */
+      else if ( strcasecmp(optarg, "raw" ) == 0 ) {}
+
+      else {
+	fprintf(stderr,"(param)ERROR: Can't recognize format -> %s\n", optarg);
+	exit(EXIT_FAILURE);
+      }
+      break;
+
+    case 'g': /* What energy values would you like printed? */
+      string2edump(&p->dump_energy,optarg);
+      break;
+
     case 'i': { /* input from file 'infile' */
       struct stat buf;
       /* Ok, open the file we're going to work with, in case of error,
@@ -236,41 +287,25 @@ void process_flags (parameter_t* p, const int argc, char** argv)
       break;
     }
 
-    case 'd': /* What to dump? */
-      if ( strcasecmp(optarg, "digis" ) == 0 ) {
-	p->dump_digis = TRUE;
-      }
+    case 'k': { /* the string to be used when dumping the event numbers */
+      strncpy(p->event_comment_str, optarg, 4);
+      break;
+    }
 
-      else if ( strcasecmp(optarg, "rings" ) == 0 ) {
-	p->dump_rings = TRUE;
-      }
-
-      else if ( strcasecmp(optarg, "udigis" ) == 0 ) {
-	p->dump_uniform_digis = TRUE;
-      }
-
-      /* this is the default, do nothing */
-      else if ( strcasecmp(optarg, "rois" ) == 0 ) {}
-
-      else {
-	fprintf(stderr,"(param)ERROR: Can't recognize format -> %s\n", optarg);
-	exit(EXIT_FAILURE);
-      }
+    case 'l': /* Which layers to require? */
+      string2layer(&p->layer_flags,optarg);
       break;
 
-    case 'f': /* What to dump? */
-      if ( strcasecmp(optarg, "snns" ) == 0 ) {
-	p->format_snns = TRUE;
-      }
-
-      /* this is the default, do nothing */
-      else if ( strcasecmp(optarg, "raw" ) == 0 ) {}
-
-      else {
-	fprintf(stderr,"(param)ERROR: Can't recognize format -> %s\n", optarg);
-	exit(EXIT_FAILURE);
-      }
+    case 'n': /* Which normalization to use? */
+      string2normalization(&p->normalization,optarg);
       break;
+
+    case 'o': { /* output to file 'outfile' */
+      strncpy(p->ofhint, optarg, MAX_FILENAME);
+      fprintf(stderr,"(param)WARN: Using file prefix -> %s\n", p->ofhint);
+      p->output_file = TRUE;
+      break;
+    }      
 
     case 'p': /* What's the target? */
       if ( strcasecmp(optarg, "jet" ) == 0 ) {
@@ -287,49 +322,23 @@ void process_flags (parameter_t* p, const int argc, char** argv)
       }
       break;
 
-    case 'l': /* Which layers to require? */
-      string2layer(&p->layer_flags,optarg);
-      break;
-
-    case 'g': /* What energy values would you like printed? */
-      string2edump(&p->dump_energy,optarg);
-      break;
-
-    case 's': /* Which layers to print to output? */
-      string2layer(&p->print_flags,optarg);
-      break;
-
-    case 'n': /* Which normalization to use? */
-      string2normalization(&p->normalization,optarg);
-      break;
-
-    case 'e': /* dump only event 'number' */
-      p->event_no = to_valid_long(optarg);
-      p->process_all_events = FALSE;
-      break;
-
     case 'r': /* dump only the roi 'roi'. This option has only sense with -e
 		 comming first! */
       p->roi_no = to_valid_long(optarg);
       p->process_all_rois = FALSE;
       break;
 
-    case 'o': { /* output to file 'outfile' */
-      strncpy(p->ofhint, optarg, MAX_FILENAME);
-      fprintf(stderr,"(param)WARN: Using file prefix -> %s\n", p->ofhint);
-      p->output_file = TRUE;
+    case 's': /* Which layers to print to output? */
+      string2layer(&p->print_flags,optarg);
       break;
-    }      
 
-    case 't': { /* the string to be used when dumping the RoI energy values */
+    case 't': /* the string to be used when dumping the RoI energy values */
       strncpy(p->edump_comment_str, optarg, 4);
       break;
-    }
 
-    case 'k': { /* the string to be used when dumping the event numbers */
-      strncpy(p->event_comment_str, optarg, 4);
+    case 'x': /* How many events to load per processing loop */
+      p->load_events = to_valid_long(optarg);
       break;
-    }
 
     case 'h': /* give help */
     case '?':
@@ -516,6 +525,13 @@ void test_flags (parameter_t* p)
     exit(EXIT_FAILURE);
   }
 
+  /* Did you ask me to load a negative (or null) number of events?? */
+  if (p->load_events <= 0) {
+    fprintf(stderr, "(parameter)ERROR: Can't load negative number ");
+    fprintf(stderr, "of events -> %ld\n", p->load_events);
+    exit(EXIT_FAILURE);
+  }
+
 }
 
 void print_help_msg(FILE* fp, const char* prog)
@@ -668,6 +684,10 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t consume huges amounts of memory, so be warned.\n");
   fprintf(fp, "\t At the end, the memory banks are dumped into files.\n");
 
+  fprintf(fp, "-x int | --load-nevents=int\n");
+  fprintf(fp, "\t When this flag is given, the number of events to load\n");
+  fprintf(fp, "\t file read is changed to the value given. Default is 10.\n");
+
   fprintf(fp, "--verbose\n");
   fprintf(fp, "\t prints more output than be default\n");
 
@@ -675,14 +695,17 @@ void print_help_msg(FILE* fp, const char* prog)
 
 void terminate_parameters (parameter_t* p)
 {
-  /* Dump, if fast-executing, the obstacks into files */
+  /* Dump, if fast-executing, the obstacks into files. If an obstack was not
+     used during processing (f.ex. if I chose to dump energy and data
+     together), then I have not to worry since nothing will be printed to the
+     respective fp. */
   if (p->run_fast) {
     fprintf ( p->efp, "%s", close_obstring ( p->energy_obsp ) );
     fprintf ( p->evfp, "%s", close_obstring ( p->eventno_obsp ) );
     fprintf ( p->ofp, "%s", close_obstring ( p->output_obsp ) );
   }
 
-  /* close the files we may open: event-number and energy */
+  /* close the files we *may* have opened: event-number and energy */
   if ( (p->evfp != p->ofp) && (p->evfp != stdout) )
     fclose(p->evfp);
 
@@ -714,7 +737,7 @@ void dump_config(FILE* fp, const parameter_t* par)
   fprintf(fp, " +- Date: %s", ctime(&current_time));
   fprintf(fp, " +- Input File: %s\n", par->ifname);
 
-  if (par->output_file) 
+  if (par->output_file)
     fprintf(fp, " +- Output File: %s.data \n", par->ofhint);
   else
     fprintf(fp, " +- Output File: [redirected to standard output]\n");
@@ -784,11 +807,16 @@ void dump_config(FILE* fp, const parameter_t* par)
   else
     fprintf(fp, " +- Processing: Event %ld, RoI %ld\n", 
 	    par->event_no, par->roi_no);
+  
+  fprintf(fp, " +- Verbose output: %s\n", (par->verbose)?"YES":"NO");
 
   if (par->run_fast)
     fprintf(fp, " +- Fast Processing: YES (using obstacks)\n");
   else
     fprintf(fp, " +- Fast Processing: NO (using common files)\n");
+
+  fprintf(fp, " +- Number of events per DB read in: %ld", par->load_events);
+  fprintf(fp, " (total no. of events could be less)\n");
 
   fprintf(fp, "==========================================\n");
 

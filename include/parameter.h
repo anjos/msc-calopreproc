@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.h,v 1.3 2000/08/29 20:48:41 andre Exp $ */
+/* $Id: parameter.h,v 1.4 2000/09/06 14:49:36 andre Exp $ */
 
 /* The door keepers */
 #ifndef __PARAMETER_H
@@ -126,6 +126,17 @@ typedef struct pararamter_t
 
   /* Do I have to process all rois for each event? */
   bool_t verbose;
+
+  /* How many events to load per loop. This variable defines how many events
+     should I read from file before start processing the output. The important
+     thing is that the more events you read in, the more memory you consume and
+     the faster you go, so, that depends on how many memory you have and
+     time. Typical dump files are big and have around thousand events. Each
+     event is about 150 to 200 kilobytes, so, from there you can find how many
+     events to load per processing loop. Don't forget you consume other memory
+     resources by the kernel and by this and other user level processes running
+     locally. */
+  long int load_events;
 
 } parameter_t;
 
