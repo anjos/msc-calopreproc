@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: common.c,v 1.6 2000/05/31 12:09:36 rabello Exp $ */
+/* $Id: common.c,v 1.7 2000/06/16 21:32:38 rabello Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,22 +29,26 @@ bool_t PhiWrap(double* max, double* min)
   return(FALSE);
 }
 
-void* SmartAlloc(void* ptr, const int size)
+void* mxalloc(void* ptr, const int n, const int size)
 {
-  if( ptr == NULL ) {/* first time */
-    if ( (ptr = malloc(size)) == NULL ) 
-      {
-	fprintf(stderr, "(common.c): [ERROR] No space for allocation.\n");
-	return(NULL);
-      }
+
+  if( ptr == NULL ) {
+    /* Ok, this is to be newly allocated memory */
+
+    register void* value = calloc (n,size);
+
+    if (value == 0)
+      fprintf(stderr, "(common.c): [ERROR] No space for allocation.\n");
+
+    return value;
+
   }
   
-  else { /* can realloc */
-    if( ( ptr = realloc (ptr, size) ) == NULL ) {
-      fprintf(stderr, "(common.c): [ERROR] No space for reallocation.\n");
-      return(NULL);
-    }
-  }
+  /* Here, I just reallocate memory. */
+  ptr = realloc (ptr,n*size);
+
+  if( ptr == 0 )
+    fprintf(stderr, "(common.c): [ERROR] No space for reallocation.\n");
   
   return(ptr);
 
