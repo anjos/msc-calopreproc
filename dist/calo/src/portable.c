@@ -9,9 +9,14 @@
  * 0 - zero; K - calo; m - module; S - side or signal; e - eta and p is phi.
  *                        (region)
  *
- * $Id: portable.c,v 1.5 2000/07/07 18:48:36 rabello Exp $
+ * $Id: portable.c,v 1.6 2000/08/11 20:29:21 rabello Exp $
  *
  ****************************************************************************/
+
+/* Do not use a GNU SOURCE code here */
+#ifdef _GNU_SOURCE
+#undef _GNU_SOURCE
+#endif
  
 #include "portable.h"
 #include <math.h>
