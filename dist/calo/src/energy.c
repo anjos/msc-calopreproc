@@ -10,7 +10,7 @@
 #include "uniform.h"
 #include "common.h"
 
-/* $Id: energy.c,v 1.9 2000/12/05 18:20:40 rabello Exp $ */
+/* $Id: energy.c,v 1.10 2000/12/11 14:25:01 andre Exp $ */
 
 /* Some prototypes used here on */
 Energy* energy_from_all_digis(const ROI*, Energy*);
@@ -532,16 +532,16 @@ void build_rshape (const CaloLayer* layer, const int* peak, double* val)
     eta = R.rem;
     phi = R.quot;
     /* First constraint is that it has to be inside the phi range */
-    if (abs(phi-phi_max) <= cluster_phi_range) {
+    if (abs(phi-phi_max) <= 0.5*cluster_phi_range) {
       /* Then, if it is inside the numerator range I add to both 
 	 subquantities*/
-      if (abs(eta-eta_max) <= cluster_eta_range_numerator) {
+      if (abs(eta-eta_max) <= 0.5*cluster_eta_range_numerator) {
 	e37 += layer->cell[j].energy;
 	e77 += layer->cell[j].energy;
       }
       /* Else, if it is still under the denominator range, I add only to the
 	 e77 quantity */
-      else if (abs(eta-eta_max) <= cluster_eta_range_denominator) {
+      else if (abs(eta-eta_max) <= 0.5*cluster_eta_range_denominator) {
 	e77 += layer->cell[j].energy;
       }
     }
@@ -564,16 +564,47 @@ void build_rstrip (const CaloLayer* layer, const int* max, double* val)
   double e1 = 0;
   double e2 = 0;
 
+  double eta_max;
+  double phi_max;
+
+  double eta;
+  double phi;
+
+  const int stdgran_on_em2_eta = 16;
+  const int stdgran_on_em2_phi = 16;
+
+  const double cluster_eta_range = 0.2;
+  const double cluster_phi_range = 0.2;
+
   /* This is a dummy algorithm */
   int i; /* iterator */
 
-  /* Search in a reduced region is not implemented here. Search will happen on
-     a 0.4x0.4 region. This algorithm is exaustive!!!! */
-  for (i=0; i<layer->NoOfCells; ++i) {
-    if (layer->cell[i].energy > e1) {
-      e2 = e1;
-      e1 = layer->cell[i].energy;
+  /* Find the peak maximum point */
+  vector2point(&stdgran_on_em2_eta, &stdgran_on_em2_phi, max,
+	       &eta_max, &phi_max);
+
+  /* Search in a reduced region is implemented here. Search will happen on a
+     0.2x0.2 region. This algorithm is _not_ exaustive!!!! */
+
+  /* for all the cells on this layer */
+  for (i=0; i<layer->NoOfCells; ++i) { 
+    vector2point(&layer->EtaGran, &layer->PhiGran, &i, &eta, &phi);
+
+    /* if they are on a prescribed interval */
+    if (fabs(eta-eta_max) <= 0.5*cluster_eta_range &&
+	fabs(phi-phi_max) <= 0.5*cluster_phi_range) {
+
+      /* if the energy is greater than the previous peak */
+      if (layer->cell[i].energy > e1) { 
+	
+	/* Swap values */
+	e2 = e1;
+	e1 = layer->cell[i].energy;
+
+      }
+
     }
+
   }
 
   /* Finally, we get the quantity */
