@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.4 2000/09/06 14:49:11 andre Exp $ */
+/* $Id: parameter.c,v 1.5 2000/09/06 21:15:05 rabello Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -674,6 +674,8 @@ void print_help_msg(FILE* fp, const char* prog)
   fprintf(fp, "\t   all     - normalize using sum of energy of all cells\n");
   fprintf(fp, "\t   section - normalize using section energy (EM|HAD)\n");
   fprintf(fp, "\t   layer   - normalize using layer energy\n");
+  fprintf(fp, "\t   unity   - Will apply modulus=1 to rings. You should\n");
+  fprintf(fp, "\t             use this option in conjunction with -d rings\n");
   fprintf(fp, "\t   none    - no normalization at all (default)\n");
 
   fprintf(fp, "-u | --fast-output\n");
