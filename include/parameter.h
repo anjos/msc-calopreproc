@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.h,v 1.5 2000/09/19 00:34:20 andre Exp $ */
+/* $Id: parameter.h,v 1.6 2000/10/23 02:27:09 andre Exp $ */
 
 /* The door keepers */
 #ifndef __PARAMETER_H
@@ -11,6 +11,7 @@
 #include <obstack.h>
 
 #include "common.h"
+#include "ring.h"
 
 /* The maximum input file name */
 #define MAX_FILENAME 256
@@ -71,6 +72,10 @@ typedef struct pararamter_t
 
   /* Normalization scheme. See module normal */
   unsigned short normalization; 
+
+  /* This variable controls the limits for variable normalization when using
+     NORM_WEIGHTED_* normalization type - (declared on ring.h) */
+  config_weighted_t config_weighted;
 
   /* Holds the value of radius to use when normalizing using the unity+
      technique. */

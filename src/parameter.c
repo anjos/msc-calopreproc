@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* André Rabello dos Anjos <Andre.Rabello@ufrj.br> */
 
-/* $Id: parameter.c,v 1.7 2000/09/19 00:32:15 andre Exp $ */
+/* $Id: parameter.c,v 1.8 2000/10/23 02:27:26 andre Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@
 #include "util.h"
 #include "common.h"
 #include "normal.h"
+#include "ring.h"
 
 /* The definition of obstack initialization and destruction */
 #define obstack_chunk_alloc malloc 
@@ -70,6 +71,12 @@ long to_valid_long(const char*);
 /* This funtion just returns a valid long based on a string. It's an
    implemenatation of atol(), but with the verification of strtol(). */
 double to_valid_double(const char*);
+
+/* Converts a string into a config_weighted_t variable. The string is usually
+   get by getopt() or getopt_long() and should be consisted of numbers
+   separated by commas and/or spaces. These numbers are converted to the values
+   used by config_weighted_t */
+config_weighted_t* to_config_weighted(const char*, config_weighted_t*);
 
 /* Some variables from the only argument are not initialized here, since they
    have to be static variables for the getopt_long() procedure. The solution
@@ -143,6 +150,10 @@ parameter_t* init_parameters (parameter_t* p) {
   /* Don't normalize by default */
   string2normalization(&p->normalization, "none");
 
+  /* Nothing to start using this type of normalization */
+  p->config_weighted.nlayers = 0;
+  p->config_weighted.last2norm = NULL;
+
   /* By default, choose a negative normalization radius (for unity+). */
   p->max_radius = -1.0;
 
@@ -194,6 +205,7 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {"verbose",      0, &verbose,      1},
 
     /* These options have arguments */
+    {"config-weighted", 1, 0, 'c'},
     {"dump", 1, 0, 'd'},
     {"event-number", 1, 0, 'e'},
     {"format", 1, 0, 'f'},
@@ -213,11 +225,15 @@ void process_flags (parameter_t* p, const int argc, char** argv)
     {0, 0, 0, 0}
   };
   
-  while (EOF != (c=getopt_long(argc, argv, "i:o:k:g:he:r:d:f:p:l:s:n:m:t:x:",
+  while (EOF != (c=getopt_long(argc, argv, "c:i:o:k:g:he:r:d:f:p:l:s:n:m:t:x:",
 			       long_options, &option_index) ) ) {
     switch (c) {
 
     case 0: /* Got a nil-flagged option */
+      break;
+
+    case 'c': /* The limits if using NORM_WEIGHTED_* normalization type */
+      to_config_weighted(optarg, &p->config_weighted);
       break;
       
     case 'd': /* What to dump? */
@@ -563,6 +579,34 @@ void test_flags (parameter_t* p)
     exit(EXIT_FAILURE);
   }
 
+  /* if you are not using one of NORMAL_WEIGHTED_* types of normalization, no
+     sense in having the -c option stuff and vice-versa. */
+  if ( normal_is_weighted_seg(&p->normalization) || 
+       normal_is_weighted_all(&p->normalization) ) {
+    if ( p->config_weighted.nlayers == 0 ) {
+      fprintf(stderr, "(parameter)ERROR: Can't use weighted normalization");
+      fprintf(stderr, " without weighted configuration\n");
+      fprintf(stderr, "(parameter)ERROR: Use the -c parameter to set this\n"); 
+      exit(EXIT_FAILURE);
+    }
+
+    /* Another concern is the number of layers selected and the number of
+       weighed configuration parameters: they have to match! */
+    if(flag_contains_nlayers(&p->layer_flags) != p->config_weighted.nlayers) {
+      fprintf(stderr, "(parameter)ERROR: The number of layers configured is");
+      fprintf(stderr, " %d and the number of weight limits is %d\n", 
+	      flag_contains_nlayers(&p->layer_flags),
+	      p->config_weighted.nlayers);
+      exit(EXIT_FAILURE);
+    }
+
+  }
+
+  /* In this case, only warn the user */
+  else if ( p->config_weighted.nlayers != 0) {
+    fprintf(stderr, "(parameter)WARN: Will ignore the -c parameter since ");
+    fprintf(stderr, "weighted normalization is _not_ selected\n");
+  }
 }
 
 void print_help_msg(FILE* fp, const char* prog)
@@ -610,6 +654,9 @@ void terminate_parameters (parameter_t* p)
     free(p->ofbuf);
   }
 
+  /* terminate the weighted parameter configuration, if needed */
+  if ( p->config_weighted.nlayers != 0 ) free(p->config_weighted.last2norm);
+
   return;
 }
 
@@ -646,6 +693,16 @@ void dump_config(FILE* fp, const parameter_t* par)
 	      layer2string(&par->print_flags,temp));
       fprintf(fp, " +- Normalization: %s\n",
 	      normalization2string(&par->normalization,temp));
+
+      if ( normal_is_weighted_all(&par->normalization) ||
+	   normal_is_weighted_seg(&par->normalization) ) {
+	int i;
+	fprintf(fp, " +- Stop Rings (Weighted Norm.): ");
+	for (i=0; i<par->config_weighted.nlayers; ++i)
+	  fprintf(fp, "%d ", par->config_weighted.last2norm[i]);
+	fprintf(fp, "\n");
+      }
+
       if ( par->max_radius > 0 )
 	fprintf(fp, " +- Maximum normalization radius: %e\n", par->max_radius);
     }
@@ -728,7 +785,7 @@ long to_valid_long(const char* str)
 
   number = strtol(str,invalid_number,10);
   if (**invalid_number != '\0') {
-    fprintf(stderr,"(util) -%s- is not a valid integer.\n", str);
+    fprintf(stderr,"(parameter.c) -%s- is not a valid integer.\n", str);
     exit(EXIT_FAILURE);
   }
 
@@ -786,4 +843,54 @@ void output_string(FILE* fp, struct obstack* obp, const bool_t run_fast,
   if (run_fast) grow_obstring(obp, info);
   else fprintf(fp, "%s", info);
   return;
+}
+
+/* Converts a string into a config_weighted_t variable. The string is usually
+   get by getopt() or getopt_long() and should be consisted of numbers
+   separated by commas and/or spaces. These numbers are converted to the values
+   used by config_weighted_t */
+config_weighted_t* to_config_weighted(const char* from, config_weighted_t* to)
+{
+  char* token;
+  const char delimiters [] = " ,";
+  long current;
+  /* copies the initial string, not to alter it with a strtok() call */
+  char* temp2 = strdup (from); /* save the allocation address for later freeing
+				*/ 
+  char* temp = temp2;
+
+  /* reset to */
+  to->nlayers=0;
+  to->last2norm=NULL;
+
+  if ( temp == NULL ) {
+    fprintf(stderr, "(parameter.c)ERROR: Can't copy string on to_config_weighted()\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* Now I can use temp normally */
+  while( (token = strtok(temp,delimiters)) != NULL ) {
+    temp = NULL; /* next calls will continue to process temp */
+
+    current = to_valid_long(token); /* get the first token and transform */
+    
+    /* check if this integer is a valid short */
+    if ( current < 256 && current > 0) {
+      /* This is a valid integer */
+      to->last2norm = (unsigned short*)realloc(to->last2norm,sizeof(unsigned
+								    short));
+      to->last2norm[to->nlayers] = (short)current;
+      ++to->nlayers;
+    }
+    
+    else {
+      fprintf(stderr, "(parameter.c)ERROR: valid short? -> %s\n", token);
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  free(temp2);
+
+  return(to);
+
 }
