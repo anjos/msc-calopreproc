@@ -1,7 +1,7 @@
 This file is part of CaloASCII-tester package
 by André Rabello dos Anjos
 
-$Id: README,v 1.4 2000/05/26 17:08:17 rabello Exp $
+$Id: README,v 1.5 2000/05/31 11:43:06 rabello Exp $
 
 Introduction
 ------------
@@ -69,9 +69,9 @@ application is called 'wrdata'. You can do
 
 In order to get some processing options.
 
-You can build another application as well, called 'test'. This application can
-test an specific RoI for errors at the digis fields. This job may be important
-if you're not sure of the reliability of you file. Just do:
+You can build another application as well, called 'testfile'. This application
+can test an specific RoI for errors at the digis fields. This job may be
+important if you're not sure of the reliability of you file. Just do:
 
 make testfile
 
@@ -82,11 +82,14 @@ You can do
 The installation procedures seem simple, but there is a caveat: The calo
 library depends on the building of the data specification objects, which in
 turn depends on the building of the spec library. This way, in order to build
-the calo library, one needs to build the spec library previously. This is
-handled by the root Makefile, but *NOT* by the dist/calo/makefile. It can be
-tricky if you want to build the calo library separetely.  I'll try to make all
-these automatic, but for now just make sure you don't do this or nothing will
-come out from the building procedures.
+the calo library, one needs to build the spec library previously, then the
+header and source files of the specification files. This is handled by the root
+Makefile, but *NOT* by the dist/calo/makefile. It can be tricky if you want to
+build the calo library separetely. In order to do that, go to the distribution
+root and do:
+
+make depend
+make calo
 
 Ok, I think that's it for installation.
 
