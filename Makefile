@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.20 2000/09/11 23:08:09 andre Exp $
+# $Id: Makefile,v 1.21 2000/09/11 23:12:52 andre Exp $
 
 # This makefile builds the datafile reading/writing library
 # such library can be used to read ASCII data files as specified
@@ -135,7 +135,7 @@ docs:
 version:
 	@echo \*
 	@echo \* This file guides make\(1\) in building this package. 
-	@echo \* -- current version is '$$Revision: 1.20 $$' of '$$Date: 2000/09/11 23:08:09 $$'
+	@echo \* -- current version is '$$Revision: 1.21 $$' of '$$Date: 2000/09/11 23:12:52 $$'
 	@echo \* " "
 	@echo \* Andre Rabello dos Anjos \<Andre\.dos\.Anjos\@cern\.ch\>
 	@echo \* " "
@@ -160,7 +160,7 @@ dist: clean
 	@echo \* Creating distribution. Current date will be written on DATE...
 	@echo \* Today is `date +%A,\ %d\ of\ %B\ of\ %Y`
 	@echo `date` > DATE
-	@cd ..;
+	@cd ..; \
 	 tar cvf - $(MODULE) | gzip > $(MODULE)-`cat $(WORKDIR)/VERSION`.tar.gz
 
 shot: clean
