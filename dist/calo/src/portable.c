@@ -8,7 +8,7 @@
  *
  * 0 - zero; K - calo; m - module; S - side or signal; e - eta and p is phi.
  *                        (region)
- * $Id: portable.c,v 1.2.1.2 2000/04/11 16:02:46 rabello Exp $
+ * $Id: portable.c,v 1.3 2000/05/26 17:46:05 rabello Exp $
  *
  * ************************************************************************* */
  
@@ -20,6 +20,7 @@ double rint(double x);
 double pow(double x, double y);
 
 /* local prototypes */
+ErrorCode DecodeId(const unsigned int, CellInfo*);
 ErrorCode ResolveLayer(CellInfo*);
 void CorrectCell(CellInfo*);
 
