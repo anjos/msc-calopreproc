@@ -1,7 +1,7 @@
 # This Makefile is part of the calo-preproc package.
 # It builds the User Manual and other documents automatically
 
-# $Id: Makefile,v 1.2 2000/09/11 14:27:17 andre Exp $
+# $Id: Makefile,v 1.3 2000/11/07 16:27:26 rabello Exp $
 
 # André Rabello <Andre.Rabello@ufrj.bf>
 
@@ -23,6 +23,7 @@ html:
 
 dvi:
 	@$(TEXI2DVI) --texinfo=@afourpaper --clean --quiet $(SRC)
+	@mv $(SRC:%.texinfo=%.dvi) calo-preproc.dvi
 	@echo \* Built DVI file. Print it directly with \`lpr -d\'
 
 # the targets that don't need to be checked to be run
