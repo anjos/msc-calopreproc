@@ -1,7 +1,7 @@
 /* Hello emacs, this is -*- c -*- */
 /* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch> */
 
-/* $Id: test_portable.c,v 1.2 2000/05/31 13:45:08 rabello Exp $ */
+/* $Id: test_portable.c,v 1.3 2000/07/07 18:48:50 rabello Exp $ */
 
 #include "test_portable.h"
 
@@ -224,13 +224,13 @@ bool_t check_em_digi (roi_statistics_t* stat, const CellInfo* cell,
   }
   
   /* use check_float for checking on the values for phi */
-  if ( ! check_double(of, cell->center.Phi, digi->phi, "PHI") ) {
+  if ( ! check_double(of, cell->center.phi, digi->phi, "PHI") ) {
     has_error = TRUE;
     ++(stat->phi_errors);
   }
   
   /* use check_float for checking on the values for eta */
-  if ( ! check_double(of, cell->center.Eta, digi->eta, "ETA") ) {
+  if ( ! check_double(of, cell->center.eta, digi->eta, "ETA") ) {
     has_error = TRUE;
     ++(stat->eta_errors);
   }
@@ -342,8 +342,8 @@ roi_statistics_t* check_em_part (const emCalDigiType* digi, const long n_digi,
     if ( check_em_digi (stats, &cell, &(digi[i]), of) ) {
       i2ucn(digi[i].id, ucn);
       fprintf(of, "UCN for digi %ld is %s (%d)\n", i, ucn, digi[i].id);
-      fprintf(of, "[ETA = %e] [PHI = %e] [CR = %d]\n",cell.center.Eta,
-	      cell.center.Phi, 100*cell.calo + cell.region);
+      fprintf(of, "[ETA = %e] [PHI = %e] [CR = %d]\n",cell.center.eta,
+	      cell.center.phi, 100*cell.calo + cell.region);
       fprintf(of, "-------------------------------------------------------\n");
     }
 
