@@ -1,4 +1,7 @@
-/* $Id: common.h,v 1.2.1.1 2000/04/07 20:13:56 rabello Exp $ */
+/* hello emacs, this is -*- c -*- */
+/* Andre Rabello dos Anjos <Andre.dos.Anjos@cern.ch>
+
+/* $Id: common.h,v 1.3 2000/04/11 14:57:51 rabello Exp $ */
 
 #ifndef COMMON_H
 #define COMMON_H
