@@ -8,7 +8,7 @@
    strings into doubles or longs. 
 */
 
-/* $Id: util.h,v 1.4 2000/07/20 00:44:40 rabello Exp $ */
+/* $Id: util.h,v 1.5 2000/08/22 02:49:33 andre Exp $ */
 
 #ifndef __UTIL_H
 #define __UTIL_H
@@ -37,14 +37,6 @@ long count_events(FILE*);
    issued. This will happen also in the case there are RoIs, but no cell
    information is present in none of them. Both warnings are distingueshable.*/
 EVENT search_event(FILE*, const long);
-
-/* This funtion just returns a valid long based on a string. It's an
-   implemenatation of atol(), but with the verification of strtol(). */
-long to_valid_long(const char*);
-
-/* This funtion just returns a valid long based on a string. It's an
-   implemenatation of atol(), but with the verification of strtol(). */
-double to_valid_double(const char*);
 
 /* Waste all initial crap */
 void waste_initial_info(FILE*);

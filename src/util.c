@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.7 2000/07/20 00:43:41 rabello Exp $ */
+/* $Id: util.c,v 1.8 2000/08/22 02:49:14 andre Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -93,38 +93,6 @@ EVENT search_event(FILE* in, const long evno)
   }
 
   return event;
-}
-
-long to_valid_long(const char* str)
-{
-  char** invalid_number = (char**)malloc(sizeof(char*));
-  long number;
-
-  *invalid_number = NULL;
-
-  number = strtol(str,invalid_number,10);
-  if (**invalid_number != '\0') {
-    fprintf(stderr,"(util) -%s- is not a valid integer.\n", str);
-    exit(EXIT_FAILURE);
-  }
-
-  return(number);
-}
-
-double to_valid_double(const char* str)
-{
-  char** invalid_number = (char**)malloc(sizeof(char*));
-  double number;
-
-  *invalid_number = NULL;
-
-  number = strtod(str,invalid_number);
-  if (**invalid_number != '\0') {
-    fprintf(stderr,"(util) -%s- is not a valid float.\n", str);
-    exit(EXIT_FAILURE);
-  }
-
-  return(number);
 }
 
 long count_events(FILE* fp)
