@@ -2,7 +2,7 @@
 
 /* This is an utility library for the dumping routines */
 
-/* $Id: util.c,v 1.4 2000/05/23 01:03:40 rabello Exp $ */
+/* $Id: util.c,v 1.5 2000/06/28 15:47:54 rabello Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,6 +45,7 @@ EVENT search_event(FILE* in, const long evno)
   long itor;
   int has_info;
   EVENT event;
+  bool_t eliminated = FALSE;
 
   waste_initial_info(in);
 
@@ -54,9 +55,22 @@ EVENT search_event(FILE* in, const long evno)
       fprintf(stderr,"(util) No event %d in file.\n", evno);
       exit(EXIT_FAILURE);
     }
-    if (itor < evno) free_EVENT(&event); /* I don't need this particular
-					    event, I can clear it then. */
-  }
+
+    if (itor < evno) {
+      free_EVENT(&event); /* Clearing unneeded event */
+      if (itor == 1) fprintf(stderr,"(util) Discarded events -> %4ld", itor);
+      fprintf(stderr,"\b\b\b\b");
+      fprintf(stderr, "%4ld",itor);
+      fflush(stderr); /* just makes sure the number is written to the screen,
+		       otherwise it would stay jumping from 1 to 126 with no
+		       logic at all */
+      eliminated = TRUE;
+    }
+
+  } 
+
+  if (eliminated) fprintf(stderr,"\n");
+  fprintf(stderr,"(util) Will be processing event %ld...\n", itor-1);
 
   /* Look into event and find out if it has or has not valid calo information
    */
@@ -117,7 +131,7 @@ long count_events(FILE* fp)
   EVENT event;
 
   waste_initial_info(fp);
-
+  fprintf(stderr,"%4ld", count); /* Is it ok to write to stdout? */
   while(read_EVENT(fp,&event) == ERR_SUCCESS)
   {
     if(event.nroi > 0) {
@@ -130,7 +144,16 @@ long count_events(FILE* fp)
 	}
     }
     free_EVENT(&event);
+
+    fprintf(stderr,"\b\b\b\b");
+    fprintf(stderr, "%4ld",count);
+
+    fflush(stderr); /* just makes sure the number is written to the screen,
+		       otherwise it would stay jumping from 1 to 126 with no
+		       logic at all */
   }
+
+  fprintf(stderr,"\b\b\b\b");
   return count;
 }
 
