@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.h,v 1.4 2000/07/20 00:49:18 rabello Exp $ */
+/* $Id: ring.h,v 1.5 2000/08/11 16:13:25 rabello Exp $ */
 
 #ifndef _RING_H
 #define _RING_H
@@ -8,15 +8,25 @@
 #include <stdio.h>
 #include "ttdef.h"
 
+/* defines how rings are going to be arranged */
 typedef struct ring_t 
 {
   Energy* feat;
   int nfeat;
 }ring_t;
 
+/* defines how the rings are going to be arranged globally */
+typedef struct ringroi_t
+{
+  ring_t* ring;
+  int nring;
+}ringroi_t;
+
 /* Given an array of cells in tt_roi_t format, this function can output the
    squared rings formed by summing the rings outside the energy peak of the
-   layer being analysed. 
+   layer being analysed. The RoI on it's raw state (by trigtowr.c) should be
+   passed along options for uniformization, printing and normalization on that
+   order. 
 
    In order to do its job, this function will search for the highest energy
    value among all cells, and will continously sum the cells around the energy
@@ -25,11 +35,13 @@ typedef struct ring_t
    included in processing and normalization type are specified by the unsigned
    shorts in the end (last 2 arguments), as describe in module uniform.[ch].
 
-   The function should the number of layers were the ringing algorithm were
-   applied. The space should no be preallocated, but one must free it after
-   usage. */ 
-int ring_sum (const tt_roi_t*, ring_t**, const unsigned short, const unsigned
-	      short);
+   The function should return the number of layers were the ringing algorithm
+   were applied. The ringroi_t.ring pointer will be directed to some space
+   containing the extracted rings. The space should not be preallocated, but
+   one must free it after usage. The actual space for ringroi_t SHOULD be
+   preallocated. I suggest using static local allocation. */
+int ring_sum (const tt_roi_t*, ringroi_t*, const unsigned short, 
+	      const unsigned short, const unsigned short);
 
 /* This function just frees a ring_t */
 bool_t free_ring (ring_t*);
