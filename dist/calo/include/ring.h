@@ -1,6 +1,6 @@
 /* Hello emacs, this is -*- c -*- */
 
-/* $Id: ring.h,v 1.6 2000/08/17 00:12:49 andre Exp $ */
+/* $Id: ring.h,v 1.7 2000/09/06 21:17:06 rabello Exp $ */
 
 #ifndef _RING_H
 #define _RING_H
@@ -27,7 +27,7 @@ typedef struct ringroi_t
    the squared rings formed by summing the rings outside the energy peak of the
    layer being analysed. The RoI on it's uniformized state (by uniform.c)
    should be passed along with a place to put the ringroi_t malloc'ed inside
-   and options for printing on that order.
+   and options for printing and normalization on that order.
 
    In order to do its job, this function will search for the highest energy
    value among all cells, and will continously sum the cells around the energy
@@ -41,7 +41,8 @@ typedef struct ringroi_t
    containing the extracted rings. The space should not be preallocated, but
    one must free it after usage. The actual space for ringroi_t SHOULD be
    preallocated. I suggest using static local allocation. */
-int ring_sum (const uniform_roi_t*, ringroi_t*, const unsigned short);
+int ring_sum (const uniform_roi_t*, ringroi_t*, const unsigned short*,
+	      const unsigned short*);
 
 /* This function just frees a ring_t */
 bool_t free_ring (ring_t*);
